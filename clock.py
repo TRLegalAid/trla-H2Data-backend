@@ -9,7 +9,7 @@ def scheduled_job():
     print("maybe this succeeded")
 
 sched = BlockingScheduler()
-sched.add_job(scheduled_job, 'interval', minutes=2, start_date='2020-07-19 16:22:00', timezone='US/Eastern')
+sched.add_job(scheduled_job, 'interval', minutes=2, start_date='2020-07-19 16:30:00', timezone='US/Eastern')
 
 # @sched.scheduled_job('interval', minutes=1)
 # def timed_job():
