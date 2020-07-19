@@ -5,18 +5,17 @@ engine = create_engine('postgres://txmzafvlwebrcr:df20d17265cf81634b9f6891872485
 
 sched = BlockingScheduler()
 
-# @sched.scheduled_job('interval', minutes=1)
-# def timed_job():
-#     df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-#     df.to_sql("new", engine, if_exists='append', index=False)
-    # if you print here maybe it'll be in the heorku logs
-
-# when wake up there should be 4 of them (6 rows)
-@sched.scheduled_job('cron', hour='15', minute='45')
-def schdeuled_job():
+@sched.scheduled_job('interval', minutes=1)
+def timed_job():
     df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-    df.to_sql("new2", engine, if_exists='append', index=False)
-    print("maybe this succeeded")
+    df.to_sql("new", engine, if_exists='append', index=False)
+    print("helloooooo")
+# when wake up there should be 4 of them (6 rows)
+# @sched.scheduled_job('cron', hour='15', minute='45')
+# def schdeuled_job():
+#     df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+#     df.to_sql("new2", engine, if_exists='append', index=False)
+#     print("maybe this succeeded")
 
 # @sched.scheduled_job('cron', day_of_week='mon-fri', hour=17)
 # def scheduled_job():
