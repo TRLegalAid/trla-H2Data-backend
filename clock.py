@@ -12,7 +12,7 @@ sched = BlockingScheduler()
     # if you print here maybe it'll be in the heorku logs
 
 # when wake up there should be 4 of them (6 rows)
-@sched.scheduled_job('cron', hour='15', minute='40')
+@sched.scheduled_job('cron', hour='15', minute='45')
 def schdeuled_job():
     df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
     df.to_sql("new2", engine, if_exists='append', index=False)
