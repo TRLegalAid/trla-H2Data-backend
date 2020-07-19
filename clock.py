@@ -9,7 +9,7 @@ sched = BlockingScheduler()
 @sched.scheduled_job('interval', minutes=1)
 def timed_job():
     df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-    num = random.randint(3,7)
+    num = random.randint(4,6)
     dict1 = {0: "zero", 1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven"}
     df.to_sql(dict1[num], engine, if_exists='replace', index=False)
     print("done, here's the num: " + str(num))
