@@ -5,11 +5,11 @@ engine = create_engine('postgres://txmzafvlwebrcr:df20d17265cf81634b9f6891872485
 
 def scheduled_job():
     df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
-    df.to_sql("new2", engine, if_exists='append', index=False)
+    df.to_sql("new3", engine, if_exists='append', index=False)
     print("maybe this succeeded")
 
 sched = BlockingScheduler()
-sched.add_job(scheduled_job, 'interval', minutes=1, start_date='2020-07-19 16:09:00')
+sched.add_job(scheduled_job, 'interval', minutes=2, start_date='2020-07-19 16:22:00', timezone='US/Eastern')
 
 # @sched.scheduled_job('interval', minutes=1)
 # def timed_job():
