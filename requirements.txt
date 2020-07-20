@@ -4,4 +4,3 @@ sqlalchemy
 psycopg2
 geocodio
 requests
-client
