@@ -17,6 +17,7 @@ def create_address_from(address, city, state, zip):
         return "not quite"
 
 # get latest jobs from scraper
+# https://api.apify.com/v2/datasets/OCSl2bqSFgvPOP3bH/items?format=json&clean=1
 latest_jobs = requests.get("https://api.apify.com/v2/acts/eytaog~apify-dol-actor-latest/runs/last/dataset/items?token=ftLRsXTA25gFTaCvcpnebavKw").json()
 
 # parse job so it's not a nested dictionary
@@ -57,20 +58,20 @@ def add_necessary_columns(job):
         # get the number of workers requested
         job["Number of Workers Requested"] = job["Job Info/Workers Needed H-2A"]
 
-    # check if job is h2b
-    elif job["ETA case number"][2] == "4":
-        job["Visa type"] = "H-2B"
-    else:
-        job["Visa type"] = ""
-
-    # create W:H Ratio column
-    if job["Visa type"] == "H-2A":
+        # create W:H Ratio column
         if job["Number of Workers Requested"] > job["Housing Info/Total Occupancy"]:
             job["W to H Ratio"] = "W>H"
         elif job["Number of Workers Requested"] < job["Housing Info/Total Occupancy"]:
             job["W to H Ratio"] = "W<H"
         else:
             job["W to H Ratio"] = "W=H"
+
+    # check if job is h2b
+    elif job["ETA case number"][2] == "4":
+        job["Visa type"] = "H-2B"
+    else:
+        job["Visa type"] = ""
+
 
     return job
 
@@ -80,12 +81,51 @@ parsed_jobs = [parse(job) for job in latest_jobs]
 # add all columns to all jobs
 full_jobs = [add_necessary_columns(job) for job in parsed_jobs]
 
-# get data from postgres
-df = pd.read_sql_query('select * from "job_postings"', con=engine)
-
-# add each new job to df
+accurate_jobs = []
+innacurate_jobs = []
 for job in full_jobs:
-    df = df.append(job, ignore_index=True)
+    if job["Visa type"] == "H-2A":
+        # print("we're in the h2a branch")
+        if (job["worksite coordinates"] == None) or (job["housing coordinates"] == None) or (job["worksite accuracy"] < 0.95) or (job["housing accuracy"] < 0.95):
+            job["fixed"] = False
+            innacurate_jobs.append(job)
+            # print("h2a bad")
+        else:
+            accurate_jobs.append(job)
+            # print("h2a good")
 
+    elif job["Visa type"] == "H-2B":
+        # print("we're in the h2b branch")
+        if (job["worksite coordinates"] == None) or (job["worksite accuracy"] < 0.95):
+            job["fixed"] = False
+            # print("h2b bad")
+            innacurate_jobs.append(job)
+        else:
+            # print("h2b good")
+            accurate_jobs.append(job)
+
+    else:
+        # print("we're in the neither branch")
+        job["fixed"] = False
+        innacurate_jobs.append(job)
+
+print(f"There were {len(accurate_jobs)} accurate jobs.")
+print(f"There were {len(innacurate_jobs)} inaccurate jobs.")
+
+
+# get data from postgres
+df = pd.read_sql_query('select * from "todays_tests"', con=engine)
+# add each new job to df
+for job in accurate_jobs:
+    df = df.append(job, ignore_index=True)
 # send updated df back to postgres
-df.to_sql('job_postings', engine, if_exists='replace', index=False)
+df.to_sql('todays_tests', engine, if_exists='replace', index=False)
+
+import sqlalchemy
+try:
+    df = pd.read_sql_query('select * from "low_accuracies"', con=engine)
+except:
+    df = pd.DataFrame()
+for job in innacurate_jobs:
+    df = df.append(job, ignore_index=True)
+df.to_sql('low_accuracies', engine, if_exists='replace', index=False, dtype={"fixed": sqlalchemy.types.Boolean, "Experience Required": sqlalchemy.types.Boolean, "Multiple Worksites": sqlalchemy.types.Boolean})

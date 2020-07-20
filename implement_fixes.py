@@ -8,19 +8,8 @@ import numpy as np
 client = GeocodioClient("454565525ee5444fefef2572155e155e5248221")
 engine = create_engine('postgres://txmzafvlwebrcr:df20d17265cf81634b9f689187248524a6fd0d56222985e2f422c71887ec6ec0@ec2-34-224-229-81.compute-1.amazonaws.com:5432/dbs39jork6o07d')
 
-# excel_sheet = input("Type the file name of an excel spreadsheet with your data - make sure this sheet this sheet is in the same folder as this script. \n")
-# df = pd.read_excel(excel_sheet)
-df = pd.read_excel("DOL Data.xlsx")
 
-
-def create_address_from(address, city, state, zip):
-    try:
-        return address + ", " + city + " " + state + " " + str(zip)
-    except:
-        return ""
-
-df["worksite full address"] = df.apply(lambda job: create_address_from(job["Worksite address"], job["Worksite address city"], job["Worksite address state"], job["Worksite address zip code"]), axis=1)
-df["housing full address"] = df.apply(lambda job: create_address_from(job["Housing Info/Housing Address"], job["Housing Info/City"], job["Housing Info/State"], job["Housing Info/Postal Code"]), axis=1)
+df = pd.read_sql_query('select * from "low_accuracies" where fixed=true', con=engine)
 
 def geocode_table(worskite_or_housing):
     addresses = df[f"{worskite_or_housing} full address"].tolist()
@@ -30,6 +19,7 @@ def geocode_table(worskite_or_housing):
         try:
             geocoded = client.geocode(address)
             coordinates.append(geocoded.coords)
+            print(geocoded.coords)
             accuracies.append(geocoded.accuracy)
         except:
             coordinates.append(None)
@@ -45,13 +35,8 @@ def geocode_table(worskite_or_housing):
 geocode_table("worksite")
 geocode_table("housing")
 
+df = df.drop("fixed", axis=1)
+df.to_sql('todays_tests', engine, if_exists='append', index=False)
 
-# table_name = input('Type the name of the PostgreSQL table into which to put the data. If it already exists, it will be replaced, otherwise it will be created.')
-# df.to_sql(table_name, engine, if_exists='replace')
-
-# idea here, to use at top
-# for index, row in df.iterrows():
-#     print(index)
-#     print(row)
-
-df.to_sql("todays_tests", engine, if_exists='replace')
+df = pd.read_sql_query('select * from "low_accuracies" where fixed=false', con=engine)
+df.to_sql('low_accuracies', engine, if_exists='replace', index=False)
