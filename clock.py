@@ -19,6 +19,6 @@ def scheduled_job():
 
 sched = BlockingScheduler()
 # change minutes=2 to days=1
-sched.add_job(scheduled_job, 'interval', minutes=2, start_date='2020-07-19 16:30:00', timezone='US/Eastern')
+sched.add_job(scheduled_job, 'interval', hours=1, start_date='2020-07-19 22:10:00', timezone='US/Eastern')
 
 sched.start()
