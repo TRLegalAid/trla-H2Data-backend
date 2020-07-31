@@ -1,5 +1,6 @@
 import requests
 import pandas as pd
+import sqlalchemy
 from sqlalchemy import create_engine
 engine = create_engine('postgres://txmzafvlwebrcr:df20d17265cf81634b9f689187248524a6fd0d56222985e2f422c71887ec6ec0@ec2-34-224-229-81.compute-1.amazonaws.com:5432/dbs39jork6o07d')
 from geocodio import GeocodioClient
@@ -25,6 +26,7 @@ def create_address_from(address, city, state, zip):
 # get latest jobs from scraper
 # https://api.apify.com/v2/acts/eytaog~apify-dol-actor-latest/runs/last/dataset/items?token=ftLRsXTA25gFTaCvcpnebavKw
 latest_jobs = requests.get("https://api.apify.com/v2/datasets/OCSl2bqSFgvPOP3bH/items?format=json&clean=1").json()
+our_states = ["texas", "kentucky", "tennessee", "arkansas", "louisiana", "mississippi", "alabama"]
 
 # parse job so it's not a nested dictionary
 def parse(job):
@@ -44,10 +46,18 @@ def parse(job):
 def add_necessary_columns(job):
 
     # create and geocode full worksite address
-    job["worksite full address"] = create_address_from(job["Worksite address"], job["Worksite address city"], job["Worksite address state"], job["Worksite address zip code"])
-    worksite_geocoded = client.geocode(job["worksite full address"])
+    worksite_full_address = create_address_from(job["Worksite address"], job["Worksite address city"], job["Worksite address state"], job["Worksite address zip code"])
+    worksite_geocoded = client.geocode(worksite_full_address)
     job["worksite coordinates"] = worksite_geocoded.coords
     job["worksite accuracy"] = worksite_geocoded.accuracy
+    # this might fail, but the others won't (they just return None if it's a bad address)
+    try:
+        job["worksite accuracy type"] = worksite_geocoded["results"][0]["accuracy_type"]
+    except:
+        # set to place so that it'll go in the bad zone, maybe change place to failed, but this should be fine
+        job["worksite accuracy type"] = "place"
+
+
 
     # add source and date of run column
     job["Source"] = "Apify"
@@ -57,10 +67,15 @@ def add_necessary_columns(job):
     if job["ETA case number"][2] == "3":
         job["Visa type"] = "H-2A"
         # create and geocode full housing address
-        job["housing full address"] = create_address_from(job["Housing Info/Housing Address"], job["Housing Info/City"], job["Housing Info/State"], job["Housing Info/Postal Code"])
-        housing_geocoded = client.geocode(job["housing full address"])
+        housing_full_address = create_address_from(job["Housing Info/Housing Address"], job["Housing Info/City"], job["Housing Info/State"], job["Housing Info/Postal Code"])
+        housing_geocoded = client.geocode(housing_full_address)
         job["housing coordinates"] = housing_geocoded.coords
         job["housing accuracy"] = housing_geocoded.accuracy
+        try:
+            job["housing accuracy type"] = housing_geocoded["results"][0]["accuracy_type"]
+        except:
+            # set to place so that it'll go in the bad zone, maybe change place to failed, but this should be fine
+            job["housing accuracy type"] = "place"
         # get the number of workers requested
         job["Number of Workers Requested"] = job["Job Info/Workers Needed H-2A"]
 
@@ -97,32 +112,26 @@ accurate_jobs = []
 innacurate_jobs = []
 for job in full_jobs:
     if job["Visa type"] == "H-2A":
-        # print("we're in the h2a branch")
-        if (job["worksite coordinates"] == None) or (job["housing coordinates"] == None) or (job["worksite accuracy"] < 0.8) or (job["housing accuracy"] < 0.8):
+        if (job["Worksite address state"].lower() in our_states) and ((job["worksite coordinates"] == None) or (job["housing coordinates"] == None) or (job["worksite accuracy"] < 0.8) or (job["housing accuracy"] < 0.8) or (job["worksite accuracy type"] == "place") or (job["housing accuracy type"] == "place")):
+        # if ((job["worksite coordinates"] == None) or (job["housing coordinates"] == None) or (job["worksite accuracy"] < 0.8) or (job["housing accuracy"] < 0.8) or (job["worksite accuracy type"] == "place") or (job["housing accuracy type"] == "place")):
+
             job["fixed"] = False
             job["worksite_fixed_by"] = "NA"
             job["housing_fixed_by"] = "NA"
             innacurate_jobs.append(job)
-            # print("h2a bad")
         else:
             accurate_jobs.append(job)
-            # print("h2a good")
 
     elif job["Visa type"] == "H-2B":
-        # print("we're in the h2b branch")
-        if (job["worksite coordinates"] == None) or (job["worksite accuracy"] < 0.8):
+        if (job["Worksite address state"].lower() in our_states) and ((job["worksite coordinates"] == None) or (job["worksite accuracy"] < 0.8) or (job["worksite accuracy type"] == "place")):
             job["fixed"] = False
             job["worksite_fixed_by"] = "NA"
             job["housing_fixed_by"] = "NA"
-
-            # print("h2b bad")
             innacurate_jobs.append(job)
         else:
-            # print("h2b good")
             accurate_jobs.append(job)
 
     else:
-        # print("we're in the neither branch")
         job["fixed"] = False
         job["worksite_fixed_by"] = "NA"
         job["housing_fixed_by"] = "NA"
@@ -133,18 +142,35 @@ print(f"There were {len(innacurate_jobs)} inaccurate jobs.")
 
 
 # get data from postgres
-df = pd.read_sql_query('select * from "todays_tests"', con=engine)
-# add each new job to df
-for job in accurate_jobs:
-    df = df.append(job, ignore_index=True)
-# send updated df back to postgres
-df.to_sql('todays_tests', engine, if_exists='replace', index=False)
+all_data = pd.read_sql_query('select * from "todays_tests"', con=engine)
 
-import sqlalchemy
 try:
-    df = pd.read_sql_query('select * from "low_accuracies"', con=engine)
+    low_accuracies = pd.read_sql_query('select * from "low_accuracies"', con=engine)
 except:
-    df = pd.DataFrame()
+    low_accuracies = pd.DataFrame()
+
+# loop to add each new job to df
+# uncomment to demonstrate removal of duplicates
+# accurate_jobs.append({"ETA case number":"H-300-20118-520718"})
+for job in accurate_jobs:
+    # remove rows from all data that have duplicate case number
+    all_data = all_data[all_data["ETA case number"] != job["ETA case number"]]
+    try:
+        # same as above but for low_accuracies, this will fail if low_accuracies is originally empty, thus the try
+        low_accuracies = low_accuracies[low_accuracies["ETA case number"] != job["ETA case number"]]
+    except:
+        pass
+    all_data = all_data.append(job, ignore_index=True)
+# send updated df back to postgres
+all_data.to_sql('todays_tests', engine, if_exists='replace', index=False)
+
+# same as above but for innacurate jobs
 for job in innacurate_jobs:
-    df = df.append(job, ignore_index=True)
-df.to_sql('low_accuracies', engine, if_exists='replace', index=False, dtype={"fixed": sqlalchemy.types.Boolean, "Experience Required": sqlalchemy.types.Boolean, "Multiple Worksites": sqlalchemy.types.Boolean})
+    all_data = all_data[all_data["ETA case number"] != job["ETA case number"]]
+    try:
+        low_accuracies = low_accuracies[low_accuracies["ETA case number"] != job["ETA case number"]]
+    except:
+        pass
+    low_accuracies = low_accuracies.append(job, ignore_index=True)
+
+low_accuracies.to_sql('low_accuracies', engine, if_exists='replace', index=False, dtype={"fixed": sqlalchemy.types.Boolean, "Experience Required": sqlalchemy.types.Boolean, "Multiple Worksites": sqlalchemy.types.Boolean})
