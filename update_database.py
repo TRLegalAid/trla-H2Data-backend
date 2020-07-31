@@ -5,6 +5,12 @@ engine = create_engine('postgres://txmzafvlwebrcr:df20d17265cf81634b9f6891872485
 from geocodio import GeocodioClient
 client = GeocodioClient("454565525ee5444fefef2572155e155e5248221")
 
+# just for testing, REMEMBER TO REMOVE!
+try:
+    engine.execute("drop table low_accuracies")
+except:
+    pass
+
 # function for printing dictionary
 def prettier(dictionary):
     for key in dictionary:
@@ -17,8 +23,8 @@ def create_address_from(address, city, state, zip):
         return "not quite"
 
 # get latest jobs from scraper
-# https://api.apify.com/v2/datasets/OCSl2bqSFgvPOP3bH/items?format=json&clean=1
-latest_jobs = requests.get("https://api.apify.com/v2/acts/eytaog~apify-dol-actor-latest/runs/last/dataset/items?token=ftLRsXTA25gFTaCvcpnebavKw").json()
+# https://api.apify.com/v2/acts/eytaog~apify-dol-actor-latest/runs/last/dataset/items?token=ftLRsXTA25gFTaCvcpnebavKw
+latest_jobs = requests.get("https://api.apify.com/v2/datasets/OCSl2bqSFgvPOP3bH/items?format=json&clean=1").json()
 
 # parse job so it's not a nested dictionary
 def parse(job):
@@ -72,6 +78,12 @@ def add_necessary_columns(job):
     else:
         job["Visa type"] = ""
 
+    # add 0's to front of zip code if necessary
+    zip_code = job["Company zip code"]
+    job["Company zip code"] = "0" * (5 - len(zip_code)) + zip_code
+
+    zip_code = job["Worksite address zip code"]
+    job["Worksite address zip code"] = "0" * (5 - len(zip_code)) + zip_code
 
     return job
 
@@ -86,8 +98,10 @@ innacurate_jobs = []
 for job in full_jobs:
     if job["Visa type"] == "H-2A":
         # print("we're in the h2a branch")
-        if (job["worksite coordinates"] == None) or (job["housing coordinates"] == None) or (job["worksite accuracy"] < 0.95) or (job["housing accuracy"] < 0.95):
+        if (job["worksite coordinates"] == None) or (job["housing coordinates"] == None) or (job["worksite accuracy"] < 0.8) or (job["housing accuracy"] < 0.8):
             job["fixed"] = False
+            job["worksite_fixed_by"] = "NA"
+            job["housing_fixed_by"] = "NA"
             innacurate_jobs.append(job)
             # print("h2a bad")
         else:
@@ -96,8 +110,11 @@ for job in full_jobs:
 
     elif job["Visa type"] == "H-2B":
         # print("we're in the h2b branch")
-        if (job["worksite coordinates"] == None) or (job["worksite accuracy"] < 0.95):
+        if (job["worksite coordinates"] == None) or (job["worksite accuracy"] < 0.8):
             job["fixed"] = False
+            job["worksite_fixed_by"] = "NA"
+            job["housing_fixed_by"] = "NA"
+
             # print("h2b bad")
             innacurate_jobs.append(job)
         else:
@@ -107,6 +124,8 @@ for job in full_jobs:
     else:
         # print("we're in the neither branch")
         job["fixed"] = False
+        job["worksite_fixed_by"] = "NA"
+        job["housing_fixed_by"] = "NA"
         innacurate_jobs.append(job)
 
 print(f"There were {len(accurate_jobs)} accurate jobs.")

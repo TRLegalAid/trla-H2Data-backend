@@ -11,6 +11,9 @@ engine = create_engine('postgres://txmzafvlwebrcr:df20d17265cf81634b9f6891872485
 # excel_sheet = input("Type the file name of an excel spreadsheet with your data - make sure this sheet this sheet is in the same folder as this script. \n")
 # df = pd.read_excel(excel_sheet)
 df = pd.read_excel("DOL Data.xlsx")
+df["fixed"] = None
+df["housing_fixed_by"] = None
+df["worksite_fixed_by"] = None
 
 
 def create_address_from(address, city, state, zip):
