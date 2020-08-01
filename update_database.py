@@ -112,8 +112,8 @@ accurate_jobs = []
 innacurate_jobs = []
 for job in full_jobs:
     if job["Visa type"] == "H-2A":
-        if (job["Worksite address state"].lower() in our_states) and ((job["worksite coordinates"] == None) or (job["housing coordinates"] == None) or (job["worksite accuracy"] < 0.8) or (job["housing accuracy"] < 0.8) or (job["worksite accuracy type"] == "place") or (job["housing accuracy type"] == "place")):
-        # if ((job["worksite coordinates"] == None) or (job["housing coordinates"] == None) or (job["worksite accuracy"] < 0.8) or (job["housing accuracy"] < 0.8) or (job["worksite accuracy type"] == "place") or (job["housing accuracy type"] == "place")):
+        # if (job["Worksite address state"].lower() in our_states) and ((job["worksite coordinates"] == None) or (job["housing coordinates"] == None) or (job["worksite accuracy"] < 0.8) or (job["housing accuracy"] < 0.8) or (job["worksite accuracy type"] == "place") or (job["housing accuracy type"] == "place")):
+        if ((job["worksite coordinates"] == None) or (job["housing coordinates"] == None) or (job["worksite accuracy"] < 0.8) or (job["housing accuracy"] < 0.8) or (job["worksite accuracy type"] == "place") or (job["housing accuracy type"] == "place")):
 
             job["fixed"] = False
             job["worksite_fixed_by"] = "NA"
