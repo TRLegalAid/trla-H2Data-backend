@@ -25,7 +25,7 @@ def create_address_from(address, city, state, zip):
 
 # get latest jobs from scraper
 # https://api.apify.com/v2/acts/eytaog~apify-dol-actor-latest/runs/last/dataset/items?token=ftLRsXTA25gFTaCvcpnebavKw
-latest_jobs = requests.get("https://api.apify.com/v2/datasets/OCSl2bqSFgvPOP3bH/items?format=json&clean=1").json()
+latest_jobs = requests.get("https://api.apify.com/v2/datasets/xe6ZzDWTPiCEB7Vw8/items?format=json&clean=1").json()
 our_states = ["texas", "kentucky", "tennessee", "arkansas", "louisiana", "mississippi", "alabama"]
 
 # parse job so it's not a nested dictionary
@@ -56,8 +56,6 @@ def add_necessary_columns(job):
     except:
         # set to place so that it'll go in the bad zone, maybe change place to failed, but this should be fine
         job["worksite accuracy type"] = "place"
-
-
 
     # add source and date of run column
     job["Source"] = "Apify"
