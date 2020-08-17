@@ -1,4 +1,5 @@
 import requests
+import helpers
 import pandas as pd
 import sqlalchemy
 from sqlalchemy import create_engine
@@ -11,17 +12,6 @@ try:
     engine.execute("drop table low_accuracies")
 except:
     pass
-
-# function for printing dictionary
-def prettier(dictionary):
-    for key in dictionary:
-        print(key, ": ", dictionary[key])
-
-def create_address_from(address, city, state, zip):
-    try:
-        return address + ", " + city + " " + state + " " + str(zip)
-    except:
-        return "not quite"
 
 # sample big dataset - https://api.apify.com/v2/datasets/xe6ZzDWTPiCEB7Vw8/items?format=json&clean=1
 # most recent run - https://api.apify.com/v2/acts/eytaog~apify-dol-actor-latest/runs/last/dataset/items?token=ftLRsXTA25gFTaCvcpnebavKw
@@ -46,7 +36,7 @@ def parse(job):
 def add_necessary_columns(job):
 
     # create and geocode full worksite address
-    worksite_full_address = create_address_from(job["Worksite address"], job["Worksite address city"], job["Worksite address state"], job["Worksite address zip code"])
+    worksite_full_address = helpers.create_address_from(job["Worksite address"], job["Worksite address city"], job["Worksite address state"], job["Worksite address zip code"])
     worksite_geocoded = client.geocode(worksite_full_address)
     job["worksite coordinates"] = worksite_geocoded.coords
     job["worksite accuracy"] = worksite_geocoded.accuracy
@@ -65,7 +55,7 @@ def add_necessary_columns(job):
     if job["ETA case number"][2] == "3":
         job["Visa type"] = "H-2A"
         # create and geocode full housing address
-        housing_full_address = create_address_from(job["Housing Info/Housing Address"], job["Housing Info/City"], job["Housing Info/State"], job["Housing Info/Postal Code"])
+        housing_full_address = helpers.create_address_from(job["Housing Info/Housing Address"], job["Housing Info/City"], job["Housing Info/State"], job["Housing Info/Postal Code"])
         housing_geocoded = client.geocode(housing_full_address)
         job["housing coordinates"] = housing_geocoded.coords
         job["housing accuracy"] = housing_geocoded.accuracy
@@ -92,18 +82,18 @@ def add_necessary_columns(job):
         job["Visa type"] = ""
 
     # add 0's to front of zip code if necessary
-    zip_code = job["Company zip code"]
-    job["Company zip code"] = "0" * (5 - len(zip_code)) + zip_code
-
-    zip_code = job["Worksite address zip code"]
-    job["Worksite address zip code"] = "0" * (5 - len(zip_code)) + zip_code
+    # zip_code = job["Company zip code"]
+    # job["Company zip code"] = "0" * (5 - len(zip_code)) + zip_code
+    #
+    # zip_code = job["Worksite address zip code"]
+    # job["Worksite address zip code"] = "0" * (5 - len(zip_code)) + zip_code
+    for zip_code_column_name in ["Company zip code", "Worksite address zip code",  "Place of Employment Info/Postal Code", "Housing Info/Postal Code"]:
+        job[zip_code_column_name] = helpers.fix_zip_code(job.get(zip_code_column_name, None))
 
     return job
 
-# parse each job
+# parse each job then add all columns to each job
 parsed_jobs = [parse(job) for job in latest_jobs]
-
-# add all columns to all jobs
 full_jobs = [add_necessary_columns(job) for job in parsed_jobs]
 
 accurate_jobs = []
@@ -149,7 +139,7 @@ except:
     low_accuracies = pd.DataFrame()
 
 # loop to add each new job to df
-# uncomment to demonstrate removal of duplicates
+# uncomment the line below to demonstrate/test removal of duplicates
 # accurate_jobs.append({"ETA case number":"H-300-20118-520718"})
 for job in accurate_jobs:
     # remove rows from all data that have duplicate case number

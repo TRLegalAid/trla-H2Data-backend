@@ -42,6 +42,7 @@ def h2a_or_h2b(job):
         return "H-2B"
     else:
         return ""
+        
 dol_jobs['Visa type'] = dol_jobs.apply(lambda job: h2a_or_h2b(job), axis=1)
 def yes_no_to_boolean(yes_no):
     if yes_no.strip() == "Y":
@@ -53,46 +54,9 @@ def yes_no_to_boolean(yes_no):
         return yes_no
 dol_jobs["Multiple Worksites"] = dol_jobs.apply(lambda job: yes_no_to_boolean(job["Multiple Worksites"]), axis=1)
 
-# same functions as in populate_database.py, should put in helper file or something
-def create_address_from(address, city, state, zip):
-    try:
-        return address + ", " + city + " " + state + " " + str(zip)
-    except:
-        return ""
-def geocode_table(df, worksite_or_housing):
-
-    if worksite_or_housing == "worksite":
-        addresses = df.apply(lambda job: create_address_from(job["Worksite address"], job["Worksite address city"], job["Worksite address state"], job["Worksite address zip code"]), axis=1).tolist()
-    elif worksite_or_housing == "housing":
-        addresses = df.apply(lambda job: create_address_from(job["Housing Info/Housing Address"], job["Housing Info/City"], job["Housing Info/State"], job["Housing Info/Postal Code"]), axis=1).tolist()
-    else:
-        print("worksite_or_housing should be either `worksite` or `housing`")
-
-    coordinates, accuracies, accuracy_types, failures = [], [], [], []
-    failures_count, count = 0, 0
-    for address in addresses:
-        try:
-            geocoded = client.geocode(address)
-            accuracy_types.append(geocoded["results"][0]["accuracy_type"])
-            coordinates.append(geocoded.coords)
-            accuracies.append(geocoded.accuracy)
-        except:
-            coordinates.append(None)
-            accuracies.append(None)
-            accuracy_types.append(None)
-            failures.append(address)
-            failures_count += 1
-        count += 1
-        print(f"There have been {failures_count} failures out of {count} attempts")
-    print(len(coordinates), len(accuracies), len(df), len(accuracy_types))
-    df[f"{worksite_or_housing} coordinates"] = coordinates
-    df[f"{worksite_or_housing} accuracy"] = accuracies
-    df[f"{worksite_or_housing} accuracy type"] = accuracy_types
-    print(f"There were {failures_count} failures out of {count} attempts")
-
 # geocode dol data
-geocode_table(dol_jobs, "worksite")
-geocode_table(dol_jobs, "housing")
+helpers.geocode_table(dol_jobs, "worksite")
+helpers.geocode_table(dol_jobs, "housing")
 
 # merge dol with h2a: if a case number exists in both tables, keep all the columns, but for the columns with the same names, use the value in dol, and change the "Source" value for that row to "DOL". if a case number only exits in one table, just add the row as is
 dol_columns, h2a_columns = dol_jobs.columns.tolist(), old_h2a.columns.tolist()
