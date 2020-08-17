@@ -23,9 +23,9 @@ def create_address_from(address, city, state, zip):
     except:
         return "not quite"
 
-# get latest jobs from scraper
-# https://api.apify.com/v2/acts/eytaog~apify-dol-actor-latest/runs/last/dataset/items?token=ftLRsXTA25gFTaCvcpnebavKw
-latest_jobs = requests.get("https://api.apify.com/v2/datasets/xe6ZzDWTPiCEB7Vw8/items?format=json&clean=1").json()
+# sample big dataset - https://api.apify.com/v2/datasets/xe6ZzDWTPiCEB7Vw8/items?format=json&clean=1
+# most recent run - https://api.apify.com/v2/acts/eytaog~apify-dol-actor-latest/runs/last/dataset/items?token=ftLRsXTA25gFTaCvcpnebavKw
+latest_jobs = requests.get("https://api.apify.com/v2/acts/eytaog~apify-dol-actor-latest/runs/last/dataset/items?token=ftLRsXTA25gFTaCvcpnebavKw").json()
 our_states = ["texas", "kentucky", "tennessee", "arkansas", "louisiana", "mississippi", "alabama"]
 
 # parse job so it's not a nested dictionary
@@ -108,10 +108,11 @@ full_jobs = [add_necessary_columns(job) for job in parsed_jobs]
 
 accurate_jobs = []
 innacurate_jobs = []
+bad_accuracy_types = ["place", "state", "street_center"]
 for job in full_jobs:
     if job["Visa type"] == "H-2A":
         # if (job["Worksite address state"].lower() in our_states) and ((job["worksite coordinates"] == None) or (job["housing coordinates"] == None) or (job["worksite accuracy"] < 0.8) or (job["housing accuracy"] < 0.8) or (job["worksite accuracy type"] == "place") or (job["housing accuracy type"] == "place")):
-        if ((job["worksite coordinates"] == None) or (job["housing coordinates"] == None) or (job["worksite accuracy"] < 0.8) or (job["housing accuracy"] < 0.8) or (job["worksite accuracy type"] == "place") or (job["housing accuracy type"] == "place")):
+        if ((job["worksite coordinates"] == None) or (job["housing coordinates"] == None) or (job["worksite accuracy"] < 0.8) or (job["housing accuracy"] < 0.8) or (job["worksite accuracy type"] in bad_accuracy_types) or (job["housing accuracy type"] in bad_accuracy_types)):
 
             job["fixed"] = False
             job["worksite_fixed_by"] = "NA"

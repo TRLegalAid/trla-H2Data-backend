@@ -1,20 +1,16 @@
+import os
+import helpers
 import pandas as pd
 from sqlalchemy import create_engine
 from geocodio import GeocodioClient
 client = GeocodioClient("454565525ee5444fefef2572155e155e5248221")
 engine = create_engine('postgres://txmzafvlwebrcr:df20d17265cf81634b9f689187248524a6fd0d56222985e2f422c71887ec6ec0@ec2-34-224-229-81.compute-1.amazonaws.com:5432/dbs39jork6o07d')
 
-housing = pd.read_excel("housing_shorter.xlsx")
-
-# same function as in populate_database.py, should put in helper file or something
-def create_address_from(address, city, state, zip):
-    try:
-        return address + ", " + city + " " + state + " " + str(zip)
-    except:
-        return ""
+housing = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/housing_addendum.xlsx'))
+helpers.fix_zip_code_columns(housing, ["PHYSICAL_LOCATION_POSTAL_CODE"])
 
 # very similar code to populate_database.py
-addresses = housing.apply(lambda job: create_address_from(job["PHYSICAL_LOCATION_ADDRESS1"], job["PHYSICAL_LOCATION_CITY"], job["PHYSICAL_LOCATION_STATE"], job["PHYSICAL_LOCATION_POSTAL_CODE"]), axis=1).tolist()
+addresses = housing.apply(lambda job: helpers.create_address_from(job["PHYSICAL_LOCATION_ADDRESS1"], job["PHYSICAL_LOCATION_CITY"], job["PHYSICAL_LOCATION_STATE"], job["PHYSICAL_LOCATION_POSTAL_CODE"]), axis=1).tolist()
 coordinates, accuracies, accuracy_types, failures = [], [], [], []
 failures_count, count = 0, 0
 for address in addresses:

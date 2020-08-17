@@ -1,3 +1,5 @@
+import os
+import helpers
 import pandas as pd
 from sqlalchemy import create_engine
 from geocodio import GeocodioClient
@@ -5,13 +7,14 @@ client = GeocodioClient("454565525ee5444fefef2572155e155e5248221")
 engine = create_engine('postgres://txmzafvlwebrcr:df20d17265cf81634b9f689187248524a6fd0d56222985e2f422c71887ec6ec0@ec2-34-224-229-81.compute-1.amazonaws.com:5432/dbs39jork6o07d')
 
 # get dol data and data that's already in postgres, divide postgres data into h2a and h2b
-dol_jobs = pd.read_excel("dol_data_shorter.xlsx")
+dol_jobs = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/dol_data.xlsx'))
+helpers.fix_zip_code_columns(dol_jobs, ["HOUSING_POSTAL_CODE", "EMPLOYER_POC_POSTAL_CODE", "EMPLOYER_POSTAL_CODE", "WORKSITE_POSTAL_CODE", "ATTORNEY_AGENT_POSTAL_CODE"])
 old_jobs = pd.read_sql("todays_tests", con=engine)
 old_h2a = old_jobs[old_jobs["Visa type"] == "H-2A"]
 old_h2b = old_jobs[old_jobs["Visa type"] == "H-2B"]
 
 # get column mappings dataframe
-column_mappings = pd.read_excel("column_name_mappings.xlsx")
+column_mappings = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/column_name_mappings.xlsx'))
 
 # get lists of column names
 mapped_old_cols = column_mappings["Scraper column name"].tolist()
@@ -26,12 +29,12 @@ column_mappings_dict = {}
 for i in range(len(mapped_old_cols)):
     column_mappings_dict[mapped_dol_cols[i]] = mapped_old_cols[i]
 
-# change columns names in dol to match those in h2a, where applicable, and add necessary columns to dol data
+# change columns names in dol to match those in h2a, where applicable, add necessary columns to dol data, convert "Multiple Worksites" column to boolean
 dol_jobs = dol_jobs.rename(columns=column_mappings_dict)
 dol_jobs["Source"] = "DOL"
-dol_jobs["fixed"] = None
-dol_jobs["housing_fixed_by"] = None
-dol_jobs["worksite_fixed_by"] = None
+dol_jobs["Job Order Link"] = dol_jobs.apply(lambda job: "https://seasonaljobs.dol.gov/job-order/" + job["ETA case number"], axis=1)
+
+
 def h2a_or_h2b(job):
     if job["ETA case number"][2] == "3":
         return "H-2A"
@@ -40,6 +43,15 @@ def h2a_or_h2b(job):
     else:
         return ""
 dol_jobs['Visa type'] = dol_jobs.apply(lambda job: h2a_or_h2b(job), axis=1)
+def yes_no_to_boolean(yes_no):
+    if yes_no.strip() == "Y":
+        return True
+    elif yes_no.strip() == "N":
+        return False
+    else:
+        print("there was an error converting the multiple worksite value to a boolean")
+        return yes_no
+dol_jobs["Multiple Worksites"] = dol_jobs.apply(lambda job: yes_no_to_boolean(job["Multiple Worksites"]), axis=1)
 
 # same functions as in populate_database.py, should put in helper file or something
 def create_address_from(address, city, state, zip):
