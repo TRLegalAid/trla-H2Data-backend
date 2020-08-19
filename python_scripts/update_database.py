@@ -16,7 +16,6 @@ except:
 # sample big dataset - https://api.apify.com/v2/datasets/xe6ZzDWTPiCEB7Vw8/items?format=json&clean=1
 # most recent run - https://api.apify.com/v2/acts/eytaog~apify-dol-actor-latest/runs/last/dataset/items?token=ftLRsXTA25gFTaCvcpnebavKw
 latest_jobs = requests.get("https://api.apify.com/v2/acts/eytaog~apify-dol-actor-latest/runs/last/dataset/items?token=ftLRsXTA25gFTaCvcpnebavKw").json()
-our_states = ["texas", "kentucky", "tennessee", "arkansas", "louisiana", "mississippi", "alabama"]
 
 # parse job so it's not a nested dictionary
 def parse(job):
@@ -96,39 +95,7 @@ def add_necessary_columns(job):
 parsed_jobs = [parse(job) for job in latest_jobs]
 full_jobs = [add_necessary_columns(job) for job in parsed_jobs]
 
-accurate_jobs = []
-innacurate_jobs = []
-bad_accuracy_types = ["place", "state", "street_center"]
-for job in full_jobs:
-    if job["Visa type"] == "H-2A":
-        # if (job["Worksite address state"].lower() in our_states) and ((job["worksite coordinates"] == None) or (job["housing coordinates"] == None) or (job["worksite accuracy"] < 0.8) or (job["housing accuracy"] < 0.8) or (job["worksite accuracy type"] == "place") or (job["housing accuracy type"] == "place")):
-        if ((job["worksite coordinates"] == None) or (job["housing coordinates"] == None) or (job["worksite accuracy"] < 0.8) or (job["housing accuracy"] < 0.8) or (job["worksite accuracy type"] in bad_accuracy_types) or (job["housing accuracy type"] in bad_accuracy_types)):
-
-            job["fixed"] = False
-            job["worksite_fixed_by"] = "NA"
-            job["housing_fixed_by"] = "NA"
-            innacurate_jobs.append(job)
-        else:
-            accurate_jobs.append(job)
-
-    elif job["Visa type"] == "H-2B":
-        if (job["Worksite address state"].lower() in our_states) and ((job["worksite coordinates"] == None) or (job["worksite accuracy"] < 0.8) or (job["worksite accuracy type"] == "place")):
-            job["fixed"] = False
-            job["worksite_fixed_by"] = "NA"
-            job["housing_fixed_by"] = "NA"
-            innacurate_jobs.append(job)
-        else:
-            accurate_jobs.append(job)
-
-    else:
-        job["fixed"] = False
-        job["worksite_fixed_by"] = "NA"
-        job["housing_fixed_by"] = "NA"
-        innacurate_jobs.append(job)
-
-print(f"There were {len(accurate_jobs)} accurate jobs.")
-print(f"There were {len(innacurate_jobs)} inaccurate jobs.")
-
+accurate_jobs, inaccurate_jobs = helpers.check_accuracies(full_jobs)
 
 # get data from postgres
 all_data = pd.read_sql_query('select * from "todays_tests"', con=engine)
@@ -153,8 +120,8 @@ for job in accurate_jobs:
 # send updated df back to postgres
 all_data.to_sql('todays_tests', engine, if_exists='replace', index=False)
 
-# same as above but for innacurate jobs
-for job in innacurate_jobs:
+# same as above but for inaccurate jobs
+for job in inaccurate_jobs:
     all_data = all_data[all_data["ETA case number"] != job["ETA case number"]]
     try:
         low_accuracies = low_accuracies[low_accuracies["ETA case number"] != job["ETA case number"]]

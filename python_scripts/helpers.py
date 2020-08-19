@@ -58,3 +58,41 @@ def fix_zip_code_columns(df, columns):
 def prettier(dictionary):
     for key in dictionary:
         print(key, ": ", dictionary[key])
+
+
+def check_accuracies(jobs):
+    our_states = ["texas", "kentucky", "tennessee", "arkansas", "louisiana", "mississippi", "alabama"]
+    accurate_jobs = []
+    inaccurate_jobs = []
+    bad_accuracy_types = ["place", "state", "street_center"]
+    for job in jobs:
+        if job["Visa type"] == "H-2A":
+            # if (job["Worksite address state"].lower() in our_states) and ((job["worksite coordinates"] == None) or (job["housing coordinates"] == None) or (job["worksite accuracy"] < 0.8) or (job["housing accuracy"] < 0.8) or (job["worksite accuracy type"] in bad_accuracy_types) or (job["housing accuracy type"] in bad_accuracy_types)):
+            if ((job["worksite coordinates"] == None) or (job["housing coordinates"] == None) or (job["worksite accuracy"] < 0.8) or (job["housing accuracy"] < 0.8) or (job["worksite accuracy type"] in bad_accuracy_types) or (job["housing accuracy type"] in bad_accuracy_types)):
+
+                job["fixed"] = False
+                job["worksite_fixed_by"] = "NA"
+                job["housing_fixed_by"] = "NA"
+                inaccurate_jobs.append(job)
+            else:
+                accurate_jobs.append(job)
+
+        elif job["Visa type"] == "H-2B":
+            # if (job["Worksite address state"].lower() in our_states) and ((job["worksite coordinates"] == None) or (job["worksite accuracy"] < 0.8) or (job["worksite accuracy type"] in bad_accuracy_types)):
+            if (job["worksite coordinates"] == None) or (job["worksite accuracy"] < 0.8) or (job["worksite accuracy type"] in bad_accuracy_types):
+                job["fixed"] = False
+                job["worksite_fixed_by"] = "NA"
+                job["housing_fixed_by"] = "NA"
+                inaccurate_jobs.append(job)
+            else:
+                accurate_jobs.append(job)
+
+        else:
+            job["fixed"] = False
+            job["worksite_fixed_by"] = "NA"
+            job["housing_fixed_by"] = "NA"
+            inaccurate_jobs.append(job)
+
+    print(f"There were {len(accurate_jobs)} accurate jobs.")
+    print(f"There were {len(inaccurate_jobs)} inaccurate jobs.")
+    return accurate_jobs, inaccurate_jobs
