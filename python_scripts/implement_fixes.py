@@ -6,8 +6,8 @@ from sqlalchemy import create_engine
 import psycopg2
 from geocodio import GeocodioClient
 import numpy as np
-client = GeocodioClient("454565525ee5444fefef2572155e155e5248221")
-engine = create_engine('postgres://txmzafvlwebrcr:df20d17265cf81634b9f689187248524a6fd0d56222985e2f422c71887ec6ec0@ec2-34-224-229-81.compute-1.amazonaws.com:5432/dbs39jork6o07d')
+database_connection_string, geocodio_api_key = helpers.get_secret_variables()
+engine, client = create_engine(database_connection_string), GeocodioClient(geocodio_api_key)
 
 fixed = pd.read_sql_query('select * from "low_accuracies" where fixed=true', con=engine)
 
@@ -78,6 +78,11 @@ successes = fixed[success_conditions]
 central = successes[successes["table"] == "central"]
 housing = successes[successes["table"] == "housing"]
 central.to_sql('job_central', engine, if_exists='append', index=False)
+low_accuracies_columns = housing.columns
+with engine.connect() as connection:
+    additional_housing_columns = connection.execute("SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'additional_housing'")
+columns_only_in_low_accuracies = [column for column in low_accuracies_columns if column not in additional_housing_columns]
+housing = housing.drop(columns_only_in_low_accuracies, axis=1)
 housing.to_sql('additional_housing', engine, if_exists='append', index=False)
 
 

@@ -4,12 +4,15 @@ import sqlalchemy
 import helpers
 from sqlalchemy import create_engine
 from geocodio import GeocodioClient
-client = GeocodioClient("454565525ee5444fefef2572155e155e5248221")
-engine = create_engine('postgres://txmzafvlwebrcr:df20d17265cf81634b9f689187248524a6fd0d56222985e2f422c71887ec6ec0@ec2-34-224-229-81.compute-1.amazonaws.com:5432/dbs39jork6o07d')
+from dotenv import load_dotenv
+database_connection_string, geocodio_api_key = helpers.get_secret_variables()
+engine, client = create_engine(database_connection_string), GeocodioClient(geocodio_api_key)
+
 
 df = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/scraper_data.xlsx'))
 df = df.drop(columns=["Telephone number"])
 df = helpers.rename_columns(df)
+df = df.drop_duplicates(subset='CASE_NUMBER', keep="last")
 
 df["fixed"], df["worksite_fixed_by"], df["housing_fixed_by"], df["notes"], df["table"] = None, None, None, None, "central"
 helpers.fix_zip_code_columns(df, ["EMPLOYER_POSTAL_CODE", "WORKSITE_POSTAL_CODE",  "Place of Employment Info/Postal Code", "HOUSING_POSTAL_CODE"])

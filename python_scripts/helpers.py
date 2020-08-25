@@ -2,8 +2,13 @@ from math import isnan
 import os
 import pandas as pd
 from geocodio import GeocodioClient
-client = GeocodioClient("454565525ee5444fefef2572155e155e5248221")
+from dotenv import load_dotenv
 
+def get_secret_variables():
+    load_dotenv()
+    return os.getenv("DATABASE_CONNECTION_STRING"), os.getenv("GEOCODIO_API_KEY")
+geocodio_api_key = get_secret_variables()[1]
+client = GeocodioClient(geocodio_api_key)
 bad_accuracy_types = ["place", "state", "street_center"]
 
 def create_address_from(address, city, state, zip):
