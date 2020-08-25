@@ -8,29 +8,28 @@ engine = create_engine('postgres://txmzafvlwebrcr:df20d17265cf81634b9f6891872485
 
 housing = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/housing_addendum.xlsx'))
 helpers.fix_zip_code_columns(housing, ["PHYSICAL_LOCATION_POSTAL_CODE"])
+housing["table"], housing["source"] = "housing", "DOL"
 
-# very similar code to populate_database.py
-addresses = housing.apply(lambda job: helpers.create_address_from(job["PHYSICAL_LOCATION_ADDRESS1"], job["PHYSICAL_LOCATION_CITY"], job["PHYSICAL_LOCATION_STATE"], job["PHYSICAL_LOCATION_POSTAL_CODE"]), axis=1).tolist()
-coordinates, accuracies, accuracy_types, failures = [], [], [], []
-failures_count, count = 0, 0
-for address in addresses:
-    try:
-        geocoded = client.geocode(address)
-        accuracy_types.append(geocoded["results"][0]["accuracy_type"])
-        coordinates.append(geocoded.coords)
-        accuracies.append(geocoded.accuracy)
-    except:
-        coordinates.append(None)
-        accuracies.append(None)
-        accuracy_types.append(None)
-        failures.append(address)
-        failures_count += 1
-    count += 1
-    print(f"There have been {failures_count} failures out of {count} attempts")
-print(len(coordinates), len(accuracies), len(housing), len(accuracy_types))
-housing["coordinates"] = coordinates
-housing["accuracy"] = accuracies
-housing["accuracy type"] = accuracy_types
-print(f"There were {failures_count} failures out of {count} attempts")
+helpers.geocode_table(housing, "housing addendum")
+accurate_housing, inaccurate_housing = helpers.split_df_by_accuracies(housing)
+accurate_housing.to_sql("additional_housing", engine, if_exists='replace')
 
-housing.to_sql("additional_housing", engine, if_exists='replace')
+with engine.connect() as connection:
+    low_accuracies_columns = connection.execute("SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'low_accuracies'")
+
+low_accuracies_columns = [column[0] for column in list(low_accuracies_columns)]
+columns_only_in_addendum = [column for column in housing.columns if column not in low_accuracies_columns]
+query_to_add_columns = ""
+columns_added = 0
+for column in columns_only_in_addendum:
+    if columns_added == 0:
+        query_to_add_columns += f'ALTER TABLE low_accuracies ADD COLUMN "{column}" text'
+    else:
+        query_to_add_columns += f', ADD COLUMN "{column}" text'
+    columns_added += 1
+
+# it'll be an empty string if there are no columns in the housing addendum that aren't in postgres yet
+if query_to_add_columns != "":
+    with engine.connect() as connection:
+        connection.execute(query_to_add_columns)
+inaccurate_housing.to_sql("low_accuracies", engine, if_exists='append', index=False)

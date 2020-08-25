@@ -9,40 +9,24 @@ engine = create_engine('postgres://txmzafvlwebrcr:df20d17265cf81634b9f6891872485
 # get dol data and data that's already in postgres, divide postgres data into h2a and h2b
 dol_jobs = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/dol_data.xlsx'))
 helpers.fix_zip_code_columns(dol_jobs, ["HOUSING_POSTAL_CODE", "EMPLOYER_POC_POSTAL_CODE", "EMPLOYER_POSTAL_CODE", "WORKSITE_POSTAL_CODE", "ATTORNEY_AGENT_POSTAL_CODE"])
-old_jobs = pd.read_sql("todays_tests", con=engine)
+old_jobs = pd.read_sql("job_central", con=engine)
 old_h2a = old_jobs[old_jobs["Visa type"] == "H-2A"]
 old_h2b = old_jobs[old_jobs["Visa type"] == "H-2B"]
 
-# get column mappings dataframe
-column_mappings = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/column_name_mappings.xlsx'))
+# change columns names in old scraper data to match those in dol (where applicable)
+old_h2a = helpers.rename_columns(old_h2a)
+old_h2b = helpers.rename_columns(old_h2b)
 
-# get lists of column names
-mapped_old_cols = column_mappings["Scraper column name"].tolist()
-mapped_dol_cols = column_mappings["DOL column name"].tolist()
-
-# remove trailing white space from column names
-mapped_old_cols = [col.strip() for col in mapped_old_cols]
-mapped_dol_cols = [col.strip() for col in mapped_dol_cols]
-
-# get dictionary of column mappings
-column_mappings_dict = {}
-for i in range(len(mapped_old_cols)):
-    column_mappings_dict[mapped_dol_cols[i]] = mapped_old_cols[i]
-
-# change columns names in dol to match those in h2a, where applicable, add necessary columns to dol data, convert "Multiple Worksites" column to boolean
-dol_jobs = dol_jobs.rename(columns=column_mappings_dict)
-dol_jobs["Source"] = "DOL"
-dol_jobs["Job Order Link"] = dol_jobs.apply(lambda job: "https://seasonaljobs.dol.gov/job-order/" + job["ETA case number"], axis=1)
-
-
+# add necessary columns to dol data, convert "Multiple Worksites" column to boolean
+dol_jobs["Source"], dol_jobs["table"] = "DOL", "housing"
+dol_jobs["Job Order Link"] = dol_jobs.apply(lambda job: "https://seasonaljobs.dol.gov/job-order/" + job["CASE_NUMBER"], axis=1)
 def h2a_or_h2b(job):
-    if job["ETA case number"][2] == "3":
+    if job["CASE_NUMBER"][2] == "3":
         return "H-2A"
-    elif job["ETA case number"][2] == "4":
+    elif job["CASE_NUMBER"][2] == "4":
         return "H-2B"
     else:
         return ""
-        
 dol_jobs['Visa type'] = dol_jobs.apply(lambda job: h2a_or_h2b(job), axis=1)
 def yes_no_to_boolean(yes_no):
     if yes_no.strip() == "Y":
@@ -54,29 +38,91 @@ def yes_no_to_boolean(yes_no):
         return yes_no
 dol_jobs["Multiple Worksites"] = dol_jobs.apply(lambda job: yes_no_to_boolean(job["Multiple Worksites"]), axis=1)
 
-# geocode dol data
-helpers.geocode_table(dol_jobs, "worksite")
-helpers.geocode_table(dol_jobs, "housing")
+# geocode dol data and split by accuracy
+accurate_dol_jobs, inaccurate_dol_jobs = helpers.geocode_and_split_by_accuracy(dol_jobs)
 
-# merge dol with h2a: if a case number exists in both tables, keep all the columns, but for the columns with the same names, use the value in dol, and change the "Source" value for that row to "DOL". if a case number only exits in one table, just add the row as is
-dol_columns, h2a_columns = dol_jobs.columns.tolist(), old_h2a.columns.tolist()
-cols_only_in_h2a = [column for column in h2a_columns if column not in dol_columns and column != "index"]
-for column in cols_only_in_h2a:
-    dol_jobs[column] = None
-h2a_case_numbers = old_h2a["ETA case number"].tolist()
-for i, row in dol_jobs.iterrows():
-    if row["ETA case number"] in h2a_case_numbers:
+def get_value(data, column):
+    return data[column].tolist()[0]
+
+# merge dol with scraper: if a case number exists in both tables, keep all the columns, but for the columns with the same names, use the value in dol, and change the "Source" value for that row to "DOL". if a case number only exits in one table, just add the row as is
+dol_columns, scraper_columns = dol_jobs.columns.tolist(), old_h2a.columns.tolist()
+cols_only_in_scraper = [column for column in scraper_columns if column not in dol_columns and column != "index"]
+for column in cols_only_in_scraper:
+    accurate_dol_jobs[column], inaccurate_dol_jobs[column] = None, None
+scraper_h2a_case_numbers = old_h2a["CASE_NUMBER"].tolist()
+for i, job in accurate_dol_jobs.iterrows():
+    dol_case_number = job["CASE_NUMBER"]
+    if dol_case_number in scraper_h2a_case_numbers:
+        job_in_scraper_data = old_h2a[old_h2a["CASE_NUMBER"] == dol_case_number]
         # add the columns that are in the old_h2a but not in dol_jobs to this row
-        for column in cols_only_in_h2a:
-            dol_jobs.at[i, column] = old_h2a[old_h2a["ETA case number"] == row["ETA case number"]][column].tolist()[0]
+        for column in cols_only_in_scraper:
+            accurate_dol_jobs.at[i, column] = get_value(job_in_scraper_data, column)
+
+        job_previously_fixed = inaccurate_dol_jobs.at[i, "fixed"] == True
+        # job_previously_fixed = get_value(job_in_scraper_data, "fixed") == True
+        # if a job has already been fixed, replace the dol address/geocoding data with the old (scraper) address/geocoding data
+        if job_previously_fixed:
+            worksite_fixed_by = get_value(job_in_scraper_data, "worksite_fixed_by")
+            if worksite_fixed_by in ["coordinates", "address"]:
+                if worksite_fixed_by == "address":
+                    worksite_address_columns = ["WORKSITE_ADDRESS", "WORKSITE_CITY", "WORKSITE_STATE", "WORKSITE_POSTAL_CODE", "worksite coordinates", "worksite accuracy", "worksite accuracy type"]
+                else:
+                    worksite_address_columns = ["worksite coordinates", "worksite accuracy", "worksite accuracy type"]
+                for column in worksite_address_columns:
+                    accurate_dol_jobs.at[i, column] = get_value(job_in_scraper_data, column)
+
+            housing_fixed_by = job_in_scraper_data["housing_fixed_by"].tolist()[0]
+            if housing_fixed_by in ["coordinates", "address"]:
+                if housing_fixed_by == "address":
+                    housing_address_columns = ["HOUSING_ADDRESS_LOCATION", "HOUSING_CITY", "HOUSING_STATE", "HOUSING_POSTAL_CODE", "housing coordinates", "housing accuracy", "housing accuracy type"]
+                else:
+                    housing_address_columns = ["housing coordinates", "housing accuracy", "housing accuracy type"]
+                for column in housing_address_columns:
+                    accurate_dol_jobs.at[i, column] = get_value(job_in_scraper_data, column)
+
+# now merge the inaccurate dol data with the scraper data
+for i, job in inaccurate_dol_jobs.iterrows():
+    dol_case_number = job["CASE_NUMBER"]
+    if dol_case_number in scraper_h2a_case_numbers:
+        job_in_scraper_data = old_h2a[old_h2a["CASE_NUMBER"] == dol_case_number]
+        # add the columns that are in the old_h2a but not in dol_jobs to this row
+        for column in cols_only_in_scraper:
+            inaccurate_dol_jobs.at[i, column] = get_value(job_in_scraper_data, column)
+
+        job_previously_fixed = inaccurate_dol_jobs.at[i, "fixed"] == True
+        # job_previously_fixed = get_value(job_in_scraper_data, "fixed") == True
+        # if a job has already been fixed, replace the dol address/geocoding data with the old (scraper) address/geocoding data
+        if job_previously_fixed:
+            worksite_fixed_by = get_value(job_in_scraper_data, "worksite_fixed_by")
+            if worksite_fixed_by in ["coordinates", "address"]:
+                if worksite_fixed_by == "address":
+                    worksite_address_columns = ["WORKSITE_ADDRESS", "WORKSITE_CITY", "WORKSITE_STATE", "WORKSITE_POSTAL_CODE", "worksite coordinates", "worksite accuracy", "worksite accuracy type"]
+                else:
+                    worksite_address_columns = ["worksite coordinates", "worksite accuracy", "worksite accuracy type"]
+                for column in worksite_address_columns:
+                    inaccurate_dol_jobs.at[i, column] = get_value(job_in_scraper_data, column)
+
+            housing_fixed_by = job_in_scraper_data["housing_fixed_by"].tolist()[0]
+            if housing_fixed_by in ["coordinates", "address"]:
+                if housing_fixed_by == "address":
+                    housing_address_columns = ["HOUSING_ADDRESS_LOCATION", "HOUSING_CITY", "HOUSING_STATE", "HOUSING_POSTAL_CODE", "housing coordinates", "housing accuracy", "housing accuracy type"]
+                else:
+                    housing_address_columns = ["housing coordinates", "housing accuracy", "housing accuracy type"]
+                for column in housing_address_columns:
+                    inaccurate_dol_jobs.at[i, column] = get_value(job_in_scraper_data, column)
+
+# separate inaccurate dol data already fixed and not already fixed, add the already fixed ones to the accurate data
+innacurate_dol_fixed = innacurate_dol_jobs[innacurate_dol_jobs["fixed"] == True]
+accurate_dol_jobs = accurate_dol_jobs.append(innacurate_dol_fixed, sort=True, ignore_index=True)
+innacurate_dol_not_fixed = innacurate_dol_jobs[innacurate_dol_jobs["fixed"] == False]
 
 # get dataframe of postings that are only in the scraper data and append that to the dol dataframe
-dol_case_numbers = dol_jobs["ETA case number"].tolist()
-boolean_series = old_h2a.apply(lambda job: job["ETA case number"] not in dol_case_numbers, axis=1)
-only_in_h2a = old_h2a[boolean_series]
-dol_jobs = dol_jobs.append(only_in_h2a, sort=True, ignore_index=True)
+only_in_h2a = old_h2a[old_h2a.apply(lambda job: job["CASE_NUMBER"] not in dol_jobs["CASE_NUMBER"].tolist(), axis=1)]
+accurate_dol_jobs = accurate_dol_jobs.append(only_in_h2a, sort=True, ignore_index=True)
 
 # append h2b to dataframe
-old_h2b = dol_jobs.append(old_h2b, sort=True, ignore_index=True)
+accurate_dol_jobs = accurate_dol_jobs.append(old_h2b, sort=True, ignore_index=True)
 
-dol_jobs.to_sql("todays_tests", engine, if_exists='replace')
+# push merged data back up to postgres
+accurate_dol_jobs.to_sql("job_central", engine, if_exists='replace', index=False)
+innacurate_dol_not_fixed.to_sql("low_accuracies", engine, if_exists='append', index=False)

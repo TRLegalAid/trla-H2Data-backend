@@ -1,3 +1,4 @@
+import helpers
 import pandas as pd
 import numpy as np
 import math
@@ -8,13 +9,6 @@ import numpy as np
 client = GeocodioClient("454565525ee5444fefef2572155e155e5248221")
 engine = create_engine('postgres://txmzafvlwebrcr:df20d17265cf81634b9f689187248524a6fd0d56222985e2f422c71887ec6ec0@ec2-34-224-229-81.compute-1.amazonaws.com:5432/dbs39jork6o07d')
 
-
-def create_address_from(address, city, state, zip):
-    try:
-        return address + ", " + city + " " + state + " " + str(zip)
-    except:
-        return ""
-
 fixed = pd.read_sql_query('select * from "low_accuracies" where fixed=true', con=engine)
 
 def mark_as_failed(i, worksite_or_housing, df):
@@ -24,9 +18,9 @@ def mark_as_failed(i, worksite_or_housing, df):
 def fix_by_address(i, row, worksite_or_housing, df):
 
     if worksite_or_housing == "worksite":
-        full_address = create_address_from(row["Worksite address"], row["Worksite address city"], row["Worksite address state"], row["Worksite address zip code"])
+        full_address = helpers.create_address_from(row["WORKSITE_ADDRESS"], row["WORKSITE_CITY"], row["WORKSITE_STATE"], row["WORKSITE_POSTAL_CODE"])
     elif worksite_or_housing == "housing":
-        full_address = create_address_from(row["Housing Info/Housing Address"], row["Housing Info/City"], row["Housing Info/State"], row["Housing Info/Postal Code"])
+        full_address = helpers.create_address_from(row["HOUSING_ADDRESS_LOCATION"], row["HOUSING_CITY"], row["HOUSING_STATE"], row["HOUSING_POSTAL_CODE"])
     else:
         print("worksite_or_housing must be either `worksite` or `housing`")
         return
@@ -39,7 +33,7 @@ def fix_by_address(i, row, worksite_or_housing, df):
         df.at[i, f"{worksite_or_housing} accuracy"] = accuracy
         df.at[i, f"{worksite_or_housing} accuracy type"] = accuracy_type
 
-        if (accuracy < 0.8) or (accuracy_type == "place"):
+        if (accuracy < 0.8) or (accuracy_type in helpers.bad_accuracy_types):
             mark_as_failed(i, worksite_or_housing, df)
 
     except:
@@ -52,7 +46,7 @@ def fix_by_coords(i, worksite_or_housing, df):
 
 def assert_accuracy(i, row, worksite_or_housing, df):
     try:
-        if (row[f"{worksite_or_housing} accuracy"] < 0.8) or (row[f"{worksite_or_housing} accuracy type"] == "place"):
+        if (row[f"{worksite_or_housing} accuracy"] < 0.8) or (row[f"{worksite_or_housing} accuracy type"] in helpers.bad_accuracy_types:
             mark_as_failed(i, worksite_or_housing, df)
     except:
         pass
@@ -81,7 +75,11 @@ fix_rows(fixed)
 # get successfully fixed rows and add them to the big table
 success_conditions = (fixed["worksite_fixed_by"] != "failed") & (fixed["housing_fixed_by"] != "failed")
 successes = fixed[success_conditions]
-successes.to_sql('todays_tests', engine, if_exists='append', index=False)
+central = successes[successes["table"] == "central"]
+housing = successes[successes["table"] == "housing"]
+central.to_sql('job_central', engine, if_exists='append', index=False)
+housing.to_sql('additional_housing', engine, if_exists='append', index=False)
+
 
 
 # get failed fixes dataframe and not yet fixed dataframe, put them both into low_accuracies table
