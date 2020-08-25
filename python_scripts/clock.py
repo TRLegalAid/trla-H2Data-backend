@@ -6,9 +6,13 @@ import requests
 
 
 def scheduled_job():
-    res = requests.get("https://api.heroku.com/apps/for-db/config-vars", headers= {"Accept": "application/vnd.heroku+json; version=3"})
-    a_dict = res.json()
-    print(a_dict)
+    # res = requests.get("https://api.heroku.com/apps/for-db/config-vars", headers= {"Accept": "application/vnd.heroku+json; version=3"})
+    # a_dict = res.json()
+    # print(a_dict)
+    latest_jobs = requests.get("https://api.apify.com/v2/datasets/vHl2WWe8pJ192kVl6/items?format=json&clean=1").json()
+    print(latest_jobs)
+    print('here')
+
 
 sched = BlockingScheduler()
 # change minutes=2 to days=1

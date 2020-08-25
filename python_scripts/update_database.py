@@ -16,7 +16,6 @@ except:
 # sample big dataset - https://api.apify.com/v2/datasets/xe6ZzDWTPiCEB7Vw8/items?format=json&clean=1
 # most recent run - https://api.apify.com/v2/acts/eytaog~apify-dol-actor-latest/runs/last/dataset/items?token=ftLRsXTA25gFTaCvcpnebavKw
 latest_jobs = requests.get("https://api.apify.com/v2/datasets/vHl2WWe8pJ192kVl6/items?format=json&clean=1").json()
-print(len(latest_jobs))
 
 # parse job so it's not a nested dictionary
 def parse(job):
