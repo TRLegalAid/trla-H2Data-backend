@@ -3,10 +3,9 @@ import pandas as pd
 import sqlalchemy
 import helpers
 from sqlalchemy import create_engine
-from geocodio import GeocodioClient
 from dotenv import load_dotenv
-database_connection_string, geocodio_api_key = helpers.get_secret_variables()
-engine, client = create_engine(database_connection_string), GeocodioClient(geocodio_api_key)
+database_connection_string = helpers.get_secret_variables()[0]
+engine = create_engine(database_connection_string)
 
 df = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/scraper_data.xlsx'))
 df = df.drop(columns=["Telephone number"])

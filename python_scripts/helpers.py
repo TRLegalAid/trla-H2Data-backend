@@ -3,10 +3,18 @@ import os
 import pandas as pd
 from geocodio import GeocodioClient
 from dotenv import load_dotenv
+import requests
+
+# function for printing dictionary
+def prettier(dictionary):
+    for key in dictionary:
+        print(key, ": ", dictionary[key])
 
 def get_secret_variables():
-    load_dotenv()
-    return os.getenv("DATABASE_CONNECTION_STRING"), os.getenv("GEOCODIO_API_KEY")
+    config_variables_dictionary = requests.get("https://api.heroku.com/apps/for-db/config-vars", headers= {"Accept": "application/vnd.heroku+json; version=3"}).json()
+    print(config_variables_dictionary)
+    return config_variables_dictionary["DATABASE_URL"], config_variables_dictionary["GEOCODIO_API_KEY"]
+
 geocodio_api_key = get_secret_variables()[1]
 client = GeocodioClient(geocodio_api_key)
 bad_accuracy_types = ["place", "state", "street_center"]
@@ -72,12 +80,6 @@ def fix_zip_code(zip_code):
 def fix_zip_code_columns(df, columns):
     for column in columns:
         df[column] = df.apply(lambda job: fix_zip_code(job[column]), axis=1)
-
-# function for printing dictionary
-def prettier(dictionary):
-    for key in dictionary:
-        print(key, ": ", dictionary[key])
-
 
 def check_accuracies(jobs):
     print("checking for accuracies...")
