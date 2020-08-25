@@ -1,15 +1,19 @@
 import os
 import helpers
 import pandas as pd
+from datetime import datetime
 from sqlalchemy import create_engine
 from geocodio import GeocodioClient
 client = GeocodioClient("454565525ee5444fefef2572155e155e5248221")
 engine = create_engine('postgres://txmzafvlwebrcr:df20d17265cf81634b9f689187248524a6fd0d56222985e2f422c71887ec6ec0@ec2-34-224-229-81.compute-1.amazonaws.com:5432/dbs39jork6o07d')
 
-# get dol data and data that's already in postgres, divide postgres data into h2a and h2b
+# get dol data and data that's already in postgres, divide postgres data into h2a and h2b, put old data into another table
 dol_jobs = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/dol_data.xlsx'))
 helpers.fix_zip_code_columns(dol_jobs, ["HOUSING_POSTAL_CODE", "EMPLOYER_POC_POSTAL_CODE", "EMPLOYER_POSTAL_CODE", "WORKSITE_POSTAL_CODE", "ATTORNEY_AGENT_POSTAL_CODE"])
 old_jobs = pd.read_sql("job_central", con=engine)
+todays_date = datetime.today().strftime('%Y-%m-%d')
+old_jobs.to_sql(f"archive_{todays_date}", engine, if_exists='replace', index=False)
+
 old_h2a = old_jobs[old_jobs["Visa type"] == "H-2A"]
 old_h2b = old_jobs[old_jobs["Visa type"] == "H-2B"]
 
