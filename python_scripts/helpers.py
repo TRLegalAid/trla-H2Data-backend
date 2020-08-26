@@ -10,10 +10,14 @@ def prettier(dictionary):
     for key in dictionary:
         print(key, ": ", dictionary[key])
 
+# def get_secret_variables():
+#     config_variables_dictionary = requests.get("https://api.heroku.com/apps/for-db/config-vars", headers= {"Accept": "application/vnd.heroku+json; version=3"}).json()
+#     print(config_variables_dictionary)
+#     return config_variables_dictionary["DATABASE_URL"], config_variables_dictionary["GEOCODIO_API_KEY"]
+
 def get_secret_variables():
-    config_variables_dictionary = requests.get("https://api.heroku.com/apps/for-db/config-vars", headers= {"Accept": "application/vnd.heroku+json; version=3"}).json()
-    print(config_variables_dictionary)
-    return config_variables_dictionary["DATABASE_URL"], config_variables_dictionary["GEOCODIO_API_KEY"]
+    # load_dotenv()
+    return os.getenv("DATABASE_CONNECTION_STRING"), os.getenv("GEOCODIO_API_KEY")
 
 geocodio_api_key = get_secret_variables()[1]
 client = GeocodioClient(geocodio_api_key)
