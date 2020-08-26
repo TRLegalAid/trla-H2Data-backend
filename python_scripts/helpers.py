@@ -4,6 +4,8 @@ import pandas as pd
 from geocodio import GeocodioClient
 import geocodio
 import requests
+import logging
+logger = logging.Logger('catch_all')
 
 # function for printing dictionary
 def prettier(dictionary):
@@ -48,14 +50,18 @@ def geocode_table(df, worksite_or_housing):
             accuracy_types.append(geocoded["results"][0]["accuracy_type"])
             coordinates.append(geocoded.coords)
             accuracies.append(geocoded.accuracy)
-        except:
+        except Exception as e:
+            print("There's been a failure, here is the error message:")
+            logger.error(e, exc_info=True)
+            print("\n")
             coordinates.append(None)
             accuracies.append(None)
             accuracy_types.append(None)
             failures.append(address)
             failures_count += 1
         count += 1
-        # print(f"There have been {failures_count} failures out of {count} attempts")
+        if count % 20 == 0:
+            print(f"There have been {failures_count} failures out of {count} attempts")
     if worksite_or_housing == "worksite":
         geocoding_type = "worksite"
     elif "housing" in worksite_or_housing:
