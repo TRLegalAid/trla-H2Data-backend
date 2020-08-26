@@ -4,7 +4,6 @@ import pandas as pd
 # from geocodio import GeocodioClient
 import geocodio
 import requests
-import secret_variables
 
 # function for printing dictionary
 def prettier(dictionary):
@@ -14,6 +13,7 @@ def prettier(dictionary):
 def get_secret_variables():
     # LOCAL_DEV is am environemnt variable that I set to be "true" on my mac and "false" in the heroku config variables
     if os.getenv("LOCAL_DEV") == "true":
+        import secret_variables
         return secret_variables.DATABASE_URL, secret_variables.GEOCODIO_API_KEY
     return os.getenv("DATABASE_URL"), os.getenv("GEOCODIO_API_KEY")
 
