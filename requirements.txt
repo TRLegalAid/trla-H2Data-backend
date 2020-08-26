@@ -7,3 +7,4 @@ requests
 client
 pygeocodio
 datetime
+xlrd
