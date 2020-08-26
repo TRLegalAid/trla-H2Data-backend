@@ -1,7 +1,7 @@
 from math import isnan
 import os
 import pandas as pd
-from geocodio import GeocodioClient
+# from geocodio import GeocodioClient
 import geocodio
 import requests
 
