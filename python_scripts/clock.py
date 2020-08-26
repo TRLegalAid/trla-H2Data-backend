@@ -4,11 +4,11 @@ from sqlalchemy import create_engine
 import geocodio
 import requests
 import helpers
+import os
 
 
 def scheduled_job():
-    x = helpers.get_secret_variables()[0]
-    print(x)
+    print(os.getenv("DATABASE_URL"))
 
 
 sched = BlockingScheduler()
