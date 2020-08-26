@@ -9,7 +9,7 @@ from populate_database import populate_database
 print("made it after the import statemnts of clock.py...")
 
 def scheduled_job():
-        print("made it into the scheduled job script...")
+    print("made it into the scheduled job script...")
     populate_database()
 
 sched = BlockingScheduler()
