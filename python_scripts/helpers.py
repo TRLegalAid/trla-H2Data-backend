@@ -1,7 +1,8 @@
 from math import isnan
 import os
 import pandas as pd
-from geocodio import GeocodioClient
+# from geocodio import GeocodioClient
+import geocodio
 import requests
 import secret_variables
 
@@ -17,7 +18,7 @@ def get_secret_variables():
     return os.getenv("DATABASE_URL"), os.getenv("GEOCODIO_API_KEY")
 
 geocodio_api_key = get_secret_variables()[1]
-client = GeocodioClient(geocodio_api_key)
+client = geocodio.GeocodioClient(geocodio_api_key)
 bad_accuracy_types = ["place", "state", "street_center"]
 
 def create_address_from(address, city, state, zip):
