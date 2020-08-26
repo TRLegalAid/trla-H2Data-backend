@@ -3,7 +3,6 @@ import pandas as pd
 import sqlalchemy
 import helpers
 from sqlalchemy import create_engine
-
 database_connection_string = helpers.get_secret_variables()[0]
 engine = create_engine(database_connection_string)
 

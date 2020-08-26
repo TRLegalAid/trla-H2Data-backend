@@ -8,7 +8,7 @@ import os
 
 
 def scheduled_job():
-    print(os.getenv("DATABASE_URL"))
+    print(helpers.get_secret_variables())
 
 
 sched = BlockingScheduler()
