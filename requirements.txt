@@ -2,8 +2,8 @@ APScheduler==3.0.0
 pandas
 sqlalchemy
 psycopg2
+geocodio==1.0.0
 requests
 client
-pygeocodio==1.0.0
-geocodio==1.0.0
+pygeocodio
 datetime
