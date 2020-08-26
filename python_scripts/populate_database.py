@@ -4,11 +4,7 @@ import sqlalchemy
 import helpers
 from sqlalchemy import create_engine
 
-print(helpers.get_secret_variables()[0])
-exit()
 database_connection_string = helpers.get_secret_variables()[0]
-
-
 engine = create_engine(database_connection_string)
 
 df = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/scraper_data.xlsx'))
