@@ -4,7 +4,7 @@ import sqlalchemy
 import helpers
 from sqlalchemy import create_engine
 
-print(os.getenv("LOCAL_DEV"))
+print(helpers.get_secret_variables()[0])
 exit()
 database_connection_string = helpers.get_secret_variables()[0]
 
