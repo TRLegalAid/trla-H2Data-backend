@@ -6,3 +6,5 @@ psycopg2
 geocodio==1.0.0
 requests
 client
+datetime
+dotenv
