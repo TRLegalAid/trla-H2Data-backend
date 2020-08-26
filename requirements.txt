@@ -3,6 +3,7 @@ pandas
 sqlalchemy
 psycopg2
 requests
+client
 pygeocodio
-geocodio==1.0.1
+geocodio
 datetime
