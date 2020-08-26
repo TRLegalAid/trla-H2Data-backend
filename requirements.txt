@@ -4,6 +4,6 @@ sqlalchemy
 psycopg2
 requests
 client
-pygeocodio
+pygeocodio==1.0.0
 geocodio==1.0.0
 datetime
