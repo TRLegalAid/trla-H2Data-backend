@@ -1,9 +1,8 @@
 from apscheduler.schedulers.blocking import BlockingScheduler
 import os
 from helpers import get_secret_variables
-print(get_secret_variables()[1])
-from geocodio import GeocodioClient
-client = GeocodioClient(get_secret_variables()[1])
+import geocodio
+client = geocodio.GeocodioClient(get_secret_variables()[1])
 
 def scheduled_job():
     geocoded_location = client.geocode("42370 Bob Hope Drive, Rancho Mirage CA")
