@@ -3,7 +3,7 @@ import pandas as pd
 import sqlalchemy
 import helpers
 from sqlalchemy import create_engine
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 database_connection_string = helpers.get_secret_variables()[0]
 print("here")
 print(database_connection_string)

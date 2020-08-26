@@ -2,7 +2,8 @@ from math import isnan
 import os
 import pandas as pd
 # from geocodio import GeocodioClient
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
+# import dotenv
 import requests
 
 # function for printing dictionary
