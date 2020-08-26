@@ -7,6 +7,7 @@ database_connection_string = helpers.get_secret_variables()[0]
 engine = create_engine(database_connection_string)
 
 def populate_database():
+    print("made it into the populate database script...")
     renaming_info_dict = {"Section A": "Job Info", "Section C": "Place of Employment Info", "Section D":"Housing Info"}
     column_names_dict = {}
     df = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/scraper_data.xlsx'))

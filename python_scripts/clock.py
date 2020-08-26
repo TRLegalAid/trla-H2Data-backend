@@ -4,11 +4,12 @@ import pandas as pd
 from sqlalchemy import create_engine
 import geocodio
 client = geocodio.GeocodioClient("454565525ee5444fefef2572155e155e5248221")
-from populate_databse import populate_database
+from populate_database import populate_database
 
-
+print("made it after the import statemnts of clock.py...")
 
 def scheduled_job():
+        print("made it into the scheduled job script...")
     populate_database()
 
 sched = BlockingScheduler()
