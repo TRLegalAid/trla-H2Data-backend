@@ -6,11 +6,20 @@ import geocodio
 client = geocodio.GeocodioClient("454565525ee5444fefef2572155e155e5248221")
 from populate_database import populate_database
 
+import logging
+
 print("made it after the import statemnts of clock.py...")
 
 # def scheduled_job():
 #     print("made it into the scheduled job script...")
-populate_database()
+
+try:
+    if x == 4:
+        print("hello")
+except Exception as e:
+    print("There's been a failure, here is the error message:")
+    logger.error(e, exc_info=True)
+
 
 # sched = BlockingScheduler()
 # change minutes=2 to days=1
