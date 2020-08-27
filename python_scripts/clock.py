@@ -3,9 +3,6 @@ import os
 import pandas as pd
 from sqlalchemy import create_engine
 import geocodio
-client = geocodio.GeocodioClient("454565525ee5444fefef2572155e155e5248221")
-from populate_database import populate_database
-
 import logging
 logger = logging.Logger('catch_all')
 
