@@ -8,10 +8,10 @@ database_connection_string, geocodio_api_key = helpers.get_secret_variables()
 engine, client = create_engine(database_connection_string), GeocodioClient(geocodio_api_key)
 
 # just for testing, REMEMBER TO REMOVE!
-try:
-    engine.execute("drop table low_accuracies")
-except:
-    pass
+# try:
+#     engine.execute("drop table low_accuracies")
+# except:
+#     pass
 
 # sample big dataset - https://api.apify.com/v2/datasets/xe6ZzDWTPiCEB7Vw8/items?format=json&clean=1
 # most recent run - https://api.apify.com/v2/acts/eytaog~apify-dol-actor-latest/runs/last/dataset/items?token=ftLRsXTA25gFTaCvcpnebavKw
@@ -75,13 +75,14 @@ def add_necessary_columns(job):
         # job["Number of Workers Requested"] = job["Job Info/Workers Needed H-2A"]
 
         # create W:H Ratio column
-        workers_needed, occupancy = job["TOTAL_WORKERS_NEEDED"] job["TOTAL_OCCUPANCY"]
-        if workers_needed > occupancy:
-            job["W to H Ratio"] = "W>H"
-        elif workers_needed < occupancy:
-            job["W to H Ratio"] = "W<H"
-        else:
-            job["W to H Ratio"] = "W=H"
+        workers_needed, occupancy = job["TOTAL_WORKERS_NEEDED"], job["TOTAL_OCCUPANCY"]
+        if workers_needed and occupancy:
+            if workers_needed > occupancy:
+                job["W to H Ratio"] = "W>H"
+            elif workers_needed < occupancy:
+                job["W to H Ratio"] = "W<H"
+            else:
+                job["W to H Ratio"] = "W=H"
 
     # check if job is h2b
     elif job["CASE_NUMBER"][2] == "4":
@@ -89,51 +90,54 @@ def add_necessary_columns(job):
     else:
         job["Visa type"] = ""
 
-    # add 0's to front of zip code if necessary
-    # zip_code = job["Company zip code"]
-    # job["Company zip code"] = "0" * (5 - len(zip_code)) + zip_code
-    #
-    # zip_code = job["Worksite address zip code"]
-    # job["Worksite address zip code"] = "0" * (5 - len(zip_code)) + zip_code
-    helpers.fix_zip_code_columns(df, ["EMPLOYER_POSTAL_CODE", "WORKSITE_POSTAL_CODE",  "Place of Employment Info/Postal Code", "HOUSING_POSTAL_CODE"])
+    # fix zip code columns
+    for column in ["EMPLOYER_POSTAL_CODE", "WORKSITE_POSTAL_CODE",  "Place of Employment Info/Postal Code", "HOUSING_POSTAL_CODE"]:
+        fixed_zip_code = helpers.fix_zip_code(job[column])
+        job[column] = fixed_zip_code
+
     return job
 
 # parse each job then add all columns to each job
 parsed_jobs = [parse(job) for job in latest_jobs]
 full_jobs = [add_necessary_columns(job) for job in parsed_jobs]
 
-accurate_jobs, inaccurate_jobs = helpers.check_accuracies(full_jobs)
+accurate_jobs_list, inaccurate_jobs_list = helpers.check_accuracies(full_jobs)
 
 # get data from postgres
-all_data = pd.read_sql_query('select * from "job_central"', con=engine)
-
+job_central_df = pd.read_sql_query('select * from "job_central"', con=engine)
 try:
-    low_accuracies = pd.read_sql_query('select * from "low_accuracies"', con=engine)
+    # will fail if low_accuracies table is empty
+    low_accuracies_df = pd.read_sql_query('select * from "low_accuracies"', con=engine)
 except:
-    low_accuracies = pd.DataFrame()
+    low_accuracies_df = pd.DataFrame()
 
+low_accuracies_df = pd.DataFrame()
 # loop to add each new job to df
 # uncomment the line below to demonstrate/test removal of duplicates
-# accurate_jobs.append({"CASE_NUMBER":"H-300-20118-520718"})
-for job in accurate_jobs:
-    # remove rows from all data that have duplicate case number
-    all_data = all_data[all_data["CASE_NUMBER"] != job["CASE_NUMBER"]]
-    try:
-        # same as above but for low_accuracies, this will fail if low_accuracies is originally empty, thus the try
-        low_accuracies = low_accuracies[low_accuracies["CASE_NUMBER"] != job["CASE_NUMBER"]]
-    except:
-        pass
-    all_data = all_data.append(job, ignore_index=True)
-# send updated df back to postgres
-all_data.to_sql('job_central', engine, if_exists='replace', index=False)
+# inaccurate_jobs_list = [{"CASE_NUMBER": "H-300-20108-494660"}]
+# accurate_jobs_list = [{"CASE_NUMBER": "H-300-20119-524313"}]
 
-# same as above but for inaccurate jobs
-for job in inaccurate_jobs:
-    all_data = all_data[all_data["CASE_NUMBER"] != job["CASE_NUMBER"]]
-    try:
-        low_accuracies = low_accuracies[low_accuracies["CASE_NUMBER"] != job["CASE_NUMBER"]]
-    except:
-        pass
-    low_accuracies = low_accuracies.append(job, ignore_index=True)
+def remove_duplicates_from_postgres(job_central_df, low_accuracies_df, jobs_list, accurate_or_inaccurate_str):
+    for job in jobs_list:
+        # remove rows from all data that have duplicate case number and haven't been fixed yet and aren't from additional housing
+        job_central_df = job_central_df[(job_central_df["CASE_NUMBER"] != job["CASE_NUMBER"]) | (job_central_df["fixed"] == True)]
+        if len(low_accuracies_df) > 0:
+            low_accuracies_df = low_accuracies_df[(low_accuracies_df["CASE_NUMBER"] != job["CASE_NUMBER"]) | (low_accuracies_df["table"] == "dol_h") | (low_accuracies_df["fixed"] == True)]
 
-low_accuracies.to_sql('low_accuracies', engine, if_exists='replace', index=False, dtype={"fixed": sqlalchemy.types.Boolean, "Experience Required": sqlalchemy.types.Boolean, "Multiple Worksites": sqlalchemy.types.Boolean})
+        if accurate_or_inaccurate_str == "accurate":
+            if job["CASE_NUMBER"] not in job_central_df["CASE_NUMBER"].tolist():
+                job_central_df = job_central_df.append(job, ignore_index=True)
+        elif accurate_or_inaccurate_str == "inaccurate":
+            if (len(low_accuracies_df) > 0) and (job["CASE_NUMBER"] not in low_accuracies_df["CASE_NUMBER"].tolist()):
+                low_accuracies_df = low_accuracies_df.append(job, ignore_index=True)
+        else:
+            print("accurate_or_inaccurate_str parameter should be either accurate or inaccurate")
+
+    return job_central_df, low_accuracies_df
+
+job_central_df, low_accuracies_df = remove_duplicates_from_postgres(job_central_df, low_accuracies_df, accurate_jobs_list, "accurate")
+job_central_df, low_accuracies_df = remove_duplicates_from_postgres(job_central_df, low_accuracies_df, inaccurate_jobs_list, "inaccurate")
+
+# send updated data back to postgres
+job_central_df.to_sql('job_central', engine, if_exists='replace', index=False)
+low_accuracies_df.to_sql('low_accuracies', engine, if_exists='replace', index=False, dtype={"fixed": sqlalchemy.types.Boolean, "Experience Required": sqlalchemy.types.Boolean, "Multiple Worksites": sqlalchemy.types.Boolean})

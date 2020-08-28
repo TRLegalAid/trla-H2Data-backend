@@ -122,7 +122,7 @@ def check_accuracies(jobs):
                 job["housing_fixed_by"] = "NA"
                 inaccurate_jobs.append(job)
 
-        elif job["table"] == "housing":
+        elif job["table"] == "dol_h":
             # if (job["PHYSICAL_LOCATION_STATE"].lower() in our_states) and ((job["housing coordinates"] == None) or (job["housing accuracy"] < 0.8) or (job["housing accuracy type"] in bad_accuracy_types)):
             if (job["housing coordinates"] == None) or (job["housing accuracy"] < 0.8) or (job["housing accuracy type"] in bad_accuracy_types):
                 job["fixed"] = False
@@ -132,7 +132,7 @@ def check_accuracies(jobs):
                 accurate_jobs.append(job)
 
         else:
-            print("the `table` columns of this jobs was neither `housing` nor `central`")
+            print(f"the `table` column of this job - case number {job['CASE_NUMBER']} -  was neither `dol_h` nor `central`")
             inaccurate_jobs.append(job)
 
     print(f"There were {len(accurate_jobs)} accurate jobs.")

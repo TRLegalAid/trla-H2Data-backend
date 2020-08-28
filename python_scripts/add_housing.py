@@ -8,7 +8,7 @@ engine, client = create_engine(database_connection_string), GeocodioClient(geoco
 
 housing = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/housing_addendum.xlsx'))
 helpers.fix_zip_code_columns(housing, ["PHYSICAL_LOCATION_POSTAL_CODE"])
-housing["table"], housing["source"] = "housing", "DOL"
+housing["table"], housing["source"], housing["fixed"], housing["housing_fixed_by"] = "dol_h", "DOL", None, None
 
 helpers.geocode_table(housing, "housing addendum")
 accurate_housing, inaccurate_housing = helpers.split_df_by_accuracies(housing)

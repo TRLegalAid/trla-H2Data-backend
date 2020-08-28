@@ -22,7 +22,7 @@ old_h2a = helpers.rename_columns(old_h2a)
 old_h2b = helpers.rename_columns(old_h2b)
 
 # add necessary columns to dol data, convert "Multiple Worksites" column to boolean
-dol_jobs["Source"], dol_jobs["table"] = "DOL", "housing"
+dol_jobs["Source"], dol_jobs["table"] = "DOL", "central"
 dol_jobs["Job Order Link"] = dol_jobs.apply(lambda job: "https://seasonaljobs.dol.gov/job-order/" + job["CASE_NUMBER"], axis=1)
 def h2a_or_h2b(job):
     if job["CASE_NUMBER"][2] == "3":
@@ -118,7 +118,7 @@ for i, job in inaccurate_dol_jobs.iterrows():
 # separate inaccurate dol data already fixed and not already fixed, add the already fixed ones to the accurate data
 innacurate_dol_fixed = innacurate_dol_jobs[innacurate_dol_jobs["fixed"] == True]
 accurate_dol_jobs = accurate_dol_jobs.append(innacurate_dol_fixed, sort=True, ignore_index=True)
-innacurate_dol_not_fixed = innacurate_dol_jobs[innacurate_dol_jobs["fixed"] == False]
+inaccurate_dol_not_fixed = innacurate_dol_jobs[innacurate_dol_jobs["fixed"] == False]
 
 # get dataframe of postings that are only in the scraper data and append that to the dol dataframe
 only_in_h2a = old_h2a[old_h2a.apply(lambda job: job["CASE_NUMBER"] not in dol_jobs["CASE_NUMBER"].tolist(), axis=1)]
@@ -129,4 +129,10 @@ accurate_dol_jobs = accurate_dol_jobs.append(old_h2b, sort=True, ignore_index=Tr
 
 # push merged data back up to postgres
 accurate_dol_jobs.to_sql("job_central", engine, if_exists='replace', index=False)
-innacurate_dol_not_fixed.to_sql("low_accuracies", engine, if_exists='append', index=False)
+
+# get the dataframe from low_accuracies, remove any rows that have the same case number as some row in innacurate_dol_not_fixed and are not from additional housing table
+existing_inaccurate_jobs = pd.read_sql_query('select * from low_accuracies', con=engine)
+new_inaccurate_jobs_case_numbers = inaccurate_dol_not_fixed["CASE_NUMBER"].tolist()
+existing_inaccurate_jobs = existing_inaccurate_jobs[(existing_inaccurate_jobs["CASE_NUMBER"] not in new_inaccurate_jobs_case_numbers) | (existing_inaccurate_jobs["table"] == "dol_h")]
+all_innacurate_jobs = existing_inaccurate_jobs.append(inaccurate_dol_not_fixed, sort=True, ignore_index=True)
+all_innacurate_jobs.to_sql("low_accuracies", engine, if_exists='append', index=False)
