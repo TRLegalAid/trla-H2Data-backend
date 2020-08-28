@@ -8,21 +8,12 @@ from geocodio import GeocodioClient
 database_connection_string, geocodio_api_key = helpers.get_secret_variables()
 engine, client = create_engine(database_connection_string), GeocodioClient(geocodio_api_key)
 
-# get dol data and data that's already in postgres, divide job_central data into h2a and h2b, put old data into another table
+# get dol data and postgres data (accurate and inaccurate), perform data management on dol data
 dol_jobs = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/dol_data.xlsx'))
+accurate_old_jobs = pd.read_sql("job_central", con=engine)
+inaccurate_old_jobs = pd.read_sql("low_accuracies", con=engine)
 dol_jobs = dol_jobs.drop_duplicates(subset='CASE_NUMBER', keep="last")
 helpers.fix_zip_code_columns(dol_jobs, ["HOUSING_POSTAL_CODE", "EMPLOYER_POC_POSTAL_CODE", "EMPLOYER_POSTAL_CODE", "WORKSITE_POSTAL_CODE", "ATTORNEY_AGENT_POSTAL_CODE"])
-old_jobs = pd.read_sql("job_central", con=engine)
-old_h2a = old_jobs[old_jobs["Visa type"] == "H-2A"]
-old_h2b = old_jobs[old_jobs["Visa type"] == "H-2B"]
-inaccurate_old_jobs = pd.read_sql("low_accuracies", con=engine)
-
-
-# change columns names in old scraper data to match those in dol (where applicable)
-old_h2a = helpers.rename_columns(old_h2a)
-old_h2b = helpers.rename_columns(old_h2b)
-
-# add necessary columns to dol data, convert "ADDENDUM_B_WORKSITE_ATTACHED" column to boolean
 dol_jobs["Source"], dol_jobs["table"] = "DOL", "central"
 dol_jobs["Job Order Link"] = dol_jobs.apply(lambda job: "https://seasonaljobs.dol.gov/job-order/" + job["CASE_NUMBER"], axis=1)
 def h2a_or_h2b(job):
@@ -56,7 +47,7 @@ def handle_previously_fixed(df, i, old_job, worksite_or_housing):
     if worksite_or_housing not in ["worksite", "housing"]:
         print("worksite_or_housing parameter to handle_previously_fixed function must be either `worksite` ot `housing`")
         return
-    fixed_by = get_value(jold_job, f"{worksite_or_housing}_fixed_by")
+    fixed_by = get_value(old_job, f"{worksite_or_housing}_fixed_by")
     if fixed_by in ["coordinates", "address"]:
         if fixed_by == "address":
             if worksite_or_housing == "worksite":
@@ -65,6 +56,7 @@ def handle_previously_fixed(df, i, old_job, worksite_or_housing):
                 address_columns = ["HOUSING_ADDRESS_LOCATION", "HOUSING_CITY", "HOUSING_STATE", "HOUSING_POSTAL_CODE", "housing coordinates", "housing accuracy", "housing accuracy type"]
         else:
             address_columns = [f"{worksite_or_housing} coordinates", f"{worksite_or_housing} accuracy", f"{worksite_or_housing} accuracy type"]
+        # for each column, assign that column's value in old_job to the i-th element in the column in df
         for column in address_columns:
             df.at[i, column] = get_value(old_job, column)
     return df
@@ -75,107 +67,73 @@ def check_and_handle_previously_fixed(data, old_job, i):
         data = handle_previously_fixed(data, i, old_job, "housing")
     return data
 
-# merge dol with scraper: if a case number exists in both tables and it hasn't been fixed before, keep all the columns, but for the
-# columns with the same names, use the value in dol, and change the "Source" value for that row to "DOL". If it has been fixed
-# before, keep the geocoding and address data that was already in postgres but replace everything else with the DOL data.
-# If a case number only exits in one table, just add the row as is
 dol_columns = dol_jobs.columns
-
 case_numbers_to_remove_from_inaccuracies = []
 
-
-
-accurate_job_central_columns = old_h2a.columns
-cols_only_in_central = [column for column in accurate_job_central_columns if column not in dol_columns and column != "index"]
-accurate_old_h2a_case_numbers = old_h2a["CASE_NUMBER"].tolist()
-inaccurate_old_case_numbers = inaccurate_old_jobs["CASE_NUMBER"].tolist()
-for column in cols_only_in_central:
-    accurate_dol_jobs[column] = None
-for i, job in accurate_dol_jobs.iterrows():
-    dol_case_number = job["CASE_NUMBER"]
-    # check if case number exists in job_central - if it does, merge appropriately
-    if dol_case_number in accurate_old_h2a_case_numbers:
-        job_in_old_data = old_h2a[old_h2a["CASE_NUMBER"] == dol_case_number]
-        # add the columns that are in the old_h2a but not in dol_jobs to this row
-        for column in cols_only_in_scraper:
-            accurate_dol_jobs.at[i, column] = get_value(job_in_old_data, column)
-        # if a job has already been fixed, replace the dol address/geocoding data with the old (scraper) address/geocoding data
-        check_and_handle_previously_fixed(accurate_dol_jobs, i, job_in_old_data)
-    # check if case number exists in low_accuracies table, if so remove it
-    elif dol_case_number in inaccurate_old_case_numbers:
-        inaccurate_old_jobs = inaccurate_old_jobs[inaccurate_old_jobs["CASE_NUMBER"] != dol_case_number]
-    # if the case number is only in the dol data we don't have to do anything to it
-    else:
-        pass
-
+# if accurate_or_innacurate is "accurate" then (dol_df, old_df) are the accurate dol jobs and job_central (from postgres), and (dol_df_opposite, old_df_opposite) are the inaccurate dol jobs and low_accuracies table from postgres
+# if accurate_or_innacurate is "inaccurate", it's the opposite
 def merge_dol_with_old_data(dol_df, dol_df_opposite, old_df, old_df_opposite, accurate_or_inaccurate):
     if accurate_or_inaccurate not in ["accurate", "inaccurate"]:
         print("accurate_or_inaccurate parameter to merge_dol_with_old_data function must be either `accurate` ot `inaccurate`")
         return
-    all_old_columns = old_df.columns
     old_case_numbers = old_df["CASE_NUMBER"].tolist()
     old_opposite_case_numbers = old_df_opposite["CASE_NUMBER"].tolist()
-    only_old_columns = [column for column in all_old_columns if column not in dol_columns and column != index]
+    all_old_columns = old_df.columns
+    only_old_columns = [column for column in all_old_columns if column not in dol_columns and column != "index"]
+    # add each columnd in postgres but not dol to dol
     for column in only_old_columns:
         dol_df[column] = None
     for i, job in dol_df.iterrows():
         dol_case_number = job["CASE_NUMBER"]
+        # if this jobs is already in postgres
         if dol_case_number in old_case_numbers:
-            old_job = old_df[(old_df["CASE_NUMBER"] == dol_case_number) & (inaccurate_old_jobs["table"] != "dol_h")]
+            old_job = old_df[(old_df["CASE_NUMBER"] == dol_case_number) & (old_df["table"] != "dol_h")]
+            # add the value of each column only found in postgres to dol data
             for column in only_old_columns:
                 dol_df.at[i, column] = get_value(old_job, column)
-            check_and_handle_previously_fixed(dol_df, i, old_job)
+            # if previously ficed, replace dol address/geocoding data with that from postgres (where appropriate, depending on fixed_by columns)
+            dol_df = check_and_handle_previously_fixed(dol_df, i, old_job)
         elif dol_case_number in old_opposite_case_numbers:
+            # if this job is accurate in dol but inaccurate in postgres
             if accurate_or_inaccurate == "accurate":
-                old_df_opposite = old_df_opposite[old_df_opposite["CASE_NUMBER"] != dol_case_number]
+                # just remove it from the postgres inaccurate df (unless it comes from the additional housing table)
+                old_df_opposite = old_df_opposite[(old_df_opposite["CASE_NUMBER"] != dol_case_number) | (old_df_opposite["table"] == "dol_h")]
+            # if this job is inaccurate in dol but accurate in postgres
             else:
+                # store case number to later remove from dol inaccurates table
                 case_numbers_to_remove_from_inaccuracies.append(dol_case_number)
+                # get old job from job_central (old accurates) df
                 old_job = old_df_opposite[old_df_opposite["CASE_NUMBER"] == dol_case_number]
+                # all geocoding/address columns
                 columns_not_to_change = ["WORKSITE_ADDRESS", "WORKSITE_CITY", "WORKSITE_STATE", "WORKSITE_POSTAL_CODE", "worksite coordinates", "worksite accuracy", "worksite accuracy type", "HOUSING_ADDRESS_LOCATION", "HOUSING_CITY", "HOUSING_STATE", "HOUSING_POSTAL_CODE", "housing coordinates", "housing accuracy", "housing accuracy type"]
+                # get index of this job in accurate dols df - it'll be there already b/c we're merging accurate jobs before inaccurate jobs
                 case_num_in_accurate_jobs_pos = np.flatnonzero([dol_df_opposite["CASE_NUMBER"] == dol_case_number])[0]
+                # all non-address/geocoding columns
                 columns_to_change = [columns for column in dol_columns if column not in columns_not_to_change]
                 for column in columns_to_change:
+                    # use the data from all dol columns except the geocoding/address ones
                     dol_df_opposite.at[case_num_in_accurate_jobs_pos, column] = job[column]
+        # if this jobs is only in dol, just leave it be
         else:
             pass
+    # if accurate_or_inaccurate == "accurate", returns: accurate dol df, inaccurate dol df, low_accuracies table from postgres
+    # if accurate_or_inaccurate == "inaccurate", returns: inaccurate dol df, accurate dol df, job_central table from postgres
+    # since those are the only ones that are modified
     return dol_df, dol_df_opposite, old_df_opposite
 
-# now merge the inaccurate dol data with the scraper data
-inaccurate_job_central_columns = inaccurate_old_jobs.columns
-cols_only_in_low_acc = [column for column in inaccurate_job_central_columns if column not in dol_columns and column != "index"]
-for column in cols_only_in_low_acc:
-    inaccurate_dol_jobs[column] = None
-case_numbers_to_remove = []
-for i, job in inaccurate_dol_jobs.iterrows():
-    dol_case_number = job["CASE_NUMBER"]
-    if dol_case_number in inaccurate_old_case_numbers:
-        job_in_old_data = inaccurate_old_jobs[(inaccurate_old_jobs["CASE_NUMBER"] == dol_case_number) & (inaccurate_old_jobs["table"] != "dol_h")]
-        for column in cols_only_in_scraper:
-            inaccurate_dol_jobs.at[i, column] = get_value(job_in_old_data, column)
-        check_and_handle_previously_fixed(inaccurate_dol_jobs, i, job_in_old_data)
-    # check if case number in accurate job_central case numbers, if so update it in job_central and don't put it in low_accuracies
-    elif dol_case_number in accurate_old_h2a_case_numbers:
-        case_numbers_to_remove.append(dol_case_number)
-        job_in_old_data = old_h2a[old_h2a["CASE_NUMBER"] == dol_case_number]
-        columns_not_to_change = ["WORKSITE_ADDRESS", "WORKSITE_CITY", "WORKSITE_STATE", "WORKSITE_POSTAL_CODE", "worksite coordinates", "worksite accuracy", "worksite accuracy type", "HOUSING_ADDRESS_LOCATION", "HOUSING_CITY", "HOUSING_STATE", "HOUSING_POSTAL_CODE", "housing coordinates", "housing accuracy", "housing accuracy type"]
-        case_num_in_accurate_jobs_pos = np.flatnonzero([accurate_dol_jobs["CASE_NUMBER"] == dol_case_number])[0]
-        columns_to_change = [columns for column in dol_columns if column not in columns_not_to_change]
-        for column in columns_to_change:
-            accurate_dol_jobs.at[case_num_in_accurate_jobs_pos, column] = job[column]
-    # if the case number is only in the dol data we don't have to do anything to it
-    else:
-        pass
 
-# i think i have to move this block after merging accurate but before merging inaccurate
-# get dataframe of postings that are only in job_central and append that to the accurate dol dataframe
-only_in_h2a = old_h2a[old_h2a["CASE_NUMBER"] not in accurate_dol_jobs["CASE_NUMBER"].tolist()]
-accurate_dol_jobs = accurate_dol_jobs.append(only_in_h2a, sort=True, ignore_index=True)
-# append job_central h2bs to dataframe
-accurate_dol_jobs = accurate_dol_jobs.append(old_h2b, sort=True, ignore_index=True)
-# push merged accurate data back up to job_central
-accurate_dol_jobs.to_sql("job_central", engine, if_exists='replace', index=False)
 
-inaccurate_jobs = inaccurate_dol_jobs[inaccurate_dol_jobs["CASE_NUMBER"] not in case_numbers_to_remove]
+# merge accurate jobs, get dataframe of postings that are only in job_central, append that to the accurate dol dataframe
+accurate_jobs, inaccurate_dol_jobs, inaccurate_old_jobs = merge_dol_with_old_data(accurate_dol_jobs, inaccurate_dol_jobs, accurate_old_jobs, inaccurate_old_jobs, "accurate")
+only_in_accurate_old_jobs = accurate_old_jobs[accurate_old_jobs["CASE_NUMBER"] not in accurate_jobs["CASE_NUMBER"].tolist()]
+accurate_jobs = accurate_jobs.append(only_in_accurate_old_jobs, sort=True, ignore_index=True)
+
+# merge inaccurate jobs, remove necessary case numbers from inaccurate jobs, append jobs that are only in low_accuracies (postgres but not DOL)
+inaccurate_jobs, accurate_jobs, accurate_old_jobs = merge_dol_with_old_data(inaccurate_dol_jobs, accurate_jobs, inaccurate_old_jobs, accurate_old_jobs, "inaccurate")
+inaccurate_jobs = inaccurate_jobs[inaccurate_jobs["CASE_NUMBER"] not in case_numbers_to_remove_from_inaccuracies]
 only_in_low_accuracies = inaccurate_old_jobs[inaccurate_old_jobs["CASE_NUMBER"] not in inaccurate_jobs["CASE_NUMBER"].tolist()]
 inaccurate_jobs = inaccurate_jobs.append(only_in_low_accuracies, sort=True, ignore_index=True)
+
+# push both dfs back to postgres
+accurate_dol_jobs.to_sql("job_central", engine, if_exists='replace', index=False)
 inaccurate_jobs.to_sql("low_accuracies", engine, if_exists='replace', index=False)
