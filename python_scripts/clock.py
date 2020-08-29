@@ -7,7 +7,7 @@ import geocodio
 
 # def scheduled_job():
 #     print("made it into the scheduled job script...")
-for i in range(10):
+while True:
     print("3")
 #
 # sched = BlockingScheduler()
