@@ -7,15 +7,16 @@ import geocodio
 
 # def scheduled_job():
 #     print("made it into the scheduled job script...")
-while True:
-    print("3")
-#
-# sched = BlockingScheduler()
-# # change minutes=2 to days=1
-# sched.add_job(update, 'interval', days=1, start_date='2020-08-25 22:10:00', timezone='US/Eastern')
+def job():
+    for i in range(5):
+        print(i)
+
+sched = BlockingScheduler()
+# change minutes=2 to days=1
+sched.add_job(schedule, 'interval', seconds=5, start_date='2020-08-25 22:10:00', timezone='US/Eastern')
 # sched.add_job(fix, 'interval', days=1)
-#
-# sched.start()
+
+sched.start()
 
 # for checking for changes in low_accuracies
 # def fix():
