@@ -12,12 +12,14 @@ def job():
         print(i)
     print("all done")
 
-sched = BlockingScheduler()
-# change minutes=2 to days=1
-sched.add_job(job, 'interval', seconds=5, start_date='2020-08-25 22:10:00', timezone='US/Eastern')
-# sched.add_job(fix, 'interval', days=1)
+job()
 
-sched.start()
+# sched = BlockingScheduler()
+# # change minutes=2 to days=1
+# sched.add_job(job, 'interval', seconds=5, start_date='2020-08-25 22:10:00', timezone='US/Eastern')
+# # sched.add_job(fix, 'interval', days=1)
+#
+# sched.start()
 
 # for checking for changes in low_accuracies
 # def fix():
