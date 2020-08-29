@@ -12,7 +12,6 @@ def job():
         print(i)
     print("all done")
 
-job()
 
 # sched = BlockingScheduler()
 # # change minutes=2 to days=1

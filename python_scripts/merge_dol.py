@@ -8,7 +8,7 @@ from geocodio import GeocodioClient
 database_connection_string, geocodio_api_key = helpers.get_secret_variables()
 engine, client = create_engine(database_connection_string), GeocodioClient(geocodio_api_key)
 
-# get dol data and postgres data (accurate and inaccurate), perform data management on dol data
+# get dol data and postgres data (accurate and inaccurate), perform necessary data management on dol data
 dol_jobs = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/dol_data.xlsx'))
 accurate_old_jobs = pd.read_sql("job_central", con=engine)
 inaccurate_old_jobs = pd.read_sql("low_accuracies", con=engine)
@@ -92,7 +92,7 @@ def merge_dol_with_old_data(dol_df, dol_df_opposite, old_df, old_df_opposite, ac
             for column in only_old_columns:
                 dol_df.at[i, column] = get_value(old_job, column)
             # if previously ficed, replace dol address/geocoding data with that from postgres (where appropriate, depending on fixed_by columns)
-            dol_df = check_and_handle_previously_fixed(dol_df, i, old_job)
+            dol_df = check_and_handle_previously_fixed(dol_df, old_job, i)
         elif dol_case_number in old_opposite_case_numbers:
             # if this job is accurate in dol but inaccurate in postgres
             if accurate_or_inaccurate == "accurate":
@@ -121,17 +121,17 @@ def merge_dol_with_old_data(dol_df, dol_df_opposite, old_df, old_df_opposite, ac
     # since those are the only ones that are modified
     return dol_df, dol_df_opposite, old_df_opposite
 
-
-
 # merge accurate jobs, get dataframe of postings that are only in job_central, append that to the accurate dol dataframe
 accurate_jobs, inaccurate_dol_jobs, inaccurate_old_jobs = merge_dol_with_old_data(accurate_dol_jobs, inaccurate_dol_jobs, accurate_old_jobs, inaccurate_old_jobs, "accurate")
-only_in_accurate_old_jobs = accurate_old_jobs[accurate_old_jobs["CASE_NUMBER"] not in accurate_jobs["CASE_NUMBER"].tolist()]
+accurate_case_numbers = accurate_jobs["CASE_NUMBER"].tolist()
+only_in_accurate_old_jobs = accurate_old_jobs[~(accurate_old_jobs["CASE_NUMBER"].isin(accurate_case_numbers))]
 accurate_jobs = accurate_jobs.append(only_in_accurate_old_jobs, sort=True, ignore_index=True)
 
 # merge inaccurate jobs, remove necessary case numbers from inaccurate jobs, append jobs that are only in low_accuracies (postgres but not DOL)
 inaccurate_jobs, accurate_jobs, accurate_old_jobs = merge_dol_with_old_data(inaccurate_dol_jobs, accurate_jobs, inaccurate_old_jobs, accurate_old_jobs, "inaccurate")
-inaccurate_jobs = inaccurate_jobs[inaccurate_jobs["CASE_NUMBER"] not in case_numbers_to_remove_from_inaccuracies]
-only_in_low_accuracies = inaccurate_old_jobs[inaccurate_old_jobs["CASE_NUMBER"] not in inaccurate_jobs["CASE_NUMBER"].tolist()]
+inaccurate_jobs = inaccurate_jobs[~(inaccurate_jobs["CASE_NUMBER"].isin(case_numbers_to_remove_from_inaccuracies))]
+inaccurate_case_numbers = inaccurate_jobs["CASE_NUMBER"].tolist()
+only_in_low_accuracies = inaccurate_old_jobs[~(inaccurate_old_jobs["CASE_NUMBER"].isin(inaccurate_case_numbers))]
 inaccurate_jobs = inaccurate_jobs.append(only_in_low_accuracies, sort=True, ignore_index=True)
 
 # push both dfs back to postgres
