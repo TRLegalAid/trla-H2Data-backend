@@ -108,8 +108,6 @@ new_accurate_jobs, new_inaccurate_jobs = helpers.geocode_and_split_by_accuracy(f
 job_central = pd.read_sql("job_central", con=engine)
 low_accuracies = pd.read_sql("low_accuracies", con=engine)
 
-def remove_case_numbers_from_df(df, case_number):
-    return df[(df["CASE_NUMBER"] != case_number) | (df["table"] == "dol_h")]
 
 def remove_duplicates_from_postgres(new_jobs, new_opposite_jobs, accurate_or_inaccurate, job_central, low_accuracies):
     print("Removing duplicate case numbers.... \n")
