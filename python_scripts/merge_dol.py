@@ -36,29 +36,11 @@ def get_value(job, column):
 def is_previously_fixed(old_job):
     return get_value(old_job, "fixed") == True
 
-def handle_previously_fixed(df, i, old_job, worksite_or_housing):
-    if worksite_or_housing not in ["worksite", "housing"]:
-        print("worksite_or_housing parameter to handle_previously_fixed function must be either `worksite` ot `housing`")
-        return
-    fixed_by = get_value(old_job, f"{worksite_or_housing}_fixed_by")
-    if fixed_by in ["coordinates", "address"]:
-        if fixed_by == "address":
-            if worksite_or_housing == "worksite":
-                address_columns = ["WORKSITE_ADDRESS", "WORKSITE_CITY", "WORKSITE_STATE", "WORKSITE_POSTAL_CODE", "worksite coordinates", "worksite accuracy", "worksite accuracy type"]
-            elif worksite_or_housing == "housing":
-                address_columns = ["HOUSING_ADDRESS_LOCATION", "HOUSING_CITY", "HOUSING_STATE", "HOUSING_POSTAL_CODE", "housing coordinates", "housing accuracy", "housing accuracy type"]
-        else:
-            address_columns = [f"{worksite_or_housing} coordinates", f"{worksite_or_housing} accuracy", f"{worksite_or_housing} accuracy type"]
-        # for each column, assign that column's value in old_job to the i-th element in the column in df
-        for column in address_columns:
-            df.at[i, column] = get_value(old_job, column)
-    return df
-
 def check_and_handle_previously_fixed(data, old_job, i):
     if is_previously_fixed(old_job):
         print("PREVIOUSLY FIXED:", get_value(old_job, "CASE_NUMBER"), "has already been fixed. \n")
-        data = handle_previously_fixed(data, i, old_job , "worksite")
-        data = handle_previously_fixed(data, i, old_job, "housing")
+        data = helpers.handle_previously_fixed(data, i, old_job , "worksite", "merge")
+        data = helpers.handle_previously_fixed(data, i, old_job, "housing", "merge")
     return data
 
 dol_columns = dol_jobs.columns
@@ -87,7 +69,7 @@ def merge_dol_with_old_data(dol_df, dol_df_opposite, old_df, old_df_opposite, ac
             # add the value of each column only found in postgres to dol data
             for column in only_old_columns:
                 dol_df.at[i, column] = get_value(old_job, column)
-            # if previously ficed, replace dol address/geocoding data with that from postgres (where appropriate, depending on fixed_by columns)
+            # if previously fixed, replace dol address/geocoding data with that from postgres (where appropriate, depending on fixed_by columns)
             dol_df = check_and_handle_previously_fixed(dol_df, old_job, i)
         elif dol_case_number in old_opposite_case_numbers:
             # if this job is accurate in dol but inaccurate in postgres
@@ -99,28 +81,33 @@ def merge_dol_with_old_data(dol_df, dol_df_opposite, old_df, old_df_opposite, ac
             else:
                 print("DUPLICATE CASE NUMBER:", dol_case_number, f"is in both the ({accurate_or_inaccurate}) DOL dataset and the job_central table in postgres. \n")
                 # store case number to later remove from dol inaccurates table
-                case_numbers_to_remove_from_inaccuracies.append(dol_case_number)
-                # get old job from job_central (old accurates) df
+                # case_numbers_to_remove_from_inaccuracies.append(dol_case_number)
+                # # get old job from job_central (old accurates) df
                 old_job = old_df_opposite[old_df_opposite["CASE_NUMBER"] == dol_case_number]
-                # all geocoding/address columns
-                columns_not_to_change = ["WORKSITE_ADDRESS", "WORKSITE_CITY", "WORKSITE_STATE", "WORKSITE_POSTAL_CODE", "worksite coordinates", "worksite accuracy", "worksite accuracy type", "HOUSING_ADDRESS_LOCATION", "HOUSING_CITY", "HOUSING_STATE", "HOUSING_POSTAL_CODE", "housing coordinates", "housing accuracy", "housing accuracy type"]
-                # get index of this job in accurate dols df - it'll be there already b/c we're merging accurate jobs before inaccurate jobs
-                case_num_in_accurate_jobs_pos = dol_df_opposite[dol_df_opposite["CASE_NUMBER"] == dol_case_number].index.tolist()[0]
-                # all non-address/geocoding columns
-                columns_to_change = [column for column in dol_columns if column not in columns_not_to_change]
-                for column in columns_to_change:
-                    # use the data from all dol columns except the geocoding/address ones
-                    value_in_job = job[column]
-                    # handle case where one column is a series of floats and the other is a series of booleans
-                    if type(value_in_job) == bool:
-                        value_in_job = float(value_in_job)
-                    dol_df_opposite.at[case_num_in_accurate_jobs_pos, column] = value_in_job
+                # # dol_df_opposite = helpers.handle_previously_fixed(dol_df_opposite, i, old_job, "worksite", "update")
+                # # dol_df_opposite = helpers.handle_previously_fixed(dol_df_opposite, i, old_job, "housing", "update")
+                #
+                # # all geocoding/address columns
+                # columns_not_to_change = ["WORKSITE_ADDRESS", "WORKSITE_CITY", "WORKSITE_STATE", "WORKSITE_POSTAL_CODE", "worksite coordinates", "worksite accuracy", "worksite accuracy type", "HOUSING_ADDRESS_LOCATION", "HOUSING_CITY", "HOUSING_STATE", "HOUSING_POSTAL_CODE", "housing coordinates", "housing accuracy", "housing accuracy type", "fixed", "housing_fixed_by", "worksite_fixed_by"]
+                # # get index of this job in accurate dols df - it'll be there already b/c we're merging accurate jobs before inaccurate jobs
+                # case_num_in_accurate_jobs_pos = dol_df_opposite[dol_df_opposite["CASE_NUMBER"] == dol_case_number].index.tolist()[0]
+                # # all non-address/geocoding columns
+                # columns_to_change = [column for column in dol_columns if column not in columns_not_to_change]
+                # for column in columns_to_change:
+                #     # use the data from all dol columns except the geocoding/address ones
+                #     value_in_job = job[column]
+                #     # handle case where one column is a series of floats and the other is a series of booleans
+                #     if type(value_in_job) == bool:
+                #         value_in_job = float(value_in_job)
+                #     dol_df_opposite.at[case_num_in_accurate_jobs_pos, column] = value_in_job
+                dol_df = check_and_handle_previously_fixed(dol_df, old_job, i)
+                old_df_opposite = old_df_opposite[old_df_opposite["CASE_NUMBER"] != dol_case_number]
+
         # if this jobs is only in dol, just leave it be
         else:
             pass
     # if accurate_or_inaccurate == "accurate", returns: accurate dol df, inaccurate dol df, low_accuracies table from postgres
     # if accurate_or_inaccurate == "inaccurate", returns: inaccurate dol df, accurate dol df, job_central table from postgres
-    # since those are the only ones that are modified
     print(f"FINISHED merging {accurate_or_inaccurate} DOL data. \n")
     return dol_df, dol_df_opposite, old_df_opposite
 
@@ -132,10 +119,13 @@ accurate_jobs = accurate_jobs.append(only_in_accurate_old_jobs, sort=True, ignor
 
 # merge inaccurate jobs, remove necessary case numbers from inaccurate jobs, append jobs that are only in low_accuracies (postgres but not DOL)
 inaccurate_jobs, accurate_jobs, accurate_old_jobs = merge_dol_with_old_data(inaccurate_dol_jobs, accurate_jobs, inaccurate_old_jobs, accurate_old_jobs, "inaccurate")
-inaccurate_jobs = inaccurate_jobs[~(inaccurate_jobs["CASE_NUMBER"].isin(case_numbers_to_remove_from_inaccuracies))]
+# inaccurate_jobs = inaccurate_jobs[~(inaccurate_jobs["CASE_NUMBER"].isin(case_numbers_to_remove_from_inaccuracies))]
 inaccurate_case_numbers = inaccurate_jobs["CASE_NUMBER"].tolist()
 only_in_low_accuracies = inaccurate_old_jobs[~(inaccurate_old_jobs["CASE_NUMBER"].isin(inaccurate_case_numbers))]
 inaccurate_jobs = inaccurate_jobs.append(only_in_low_accuracies, sort=True, ignore_index=True)
+accurates_in_inaccurates = inaccurate_jobs[inaccurate_jobs["fixed"]]
+accurate_jobs = accurate_jobs.append(accurates_in_inaccurates, sort=True, ignore_index=True)
+inaccurate_jobs = inaccurate_jobs[~inaccurate_jobs["fixed"]]
 inaccurate_jobs["fixed"] = False
 
 # push both dfs back to postgres

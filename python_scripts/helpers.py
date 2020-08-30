@@ -5,6 +5,7 @@ from geocodio import GeocodioClient
 import requests
 import logging
 import sqlalchemy
+pd.options.mode.chained_assignment = None
 logger = logging.Logger('catch_all')
 bad_accuracy_types = ["place", "state", "street_center"]
 column_types = {
@@ -15,6 +16,10 @@ column_types = {
     "TOTAL_UNITS": sqlalchemy.types.Integer, "TOTAL_WORKERS_H-2A_REQUESTED": sqlalchemy.types.Integer, "TOTAL_WORKERS_NEEDED": sqlalchemy.types.Integer,
     "WORKSITE_POSTAL_CODE": sqlalchemy.types.Text, "ATTORNEY_AGENT_PHONE": sqlalchemy.types.Text
 }
+
+housing_address_columns = ["HOUSING_ADDRESS_LOCATION", "HOUSING_CITY", "HOUSING_STATE", "HOUSING_POSTAL_CODE", "housing coordinates", "housing accuracy", "housing accuracy type", "housing_fixed_by", "fixed"]
+worksite_address_columns = ["WORKSITE_ADDRESS", "WORKSITE_CITY", "WORKSITE_STATE", "WORKSITE_POSTAL_CODE", "worksite coordinates", "worksite accuracy", "worksite accuracy type", "worksite_fixed_by", "fixed"]
+
 
 # function for printing dictionary
 def prettier(dictionary):
@@ -36,52 +41,6 @@ def create_address_from(address, city, state, zip):
         return address + ", " + city + " " + state + " " + str(zip)
     except:
         return ""
-
-# def geocode_table(df, worksite_or_housing):
-#     print("Geocoding " + worksite_or_housing + "...")
-#
-#     if worksite_or_housing == "worksite":
-#         addresses = df.apply(lambda job: create_address_from(job["WORKSITE_ADDRESS"], job["WORKSITE_CITY"], job["WORKSITE_STATE"], job["WORKSITE_POSTAL_CODE"]), axis=1).tolist()
-#     elif worksite_or_housing == "housing":
-#         addresses = df.apply(lambda job: create_address_from(job["HOUSING_ADDRESS_LOCATION"], job["HOUSING_CITY"], job["HOUSING_STATE"], job["HOUSING_POSTAL_CODE"]), axis=1).tolist()
-#     elif worksite_or_housing == "housing addendum":
-#         addresses = df.apply(lambda job: create_address_from(job["PHYSICAL_LOCATION_ADDRESS1"], job["PHYSICAL_LOCATION_CITY"], job["PHYSICAL_LOCATION_STATE"], job["PHYSICAL_LOCATION_POSTAL_CODE"]), axis=1).tolist()
-#     else:
-#         print("`worksite_or_housing` should be either `worksite` or `housing` or `housing addendum`")
-#         addresses = []
-#
-#     coordinates, accuracies, accuracy_types, failures = [], [], [], []
-#     failures_count, count = 0, 0
-#     for address in addresses:
-#         try:
-#             geocoded = client.geocode(address)
-#             accuracy_types.append(geocoded["results"][0]["accuracy_type"])
-#             coordinates.append(geocoded.coords)
-#             accuracies.append(geocoded.accuracy)
-#         except Exception as e:
-#             print(f"There's been a failure geocoding the address {address} - here is the error message:")
-#             logger.error(e, exc_info=True)
-#             print("\n")
-#             coordinates.append(None)
-#             accuracies.append(None)
-#             accuracy_types.append(None)
-#             failures.append(address)
-#             failures_count += 1
-#         count += 1
-#         if count % 20 == 0:
-#             print(f"There have been {failures_count} failures out of {count} attempts")
-#     if worksite_or_housing == "worksite":
-#         geocoding_type = "worksite"
-#     elif "housing" in worksite_or_housing:
-#         geocoding_type = "housing"
-#     else:
-#         geocoding_type = ""
-#         print("`worksite_or_housing` should be either `worksite` or `housing` or `housing addendum`")
-#
-#     df[f"{geocoding_type} coordinates"] = coordinates
-#     df[f"{geocoding_type} accuracy"] = accuracies
-#     df[f"{geocoding_type} accuracy type"] = accuracy_types
-#     print(f"There were {failures_count} failures out of {count} attempts", "\n")
 
 def geocode_table(df, worksite_or_housing):
     print(f"Geocoding {worksite_or_housing}...")
@@ -123,65 +82,34 @@ def fix_zip_code_columns(df, columns):
     for column in columns:
         df[column] = df.apply(lambda job: fix_zip_code(job[column]), axis=1)
 
-def check_accuracies(jobs):
-    print("Checking for accuracies...")
+def is_accurate(job):
     our_states = ["texas", "kentucky", "tennessee", "arkansas", "louisiana", "mississippi", "alabama"]
-    accurate_jobs = []
-    inaccurate_jobs = []
-    for job in jobs:
-        if job["table"] == "central":
-            if job["Visa type"] == "H-2A":
-                # if (job["PHYSICAL_LOCATION_STATE"].lower() in our_states) and ((job["worksite coordinates"] == None) or (job["housing coordinates"] == None) or (job["worksite accuracy"] < 0.8) or (job["housing accuracy"] < 0.8) or (job["worksite accuracy type"] in bad_accuracy_types) or (job["housing accuracy type"] in bad_accuracy_types)):
-                if ((job["worksite coordinates"] == None) or (job["housing coordinates"] == None) or (job["worksite accuracy"] < 0.8) or (job["housing accuracy"] < 0.8) or (job["worksite accuracy type"] in bad_accuracy_types) or (job["housing accuracy type"] in bad_accuracy_types)):
-
-                    job["fixed"] = False
-                    job["worksite_fixed_by"] = "NA"
-                    job["housing_fixed_by"] = "NA"
-                    inaccurate_jobs.append(job)
-                else:
-                    accurate_jobs.append(job)
-
-            elif job["Visa type"] == "H-2B":
-                # if (job["PHYSICAL_LOCATION_STATE"].lower() in our_states) and ((job["worksite coordinates"] == None) or (job["worksite accuracy"] < 0.8) or (job["worksite accuracy type"] in bad_accuracy_types)):
-                if (job["worksite coordinates"] == None) or (job["worksite accuracy"] < 0.8) or (job["worksite accuracy type"] in bad_accuracy_types):
-                    job["fixed"] = False
-                    job["worksite_fixed_by"] = "NA"
-                    inaccurate_jobs.append(job)
-                else:
-                    accurate_jobs.append(job)
-
-            else:
-                job["fixed"] = False
-                job["worksite_fixed_by"] = "NA"
-                job["housing_fixed_by"] = "NA"
-                inaccurate_jobs.append(job)
-
-        elif job["table"] == "dol_h":
-            # if (job["PHYSICAL_LOCATION_STATE"].lower() in our_states) and ((job["housing coordinates"] == None) or (job["housing accuracy"] < 0.8) or (job["housing accuracy type"] in bad_accuracy_types)):
-            if (job["housing coordinates"] == None) or (job["housing accuracy"] < 0.8) or (job["housing accuracy type"] in bad_accuracy_types):
-                job["fixed"] = False
-                job["housing_fixed_by"] = "NA"
-                inaccurate_jobs.append(job)
-            else:
-                accurate_jobs.append(job)
-
+    # if (job["WORKSITE_STATE"].lower() not in our_states):
+    #     return True
+    if job["table"] == "central":
+        if job["Visa type"] == "H-2A":
+            return not ((job["worksite coordinates"] == None) or (job["housing coordinates"] == None) or (job["worksite accuracy"] < 0.8) or (job["housing accuracy"] < 0.8) or (job["worksite accuracy type"] in bad_accuracy_types) or (job["housing accuracy type"] in bad_accuracy_types))
+        elif job["Visa type"] == "H-2B":
+            return not ((job["worksite coordinates"] == None) or (job["worksite accuracy"] < 0.8) or (job["worksite accuracy type"] in bad_accuracy_types))
         else:
-            print(f"the `table` column of this job - case number {job['CASE_NUMBER']} -  was neither `dol_h` nor `central`")
-            inaccurate_jobs.append(job)
+            print(f"the `Visa type` column of this job - case number {job['CASE_NUMBER']} -  was neither `H-2a` nor `H-2B`")
+            return False
 
-    print(f"There were {len(accurate_jobs)} accurate jobs.")
-    print(f"There were {len(inaccurate_jobs)} inaccurate jobs. \n")
-    return accurate_jobs, inaccurate_jobs
+    elif job["table"] == "dol_h":
+        return not ((job["housing coordinates"] == None) or (job["housing accuracy"] < 0.8) or (job["housing accuracy type"] in bad_accuracy_types))
 
-def split_df_by_accuracies(df):
-    list_of_jobs = df.to_dict(orient='records')
-    accurate_jobs_list, inaccurate_jobs_list = check_accuracies(list_of_jobs)
-    return pd.DataFrame(accurate_jobs_list), pd.DataFrame(inaccurate_jobs_list)
+    else:
+        print(f"the `table` column of this job - case number {job['CASE_NUMBER']} -  was neither `dol_h` nor `central`")
+        return False
 
 def geocode_and_split_by_accuracy(df):
     geocode_table(df, "worksite")
     geocode_table(df, "housing")
-    return split_df_by_accuracies(df)
+    accurate = df.apply(lambda job: is_accurate(job), axis=1)
+    accurate_jobs, inaccurate_jobs = df.copy()[accurate], df.copy()[~accurate]
+    inaccurate_jobs["fixed"] = False
+    print(f"There were {len(accurate_jobs)} accurate jobs.\nThere were {len(inaccurate_jobs)} inaccurate jobs. \n")
+    return accurate_jobs, inaccurate_jobs
 
 def get_column_mappings_dictionary():
         # get column mappings dataframe
@@ -209,9 +137,44 @@ def rename_columns(df):
     return df.rename(columns=column_mappings_dict)
 
 def h2a_or_h2b(job):
-    if job["CASE_NUMBER"][2] == "3":
+    if (job["CASE_NUMBER"][2] == "3") or (job["CASE_NUMBER"][0] == "3"):
         return "H-2A"
     elif job["CASE_NUMBER"][2] == "4":
         return "H-2B"
     else:
         return ""
+
+def get_value(job, column):
+    return job[column].tolist()[0]
+
+def get_address_columns(worksite_or_housing):
+    if worksite_or_housing == "worksite":
+        return worksite_address_columns
+    else:
+        return housing_address_columns
+
+def handle_previously_fixed(df, i, old_job, worksite_or_housing, merge_or_update):
+    # df.to_excel("before prev fixed.xlsx")
+    if worksite_or_housing not in ["worksite", "housing"]:
+        print("worksite_or_housing parameter to handle_previously_fixed function must be either `worksite` ot `housing`")
+        return
+    fixed_by = get_value(old_job, f"{worksite_or_housing}_fixed_by")
+    if fixed_by in ["coordinates", "address"]:
+        if fixed_by == "address":
+            address_columns = get_address_columns(worksite_or_housing)
+        else:
+            address_columns = [f"{worksite_or_housing} coordinates", f"{worksite_or_housing} accuracy", f"{worksite_or_housing} accuracy type"]
+        # for each column, assign that column's value in old_job to the i-th element in the column in df
+        for column in address_columns:
+            df.at[i, column] = get_value(old_job, column)
+    # elif fixed_by == "impossible":
+    #     pass
+    # else:
+    #     if merge_or_update == "update":
+    #         address_columns = get_address_columns(worksite_or_housing)
+    #         # print(address_columns)
+    #         for column in address_columns:
+    #             # print(column, ":", get_value(old_job, column))
+    #             df.at[i, column] = get_value(old_job, column)
+    # df.to_excel("from prev fixed.xlsx")
+    return df
