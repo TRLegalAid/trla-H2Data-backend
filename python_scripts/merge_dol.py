@@ -70,7 +70,7 @@ def merge_dol_with_old_data(dol_df, dol_df_opposite, old_df, old_df_opposite, ac
     if accurate_or_inaccurate not in ["accurate", "inaccurate"]:
         print("accurate_or_inaccurate parameter to merge_dol_with_old_data function must be either `accurate` ot `inaccurate` \n")
         return
-    print(f"merging {accurate_or_inaccurate} dol data... \n")
+    print(f"MERGING {accurate_or_inaccurate} DOL data... \n")
     old_case_numbers = old_df["CASE_NUMBER"].tolist()
     old_opposite_case_numbers = old_df_opposite["CASE_NUMBER"].tolist()
     all_old_columns = old_df.columns
@@ -121,6 +121,7 @@ def merge_dol_with_old_data(dol_df, dol_df_opposite, old_df, old_df_opposite, ac
     # if accurate_or_inaccurate == "accurate", returns: accurate dol df, inaccurate dol df, low_accuracies table from postgres
     # if accurate_or_inaccurate == "inaccurate", returns: inaccurate dol df, accurate dol df, job_central table from postgres
     # since those are the only ones that are modified
+    print(f"FINISHED merging {accurate_or_inaccurate} DOL data. \n")
     return dol_df, dol_df_opposite, old_df_opposite
 
 # merge accurate jobs, get dataframe of postings that are only in job_central, append that to the accurate dol dataframe
@@ -135,6 +136,7 @@ inaccurate_jobs = inaccurate_jobs[~(inaccurate_jobs["CASE_NUMBER"].isin(case_num
 inaccurate_case_numbers = inaccurate_jobs["CASE_NUMBER"].tolist()
 only_in_low_accuracies = inaccurate_old_jobs[~(inaccurate_old_jobs["CASE_NUMBER"].isin(inaccurate_case_numbers))]
 inaccurate_jobs = inaccurate_jobs.append(only_in_low_accuracies, sort=True, ignore_index=True)
+inaccurate_jobs["fixed"] = False
 
 # push both dfs back to postgres
 accurate_jobs.to_sql("job_central", engine, if_exists='replace', index=False, dtype=helpers.column_types)

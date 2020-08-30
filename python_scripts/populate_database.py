@@ -9,7 +9,6 @@ engine = create_engine(database_connection_string)
 renaming_info_dict = {"Section A": "Job Info", "Section C": "Place of Employment Info", "Section D":"Housing Info"}
 column_names_dict = {}
 df = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/scraper_data.xlsx'))
-# df = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/scraper_data_big.xlsx'))
 for column in df.columns:
     for key in renaming_info_dict:
         if key in column:
@@ -27,13 +26,11 @@ def get_num_workers(job):
     if job["Visa type"] == "H-2A":
         return job["TOTAL_WORKERS_H-2A_REQUESTED"]
     else:
-        # return job["TOTAL_WORKERS_NEEDED"]
         return job["Number of Workers Requested H-2B"]
 df['TOTAL_WORKERS_NEEDED'] = df.apply(lambda job: get_num_workers(job), axis=1)
 helpers.fix_zip_code_columns(df, ["EMPLOYER_POSTAL_CODE", "WORKSITE_POSTAL_CODE",  "Place of Employment Info/Postal Code", "HOUSING_POSTAL_CODE"])
 
 df.to_sql("raw_scraper_jobs", engine, if_exists='replace', index=False, dtype=helpers.column_types)
-
 
 df["fixed"], df["worksite_fixed_by"], df["housing_fixed_by"], df["notes"], df["table"] = None, None, None, None, "central"
 accurate_jobs, inaccurate_jobs = helpers.geocode_and_split_by_accuracy(df)

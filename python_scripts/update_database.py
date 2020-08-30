@@ -62,6 +62,19 @@ def add_necessary_columns(job):
         job[column] = fixed_zip_code
     return job
 
+
+
+# parse each job, add all columns to each job, append this to raw scraper data and push back to postgres
+parsed_jobs = [parse(job) for job in latest_jobs]
+full_jobs = [add_necessary_columns(job) for job in parsed_jobs]
+full_jobs_df = pd.DataFrame(full_jobs)
+raw_scraper_jobs = pd.read_sql('raw_scraper_jobs', con=engine)
+raw_new_and_old_jobs = full_jobs_df.append(raw_scraper_jobs, ignore_index=True, sort=True)
+raw_new_and_old_jobs = raw_new_and_old_jobs.drop_duplicates(subset='CASE_NUMBER', keep="last")
+raw_new_and_old_jobs.to_sql("raw_scraper_jobs", engine, if_exists="replace", index=False, dtype=helpers.column_types)
+
+
+
 def geocode(job):
     # create and geocode full worksite address
     worksite_full_address = helpers.create_address_from(job["WORKSITE_ADDRESS"], job["WORKSITE_CITY"], job["WORKSITE_STATE"], job["WORKSITE_POSTAL_CODE"])
@@ -88,15 +101,8 @@ def geocode(job):
             job["housing accuracy type"] = "place"
     return job
 
-
-# parse each job, add all columns to each job, append this to raw scraper data and push back to postgres
-parsed_jobs = [parse(job) for job in latest_jobs]
-full_jobs = [add_necessary_columns(job) for job in parsed_jobs]
 full_jobs_df = pd.DataFrame(full_jobs)
-raw_scraper_jobs = pd.read_sql('raw_scraper_jobs', con=engine)
-raw_new_and_old_jobs = full_jobs_df.append(raw_scraper_jobs, ignore_index=True, sort=True)
-raw_new_and_old_jobs = raw_new_and_old_jobs.drop_duplicates(subset='CASE_NUMBER', keep="last")
-raw_new_and_old_jobs.to_sql("raw_scraper_jobs", engine, if_exists="replace", index=False, dtype=helpers.column_types)
+
 
 # geocode jobs, split by accuracy
 full_jobs_geocoded = [geocode(job) for job in full_jobs]

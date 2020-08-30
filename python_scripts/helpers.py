@@ -2,12 +2,11 @@ from math import isnan
 import os
 import pandas as pd
 from geocodio import GeocodioClient
-import geocodio
 import requests
 import logging
 import sqlalchemy
 logger = logging.Logger('catch_all')
-
+bad_accuracy_types = ["place", "state", "street_center"]
 column_types = {
     "fixed": sqlalchemy.types.Boolean, "Experience Required": sqlalchemy.types.Boolean, "Multiple Worksites": sqlalchemy.types.Boolean,
     "Date of run": sqlalchemy.types.DateTime, "RECEIVED_DATE": sqlalchemy.types.DateTime, "EMPLOYMENT_BEGIN_DATE": sqlalchemy.types.DateTime,
@@ -28,10 +27,9 @@ def get_secret_variables():
         import secret_variables
         return secret_variables.DATABASE_URL, secret_variables.GEOCODIO_API_KEY
     return os.getenv("DATABASE_URL"), os.getenv("GEOCODIO_API_KEY")
-
 geocodio_api_key = get_secret_variables()[1]
 client = GeocodioClient(geocodio_api_key)
-bad_accuracy_types = ["place", "state", "street_center"]
+
 
 def create_address_from(address, city, state, zip):
     try:
@@ -39,51 +37,77 @@ def create_address_from(address, city, state, zip):
     except:
         return ""
 
+# def geocode_table(df, worksite_or_housing):
+#     print("Geocoding " + worksite_or_housing + "...")
+#
+#     if worksite_or_housing == "worksite":
+#         addresses = df.apply(lambda job: create_address_from(job["WORKSITE_ADDRESS"], job["WORKSITE_CITY"], job["WORKSITE_STATE"], job["WORKSITE_POSTAL_CODE"]), axis=1).tolist()
+#     elif worksite_or_housing == "housing":
+#         addresses = df.apply(lambda job: create_address_from(job["HOUSING_ADDRESS_LOCATION"], job["HOUSING_CITY"], job["HOUSING_STATE"], job["HOUSING_POSTAL_CODE"]), axis=1).tolist()
+#     elif worksite_or_housing == "housing addendum":
+#         addresses = df.apply(lambda job: create_address_from(job["PHYSICAL_LOCATION_ADDRESS1"], job["PHYSICAL_LOCATION_CITY"], job["PHYSICAL_LOCATION_STATE"], job["PHYSICAL_LOCATION_POSTAL_CODE"]), axis=1).tolist()
+#     else:
+#         print("`worksite_or_housing` should be either `worksite` or `housing` or `housing addendum`")
+#         addresses = []
+#
+#     coordinates, accuracies, accuracy_types, failures = [], [], [], []
+#     failures_count, count = 0, 0
+#     for address in addresses:
+#         try:
+#             geocoded = client.geocode(address)
+#             accuracy_types.append(geocoded["results"][0]["accuracy_type"])
+#             coordinates.append(geocoded.coords)
+#             accuracies.append(geocoded.accuracy)
+#         except Exception as e:
+#             print(f"There's been a failure geocoding the address {address} - here is the error message:")
+#             logger.error(e, exc_info=True)
+#             print("\n")
+#             coordinates.append(None)
+#             accuracies.append(None)
+#             accuracy_types.append(None)
+#             failures.append(address)
+#             failures_count += 1
+#         count += 1
+#         if count % 20 == 0:
+#             print(f"There have been {failures_count} failures out of {count} attempts")
+#     if worksite_or_housing == "worksite":
+#         geocoding_type = "worksite"
+#     elif "housing" in worksite_or_housing:
+#         geocoding_type = "housing"
+#     else:
+#         geocoding_type = ""
+#         print("`worksite_or_housing` should be either `worksite` or `housing` or `housing addendum`")
+#
+#     df[f"{geocoding_type} coordinates"] = coordinates
+#     df[f"{geocoding_type} accuracy"] = accuracies
+#     df[f"{geocoding_type} accuracy type"] = accuracy_types
+#     print(f"There were {failures_count} failures out of {count} attempts", "\n")
+
 def geocode_table(df, worksite_or_housing):
-    print("Geocoding " + worksite_or_housing + "...")
+    print(f"Geocoding {worksite_or_housing}...")
 
-    if worksite_or_housing == "worksite":
-        addresses = df.apply(lambda job: create_address_from(job["WORKSITE_ADDRESS"], job["WORKSITE_CITY"], job["WORKSITE_STATE"], job["WORKSITE_POSTAL_CODE"]), axis=1).tolist()
-    elif worksite_or_housing == "housing":
-        addresses = df.apply(lambda job: create_address_from(job["HOUSING_ADDRESS_LOCATION"], job["HOUSING_CITY"], job["HOUSING_STATE"], job["HOUSING_POSTAL_CODE"]), axis=1).tolist()
-    elif worksite_or_housing == "housing addendum":
-        addresses = df.apply(lambda job: create_address_from(job["PHYSICAL_LOCATION_ADDRESS1"], job["PHYSICAL_LOCATION_CITY"], job["PHYSICAL_LOCATION_STATE"], job["PHYSICAL_LOCATION_POSTAL_CODE"]), axis=1).tolist()
-    else:
-        print("`worksite_or_housing` should be either `worksite` or `housing` or `housing addendum`")
-        addresses = []
-
-    coordinates, accuracies, accuracy_types, failures = [], [], [], []
-    failures_count, count = 0, 0
-    for address in addresses:
-        try:
-            geocoded = client.geocode(address)
-            accuracy_types.append(geocoded["results"][0]["accuracy_type"])
-            coordinates.append(geocoded.coords)
-            accuracies.append(geocoded.accuracy)
-        except Exception as e:
-            print(f"There's been a failure geocoding the address {address} - here is the error message:")
-            logger.error(e, exc_info=True)
-            print("\n")
-            coordinates.append(None)
-            accuracies.append(None)
-            accuracy_types.append(None)
-            failures.append(address)
-            failures_count += 1
-        count += 1
-        if count % 20 == 0:
-            print(f"There have been {failures_count} failures out of {count} attempts")
     if worksite_or_housing == "worksite":
         geocoding_type = "worksite"
-    elif "housing" in worksite_or_housing:
+        addresses = df.apply(lambda job: create_address_from(job["WORKSITE_ADDRESS"], job["WORKSITE_CITY"], job["WORKSITE_STATE"], job["WORKSITE_POSTAL_CODE"]), axis=1).tolist()
+    elif worksite_or_housing == "housing":
         geocoding_type = "housing"
+        addresses = df.apply(lambda job: create_address_from(job["HOUSING_ADDRESS_LOCATION"], job["HOUSING_CITY"], job["HOUSING_STATE"], job["HOUSING_POSTAL_CODE"]), axis=1).tolist()
+    elif worksite_or_housing == "housing addendum":
+        geocoding_type = "housing"
+        addresses = df.apply(lambda job: create_address_from(job["PHYSICAL_LOCATION_ADDRESS1"], job["PHYSICAL_LOCATION_CITY"], job["PHYSICAL_LOCATION_STATE"], job["PHYSICAL_LOCATION_POSTAL_CODE"]), axis=1).tolist()
     else:
-        geocoding_type = ""
-        print("`worksite_or_housing` should be either `worksite` or `housing` or `housing addendum`")
+        print("`worksite_or_housing` must be either `worksite` or `housing` or `housing addendum`")
+        return
+
+    geocoding_results = client.geocode(addresses)
+    coordinates = [result.coords  for result in geocoding_results]
+    accuracies = [result.accuracy for result in geocoding_results]
+    accuracy_types = [None if not result["results"] else result["results"][0]["accuracy_type"] for result in geocoding_results]
 
     df[f"{geocoding_type} coordinates"] = coordinates
     df[f"{geocoding_type} accuracy"] = accuracies
     df[f"{geocoding_type} accuracy type"] = accuracy_types
-    print(f"There were {failures_count} failures out of {count} attempts", "\n")
+    print(f"Finished geocoding {worksite_or_housing}. \n")
 
 
 def fix_zip_code(zip_code):
@@ -100,7 +124,7 @@ def fix_zip_code_columns(df, columns):
         df[column] = df.apply(lambda job: fix_zip_code(job[column]), axis=1)
 
 def check_accuracies(jobs):
-    print("checking for accuracies...")
+    print("Checking for accuracies...")
     our_states = ["texas", "kentucky", "tennessee", "arkansas", "louisiana", "mississippi", "alabama"]
     accurate_jobs = []
     inaccurate_jobs = []
@@ -146,7 +170,7 @@ def check_accuracies(jobs):
             inaccurate_jobs.append(job)
 
     print(f"There were {len(accurate_jobs)} accurate jobs.")
-    print(f"There were {len(inaccurate_jobs)} inaccurate jobs.")
+    print(f"There were {len(inaccurate_jobs)} inaccurate jobs. \n")
     return accurate_jobs, inaccurate_jobs
 
 def split_df_by_accuracies(df):
