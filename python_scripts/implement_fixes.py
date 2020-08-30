@@ -103,4 +103,4 @@ failure_conditions = (fixed["worksite_fixed_by"] == "failed") | (fixed["housing_
 failures = fixed[failure_conditions]
 not_fixed = pd.read_sql_query('select * from "low_accuracies" where fixed=false', con=engine)
 failures_and_not_fixed = failures.append(not_fixed, ignore_index=True)
-failures_and_not_fixed.to_sql('low_accuracies', engine, if_exists='replace', index=False)
+failures_and_not_fixed.to_sql('low_accuracies', engine, if_exists='replace', index=False, dtype=helpers.column_types)

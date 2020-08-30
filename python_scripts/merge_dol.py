@@ -9,7 +9,7 @@ database_connection_string, geocodio_api_key = helpers.get_secret_variables()
 engine, client = create_engine(database_connection_string), GeocodioClient(geocodio_api_key)
 
 # get dol data and postgres data (accurate and inaccurate), perform necessary data management on dol data
-dol_jobs = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/dol_data.xlsx'))
+dol_jobs = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/dol_data.xlsx'), converters={'ATTORNEY_AGENT_PHONE':str,'PHONE_TO_APPLY':str})
 accurate_old_jobs = pd.read_sql("job_central", con=engine)
 inaccurate_old_jobs = pd.read_sql("low_accuracies", con=engine)
 dol_jobs = dol_jobs.drop_duplicates(subset='CASE_NUMBER', keep="last")
@@ -110,10 +110,6 @@ def merge_dol_with_old_data(dol_df, dol_df_opposite, old_df, old_df_opposite, ac
                 columns_to_change = [column for column in dol_columns if column not in columns_not_to_change]
                 for column in columns_to_change:
                     # use the data from all dol columns except the geocoding/address ones
-                    # print("column name:", column)
-                    # print("column value in current job:", job[column])
-                    # print(dol_df_opposite[column])
-                    # print('\n')
                     value_in_job = job[column]
                     # handle case where one column is a series of floats and the other is a series of booleans
                     if type(value_in_job) == bool:
@@ -141,5 +137,5 @@ only_in_low_accuracies = inaccurate_old_jobs[~(inaccurate_old_jobs["CASE_NUMBER"
 inaccurate_jobs = inaccurate_jobs.append(only_in_low_accuracies, sort=True, ignore_index=True)
 
 # push both dfs back to postgres
-accurate_jobs.to_sql("job_central", engine, if_exists='replace', index=False)
-inaccurate_jobs.to_sql("low_accuracies", engine, if_exists='replace', index=False)
+accurate_jobs.to_sql("job_central", engine, if_exists='replace', index=False, dtype=helpers.column_types)
+inaccurate_jobs.to_sql("low_accuracies", engine, if_exists='replace', index=False, dtype=helpers.column_types)

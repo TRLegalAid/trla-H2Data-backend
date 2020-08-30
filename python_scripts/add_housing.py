@@ -12,7 +12,7 @@ housing["table"], housing["source"], housing["fixed"], housing["housing_fixed_by
 
 helpers.geocode_table(housing, "housing addendum")
 accurate_housing, inaccurate_housing = helpers.split_df_by_accuracies(housing)
-accurate_housing.to_sql("additional_housing", engine, if_exists='replace')
+accurate_housing.to_sql("additional_housing", engine, if_exists='replace', index=False)
 
 with engine.connect() as connection:
     low_accuracies_columns = connection.execute("SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'low_accuracies'")

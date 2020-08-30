@@ -32,11 +32,11 @@ def get_num_workers(job):
 df['TOTAL_WORKERS_NEEDED'] = df.apply(lambda job: get_num_workers(job), axis=1)
 helpers.fix_zip_code_columns(df, ["EMPLOYER_POSTAL_CODE", "WORKSITE_POSTAL_CODE",  "Place of Employment Info/Postal Code", "HOUSING_POSTAL_CODE"])
 
-df.to_sql("raw_scraper_data", engine, if_exists='replace', index=False, dtype={"Experience Required": sqlalchemy.types.Boolean, "Multiple Worksites": sqlalchemy.types.Boolean})
+df.to_sql("raw_scraper_jobs", engine, if_exists='replace', index=False, dtype=helpers.column_types)
 
 
 df["fixed"], df["worksite_fixed_by"], df["housing_fixed_by"], df["notes"], df["table"] = None, None, None, None, "central"
 accurate_jobs, inaccurate_jobs = helpers.geocode_and_split_by_accuracy(df)
 
-accurate_jobs.to_sql("job_central", engine, if_exists='replace', index=False, dtype={"Experience Required": sqlalchemy.types.Boolean, "Multiple Worksites": sqlalchemy.types.Boolean, "fixed": sqlalchemy.types.Boolean})
-inaccurate_jobs.to_sql("low_accuracies", engine, if_exists='replace', index=False, dtype={"Experience Required": sqlalchemy.types.Boolean, "Multiple Worksites": sqlalchemy.types.Boolean, "fixed": sqlalchemy.types.Boolean})
+accurate_jobs.to_sql("job_central", engine, if_exists='replace', index=False, dtype=helpers.column_types)
+inaccurate_jobs.to_sql("low_accuracies", engine, if_exists='replace', index=False, dtype=helpers.column_types)

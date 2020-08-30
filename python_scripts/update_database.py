@@ -7,15 +7,8 @@ from geocodio import GeocodioClient
 database_connection_string, geocodio_api_key = helpers.get_secret_variables()
 engine, client = create_engine(database_connection_string), GeocodioClient(geocodio_api_key)
 
-# just for testing, REMEMBER TO REMOVE!
-# try:
-#     engine.execute("drop table low_accuracies")
-# except:
-#     pass
-
-# sample big dataset - https://api.apify.com/v2/datasets/xe6ZzDWTPiCEB7Vw8/items?format=json&clean=1
 # most recent run - https://api.apify.com/v2/acts/eytaog~apify-dol-actor-latest/runs/last/dataset/items?token=ftLRsXTA25gFTaCvcpnebavKw
-latest_jobs = requests.get("https://api.apify.com/v2/datasets/vHl2WWe8pJ192kVl6/items?format=json&clean=1").json()
+latest_jobs = requests.get("https://api.apify.com/v2/datasets/g0awKuoXUdCsY2oBa/items?format=json&clean=1").json()[:11]
 
 # parse job so it's not a nested dictionary
 def parse(job):
@@ -40,7 +33,36 @@ def parse(job):
 
 # add necessary columns to job
 def add_necessary_columns(job):
+    # add source and date of run column
+    job["Source"] = "Apify"
+    job["Date of run"] = requests.get("https://api.apify.com/v2/acts/eytaog~apify-dol-actor-latest/runs/last?token=ftLRsXTA25gFTaCvcpnebavKw").json()["data"]["finishedAt"]
+    # check if job is h2a
+    if job["CASE_NUMBER"][2] == "3":
+        job["Visa type"] = "H-2A"
+        zip_code_columns = ["EMPLOYER_POSTAL_CODE", "WORKSITE_POSTAL_CODE",  "Place of Employment Info/Postal Code", "HOUSING_POSTAL_CODE"]
+        job["TOTAL_WORKERS_NEEDED"] = job["TOTAL_WORKERS_H-2A_REQUESTED"]
+        workers_needed, occupancy = job["TOTAL_WORKERS_NEEDED"], job["TOTAL_OCCUPANCY"]
+        if workers_needed and occupancy:
+            if workers_needed > occupancy:
+                job["W to H Ratio"] = "W>H"
+            elif workers_needed < occupancy:
+                job["W to H Ratio"] = "W<H"
+            else:
+                job["W to H Ratio"] = "W=H"
+    # check if job is h2b
+    elif job["CASE_NUMBER"][2] == "4":
+        job["Visa type"] = "H-2B"
+        zip_code_columns = ["EMPLOYER_POSTAL_CODE", "WORKSITE_POSTAL_CODE"]
+        # job["TOTAL_WORKERS_NEEDED"] = job["Job Info/Workers Needed H-2A"]
+    else:
+        job["Visa type"], zip_code_columns = "", []
+    # fix zip code columns
+    for column in zip_code_columns:
+        fixed_zip_code = helpers.fix_zip_code(job[column])
+        job[column] = fixed_zip_code
+    return job
 
+def geocode(job):
     # create and geocode full worksite address
     worksite_full_address = helpers.create_address_from(job["WORKSITE_ADDRESS"], job["WORKSITE_CITY"], job["WORKSITE_STATE"], job["WORKSITE_POSTAL_CODE"])
     worksite_geocoded = client.geocode(worksite_full_address)
@@ -54,14 +76,7 @@ def add_necessary_columns(job):
         # set to place so that it'll go in the bad zone, maybe change place to failed, but this should be fine
         job["worksite accuracy type"] = "place"
 
-    # add source and date of run column
-    job["Source"] = "Apify"
-    job["Date of run"] = requests.get("https://api.apify.com/v2/acts/eytaog~apify-dol-actor-latest/runs/last?token=ftLRsXTA25gFTaCvcpnebavKw").json()["data"]["finishedAt"]
-
-    # check if job is h2a
     if job["CASE_NUMBER"][2] == "3":
-        job["Visa type"] = "H-2A"
-        # create and geocode full housing address
         housing_full_address = helpers.create_address_from(job["HOUSING_ADDRESS_LOCATION"], job["HOUSING_CITY"], job["HOUSING_STATE"], job["WORKSITE_POSTAL_CODE"])
         housing_geocoded = client.geocode(housing_full_address)
         job["housing coordinates"] = housing_geocoded.coords
@@ -71,53 +86,28 @@ def add_necessary_columns(job):
         except:
             # set to place so that it'll go in the bad zone, maybe change place to failed, but this should be fine
             job["housing accuracy type"] = "place"
-        # get the number of workers requested
-        job["TOTAL_WORKERS_NEEDED"] = job["Job Info/Workers Needed H-2A"]
-
-        # create W:H Ratio column
-        workers_needed, occupancy = job["TOTAL_WORKERS_NEEDED"], job["TOTAL_OCCUPANCY"]
-        if workers_needed and occupancy:
-            if workers_needed > occupancy:
-                job["W to H Ratio"] = "W>H"
-            elif workers_needed < occupancy:
-                job["W to H Ratio"] = "W<H"
-            else:
-                job["W to H Ratio"] = "W=H"
-
-    # check if job is h2b
-    elif job["CASE_NUMBER"][2] == "4":
-        job["Visa type"] = "H-2B"
-        # job["TOTAL_WORKERS_NEEDED"] = job["Job Info/Workers Needed H-2A"]
-
-    else:
-        job["Visa type"] = ""
-
-    # fix zip code columns
-    for column in ["EMPLOYER_POSTAL_CODE", "WORKSITE_POSTAL_CODE",  "Place of Employment Info/Postal Code", "HOUSING_POSTAL_CODE"]:
-        fixed_zip_code = helpers.fix_zip_code(job[column])
-        job[column] = fixed_zip_code
-
     return job
 
-# parse each job then add all columns to each job
+
+# parse each job, add all columns to each job, append this to raw scraper data and push back to postgres
 parsed_jobs = [parse(job) for job in latest_jobs]
 full_jobs = [add_necessary_columns(job) for job in parsed_jobs]
+full_jobs_df = pd.DataFrame(full_jobs)
+raw_scraper_jobs = pd.read_sql('raw_scraper_jobs', con=engine)
+raw_new_and_old_jobs = full_jobs_df.append(raw_scraper_jobs, ignore_index=True, sort=True)
+raw_new_and_old_jobs = raw_new_and_old_jobs.drop_duplicates(subset='CASE_NUMBER', keep="last")
+raw_new_and_old_jobs.to_sql("raw_scraper_jobs", engine, if_exists="replace", index=False, dtype=helpers.column_types)
 
-accurate_jobs_list, inaccurate_jobs_list = helpers.check_accuracies(full_jobs)
+# geocode jobs, split by accuracy
+full_jobs_geocoded = [geocode(job) for job in full_jobs]
+accurate_jobs_list, inaccurate_jobs_list = helpers.check_accuracies(full_jobs_geocoded)
 
 # get data from postgres
-job_central_df = pd.read_sql_query('select * from "job_central"', con=engine)
-try:
-    # will fail if low_accuracies table is empty
-    low_accuracies_df = pd.read_sql_query('select * from "low_accuracies"', con=engine)
-except:
-    low_accuracies_df = pd.DataFrame()
+job_central_df = pd.read_sql("job_central", con=engine)
+low_accuracies_df = pd.read_sql("low_accuracies", con=engine)
 
-low_accuracies_df = pd.DataFrame()
-# loop to add each new job to df
-# uncomment the line below to demonstrate/test removal of duplicates
-# inaccurate_jobs_list = [{"CASE_NUMBER": "H-300-20108-494660"}]
-# accurate_jobs_list = [{"CASE_NUMBER": "H-300-20119-524313"}]
+
+
 
 def remove_duplicates_from_postgres(job_central_df, low_accuracies_df, jobs_list, accurate_or_inaccurate_str):
     for job in jobs_list:
@@ -141,5 +131,17 @@ job_central_df, low_accuracies_df = remove_duplicates_from_postgres(job_central_
 job_central_df, low_accuracies_df = remove_duplicates_from_postgres(job_central_df, low_accuracies_df, inaccurate_jobs_list, "inaccurate")
 
 # send updated data back to postgres
-job_central_df.to_sql('job_central', engine, if_exists='replace', index=False)
-low_accuracies_df.to_sql('low_accuracies', engine, if_exists='replace', index=False, dtype={"fixed": sqlalchemy.types.Boolean, "Experience Required": sqlalchemy.types.Boolean, "Multiple Worksites": sqlalchemy.types.Boolean})
+job_central_df.to_sql('job_central', engine, if_exists='replace', index=False, dtype=helpers.column_types)
+low_accuracies_df.to_sql('low_accuracies', engine, if_exists='replace', index=False, dtype=helpers.column_types)
+
+
+
+
+
+
+
+
+
+
+
+# HOUSING_POSTAL_CODE, Place of Employment Info/Postal Code
