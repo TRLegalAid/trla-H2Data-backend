@@ -14,7 +14,8 @@ column_types = {
     "EMPLOYMENT_END_DATE": sqlalchemy.types.DateTime, "HOUSING_POSTAL_CODE": sqlalchemy.types.Text, "Job Info/Workers Needed Total": sqlalchemy.types.Integer,
     "PHONE_TO_APPLY": sqlalchemy.types.Text, "Place of Employment Info/Postal Code": sqlalchemy.types.Text, "TOTAL_OCCUPANCY": sqlalchemy.types.Integer,
     "TOTAL_UNITS": sqlalchemy.types.Integer, "TOTAL_WORKERS_H-2A_REQUESTED": sqlalchemy.types.Integer, "TOTAL_WORKERS_NEEDED": sqlalchemy.types.Integer,
-    "WORKSITE_POSTAL_CODE": sqlalchemy.types.Text, "ATTORNEY_AGENT_PHONE": sqlalchemy.types.Text
+    "WORKSITE_POSTAL_CODE": sqlalchemy.types.Text, "ATTORNEY_AGENT_PHONE": sqlalchemy.types.Text, "EMPLOYER_POC_PHONE": sqlalchemy.types.Text,
+    "EMPLOYER_PHONE": sqlalchemy.types.Text
 }
 housing_address_columns = ["HOUSING_ADDRESS_LOCATION", "HOUSING_CITY", "HOUSING_STATE", "HOUSING_POSTAL_CODE", "housing coordinates", "housing accuracy", "housing accuracy type", "housing_fixed_by", "fixed"]
 worksite_address_columns = ["WORKSITE_ADDRESS", "WORKSITE_CITY", "WORKSITE_STATE", "WORKSITE_POSTAL_CODE", "worksite coordinates", "worksite accuracy", "worksite accuracy type", "worksite_fixed_by", "fixed"]
@@ -197,7 +198,7 @@ def merge_common_rows(new_df, new_df_opposite, old_df, old_df_opposite, accurate
         new_case_number = job["CASE_NUMBER"]
         # if this jobs is already in postgres
         if new_case_number in old_case_numbers:
-            print("DUPLICATE CASE NUMBER:", new_case_number, f"is in both in the ({accurate_or_inaccurate}) new dataset and the {accurate_or_inaccurate} table in postgres. \n")
+            print("DUPLICATE CASE NUMBER:", new_case_number, f"is in both the ({accurate_or_inaccurate}) new dataset and the {accurate_or_inaccurate} table in postgres. \n")
             old_job = old_df[(old_df["CASE_NUMBER"] == new_case_number) & (old_df["table"] != "dol_h")]
             # add the value of each column only found in postgres to new data
             for column in only_old_columns:
@@ -233,17 +234,17 @@ def merge_all_data(accurate_new_jobs, inaccurate_new_jobs, accurate_old_jobs, in
     accurate_new_jobs, inaccurate_new_jobs, accurate_old_jobs, inaccurate_old_jobs = merge_common_rows(accurate_new_jobs, inaccurate_new_jobs, accurate_old_jobs, inaccurate_old_jobs, "accurate")
     accurate_new_case_numbers = accurate_new_jobs["CASE_NUMBER"].tolist()
     only_in_accurate_old = accurate_old_jobs[~(accurate_old_jobs["CASE_NUMBER"].isin(accurate_new_case_numbers))]
-    all_accurate_jobs = accurate_jobs.append(only_in_accurate_old, sort=True, ignore_index=True)
+    all_accurate_jobs = accurate_new_jobs.append(only_in_accurate_old, sort=True, ignore_index=True)
 
     # merge inaccurate jobs, remove necessary case numbers from inaccurate jobs, append jobs that are only in low_accuracies (postgres but not DOL)
     # also move any fixed inaccurates to accurates
     inaccurate_new_jobs, accurate_new_jobs, inaccurate_old_jobs, accurate_old_jobs = merge_common_rows(inaccurate_new_jobs, accurate_new_jobs, inaccurate_old_jobs, accurate_old_jobs, "inaccurate")
     inaccurate_new_case_numbers = inaccurate_new_jobs["CASE_NUMBER"].tolist()
     only_in_inaccurate_old = inaccurate_old_jobs[~(inaccurate_old_jobs["CASE_NUMBER"].isin(inaccurate_new_case_numbers))]
-    all_inaccurate_jobs = inaccurate_jobs.append(only_in_low_accuracies, sort=True, ignore_index=True)
+    all_inaccurate_jobs = inaccurate_new_jobs.append(only_in_inaccurate_old, sort=True, ignore_index=True)
     accurates_in_inaccurates = all_inaccurate_jobs[all_inaccurate_jobs["fixed"]]
     all_accurate_jobs = all_accurate_jobs.append(accurates_in_inaccurates, sort=True, ignore_index=True)
-    all_inaccurate_jobs = all_inaccurate_jobs[~inaccurate_jobs["fixed"]]
+    all_inaccurate_jobs = all_inaccurate_jobs[~all_inaccurate_jobs["fixed"]]
     all_inaccurate_jobs["fixed"] = False
 
     return all_accurate_jobs, all_inaccurate_jobs
