@@ -72,7 +72,7 @@ def add_necessary_columns(job):
             # set to place so that it'll go in the bad zone, maybe change place to failed, but this should be fine
             job["housing accuracy type"] = "place"
         # get the number of workers requested
-        # job["Number of Workers Requested"] = job["Job Info/Workers Needed H-2A"]
+        job["TOTAL_WORKERS_NEEDED"] = job["Job Info/Workers Needed H-2A"]
 
         # create W:H Ratio column
         workers_needed, occupancy = job["TOTAL_WORKERS_NEEDED"], job["TOTAL_OCCUPANCY"]
@@ -87,6 +87,8 @@ def add_necessary_columns(job):
     # check if job is h2b
     elif job["CASE_NUMBER"][2] == "4":
         job["Visa type"] = "H-2B"
+        # job["TOTAL_WORKERS_NEEDED"] = job["Job Info/Workers Needed H-2A"]
+
     else:
         job["Visa type"] = ""
 

@@ -17,14 +17,25 @@ for column in df.columns:
                 column_names_dict[column] = "Place of Employment Info/Address/Location"
             else:
                 column_names_dict[column] = renaming_info_dict[key] + "/" + column.split("/")[1]
-
 df = df.rename(columns=column_names_dict)
 df = df.drop(columns=["Telephone number"])
 df = helpers.rename_columns(df)
 df = df.drop_duplicates(subset='CASE_NUMBER', keep="last")
+df["Source"] = "Apify"
+df['Visa type'] = df.apply(lambda job: helpers.h2a_or_h2b(job), axis=1)
+def get_num_workers(job):
+    if job["Visa type"] == "H-2A":
+        return job["TOTAL_WORKERS_H-2A_REQUESTED"]
+    else:
+        # return job["TOTAL_WORKERS_NEEDED"]
+        return job["Number of Workers Requested H-2B"]
+df['TOTAL_WORKERS_NEEDED'] = df.apply(lambda job: get_num_workers(job), axis=1)
+helpers.fix_zip_code_columns(df, ["EMPLOYER_POSTAL_CODE", "WORKSITE_POSTAL_CODE",  "Place of Employment Info/Postal Code", "HOUSING_POSTAL_CODE"])
+
+df.to_sql("raw_scraper_data", engine, if_exists='replace', index=False, dtype={"Experience Required": sqlalchemy.types.Boolean, "Multiple Worksites": sqlalchemy.types.Boolean})
+
 
 df["fixed"], df["worksite_fixed_by"], df["housing_fixed_by"], df["notes"], df["table"] = None, None, None, None, "central"
-helpers.fix_zip_code_columns(df, ["EMPLOYER_POSTAL_CODE", "WORKSITE_POSTAL_CODE",  "Place of Employment Info/Postal Code", "HOUSING_POSTAL_CODE"])
 accurate_jobs, inaccurate_jobs = helpers.geocode_and_split_by_accuracy(df)
 
 accurate_jobs.to_sql("job_central", engine, if_exists='replace', index=False, dtype={"Experience Required": sqlalchemy.types.Boolean, "Multiple Worksites": sqlalchemy.types.Boolean, "fixed": sqlalchemy.types.Boolean})

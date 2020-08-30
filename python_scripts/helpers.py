@@ -51,7 +51,7 @@ def geocode_table(df, worksite_or_housing):
             coordinates.append(geocoded.coords)
             accuracies.append(geocoded.accuracy)
         except Exception as e:
-            print("There's been a failure, here is the error message:")
+            print(f"There's been a failure geocoding the address {address} - here is the error message:")
             logger.error(e, exc_info=True)
             print("\n")
             coordinates.append(None)
@@ -171,6 +171,13 @@ def get_column_mappings_dictionary():
 # renames columns in df appropriately based on our excel file with column name mappings
 def rename_columns(df):
     column_mappings_dict = get_column_mappings_dictionary()
-
     # rename columns in df using the dictionary and return the new df which results
     return df.rename(columns=column_mappings_dict)
+
+def h2a_or_h2b(job):
+    if job["CASE_NUMBER"][2] == "3":
+        return "H-2A"
+    elif job["CASE_NUMBER"][2] == "4":
+        return "H-2B"
+    else:
+        return ""
