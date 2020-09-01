@@ -5,6 +5,8 @@ from geocodio import GeocodioClient
 import requests
 import logging
 import sqlalchemy
+from colorama import Fore, Style
+
 # pd.options.mode.chained_assignment = None
 logger = logging.Logger('catch_all')
 bad_accuracy_types = ["place", "state", "street_center"]
@@ -15,7 +17,7 @@ column_types = {
     "PHONE_TO_APPLY": sqlalchemy.types.Text, "Place of Employment Info/Postal Code": sqlalchemy.types.Text, "TOTAL_OCCUPANCY": sqlalchemy.types.Integer,
     "TOTAL_UNITS": sqlalchemy.types.Integer, "TOTAL_WORKERS_H-2A_REQUESTED": sqlalchemy.types.Integer, "TOTAL_WORKERS_NEEDED": sqlalchemy.types.Integer,
     "WORKSITE_POSTAL_CODE": sqlalchemy.types.Text, "ATTORNEY_AGENT_PHONE": sqlalchemy.types.Text, "EMPLOYER_POC_PHONE": sqlalchemy.types.Text,
-    "EMPLOYER_PHONE": sqlalchemy.types.Text
+    "EMPLOYER_PHONE": sqlalchemy.types.Text, "SOC_CODE": sqlalchemy.types.Text, "NAICS_CODE": sqlalchemy.types.Text, "notes": sqlalchemy.types.Text
 }
 housing_address_columns = ["HOUSING_ADDRESS_LOCATION", "HOUSING_CITY", "HOUSING_STATE", "HOUSING_POSTAL_CODE", "housing coordinates", "housing accuracy", "housing accuracy type", "housing_fixed_by", "fixed"]
 worksite_address_columns = ["WORKSITE_ADDRESS", "WORKSITE_CITY", "WORKSITE_STATE", "WORKSITE_POSTAL_CODE", "worksite coordinates", "worksite accuracy", "worksite accuracy type", "worksite_fixed_by", "fixed"]
@@ -66,9 +68,12 @@ def geocode_table(df, worksite_or_housing):
     df[f"{geocoding_type} accuracy type"] = accuracy_types
     print(f"Finished geocoding {worksite_or_housing}. \n")
 
-def geocode_and_split_by_accuracy(df):
-    geocode_table(df, "worksite")
-    geocode_table(df, "housing")
+def geocode_and_split_by_accuracy(df, table=""):
+    if table != "housing addendum":
+        geocode_table(df, "worksite")
+        geocode_table(df, "housing")
+    else:
+        geocode_table(df, "housing addendum")
     accurate = df.apply(lambda job: is_accurate(job), axis=1)
     accurate_jobs, inaccurate_jobs = df.copy()[accurate], df.copy()[~accurate]
     inaccurate_jobs["fixed"] = False
@@ -153,30 +158,38 @@ def get_address_columns(worksite_or_housing):
 def remove_case_number_from_df(df, case_number):
     return df[(df["CASE_NUMBER"] != case_number) | (df["table"] == "dol_h")]
 
-def handle_previously_fixed(df, i, old_job, worksite_or_housing, merge_or_update):
-    # df.to_excel("before prev fixed.xlsx")
+def handle_previously_fixed(df, i, old_job, worksite_or_housing, accurate_or_inaccurate=""):
     if worksite_or_housing not in ["worksite", "housing"]:
         print("worksite_or_housing parameter to handle_previously_fixed function must be either `worksite` ot `housing`")
-        return
+        return df
+    if accurate_or_inaccurate == "accurate":
+        for column in ["fixed", f"{worksite_or_housing}_fixed_by"]:
+            df.at[i, column] = None
+        return df
     fixed_by = get_value(old_job, f"{worksite_or_housing}_fixed_by")
     if fixed_by in ["coordinates", "address"]:
         if fixed_by == "address":
             address_columns = get_address_columns(worksite_or_housing)
         else:
-            address_columns = [f"{worksite_or_housing} coordinates", f"{worksite_or_housing} accuracy", f"{worksite_or_housing} accuracy type"]
+            address_columns = [f"{worksite_or_housing} coordinates", f"{worksite_or_housing} accuracy", f"{worksite_or_housing} accuracy type", f"{worksite_or_housing}_fixed_by", "fixed"]
         # for each column, assign that column's value in old_job to the i-th element in the column in df
         for column in address_columns:
             df.at[i, column] = get_value(old_job, column)
+    else:
+        # if worksite_or_housing needs fixing in new df, mark notes column to not move to accuracies later - see lin 236
+        if (not df.at[i, f"{worksite_or_housing} accuracy"]) or (not df.at[i, f"{worksite_or_housing} accuracy type"]) or (not df.at[i, f"{worksite_or_housing} coordinates"]) or (df.at[i, f"{worksite_or_housing} accuracy"] < 0.8) or (df.at[i ,f"{worksite_or_housing} accuracy type"] in bad_accuracy_types):
+            df.at[i, "notes"] = "ignore (and feel free to replace) this note"
+
     return df
 
 def is_previously_fixed(old_job):
     return get_value(old_job, "fixed") == True
 
-def check_and_handle_previously_fixed(data, old_job, i):
+def check_and_handle_previously_fixed(data, old_job, i, accurate_or_inaccurate=""):
     if is_previously_fixed(old_job):
         print("PREVIOUSLY FIXED:", get_value(old_job, "CASE_NUMBER"), "has already been fixed. \n")
-        data = helpers.handle_previously_fixed(data, i, old_job , "worksite", "merge")
-        data = helpers.handle_previously_fixed(data, i, old_job, "housing", "merge")
+        data = handle_previously_fixed(data, i, old_job , "worksite", accurate_or_inaccurate=accurate_or_inaccurate)
+        data = handle_previously_fixed(data, i, old_job, "housing", accurate_or_inaccurate=accurate_or_inaccurate)
     return data
 
 # if accurate_or_innacurate is "accurate" then (new_df, old_df) are the accurate new jobs and job_central (accurate old jobs), and (new_df_opposite, old_df_opposite) are the inaccurate new jobs and low_accuracies table from postgres
@@ -204,23 +217,26 @@ def merge_common_rows(new_df, new_df_opposite, old_df, old_df_opposite, accurate
             for column in only_old_columns:
                 new_df.at[i, column] = get_value(old_job, column)
             # if previously fixed, replace new address/geocoding data with that from postgres (where appropriate, depending on fixed_by columns)
-            new_df = check_and_handle_previously_fixed(new_df, old_job, i)
+            new_df = check_and_handle_previously_fixed(new_df, old_job, i, accurate_or_inaccurate={accurate_or_inaccurate})
             # remove this jobs from old_df, since it's in new_df and has been updated
             old_df = remove_case_number_from_df(old_df, new_case_number)
         elif new_case_number in old_opposite_case_numbers:
             # if this job is accurate in new but inaccurate in postgres
             if accurate_or_inaccurate == "accurate":
-                print("DUPLICATE CASE NUMBER:", new_case_number, f"is in both the ({accurate_or_inaccurate}) new dataset and the low_accruacies table in postgres. \n")
+                print("DUPLICATE CASE NUMBER:", new_case_number, f"is in both the ({accurate_or_inaccurate}) new dataset and the low_accuracies table in postgres. \n")
                 # just remove it from the postgres inaccurate df (unless it comes from the additional housing table)
                 old_df_opposite = remove_case_number_from_df(old_df_opposite, new_case_number)
             # if this job is inaccurate in new but accurate in postgres
             else:
                 print("DUPLICATE CASE NUMBER:", new_case_number, f"is in both the ({accurate_or_inaccurate}) new dataset and the job_central table in postgres. \n")
-                old_job = old_df_opposite[old_df_opposite["CASE_NUMBER"] == dol_case_number]
-                # if previously fixed, adjust it in the new data accordingly, otherwise leave it (this probably means the address has been changed, and it's inaccurate)
-                new_df = check_and_handle_previously_fixed(new_df, old_job, i)
+                old_job = old_df_opposite[old_df_opposite["CASE_NUMBER"] == new_case_number]
+                # if previously fixed, adjust it in the new data accordingly, otherwise leave it (this probably means the address has been changed since we last received it)
+                if is_previously_fixed(old_job):
+                    new_df = check_and_handle_previously_fixed(new_df, old_job, i)
+                    if new_df.at[i, "notes"] != "ignore (and feel free to replace) this note":
+                        new_df.at[i, "notes"] = "accurate"
                 # remove from accurate old df
-                old_df_opposite = old_df_opposite[old_df_opposite["CASE_NUMBER"] != dol_case_number]
+                old_df_opposite = remove_case_number_from_df(old_df_opposite, new_case_number)
         # if this jobs is only in new data, just leave it be
         else:
             pass
@@ -230,21 +246,30 @@ def merge_common_rows(new_df, new_df_opposite, old_df, old_df_opposite, accurate
     return new_df, new_df_opposite, old_df, old_df_opposite
 
 def merge_all_data(accurate_new_jobs, inaccurate_new_jobs, accurate_old_jobs, inaccurate_old_jobs):
-    # merge accurate jobs, get dataframe of postings that are only in job_central, append that to the accurate dol dataframe
+    # merge accurate and inaccurate jobs, get dataframe of postings that are only in job_central, append that to the accurate dol dataframe
     accurate_new_jobs, inaccurate_new_jobs, accurate_old_jobs, inaccurate_old_jobs = merge_common_rows(accurate_new_jobs, inaccurate_new_jobs, accurate_old_jobs, inaccurate_old_jobs, "accurate")
+    inaccurate_new_jobs, accurate_new_jobs, inaccurate_old_jobs, accurate_old_jobs = merge_common_rows(inaccurate_new_jobs, accurate_new_jobs, inaccurate_old_jobs, accurate_old_jobs, "inaccurate")
     accurate_new_case_numbers = accurate_new_jobs["CASE_NUMBER"].tolist()
     only_in_accurate_old = accurate_old_jobs[~(accurate_old_jobs["CASE_NUMBER"].isin(accurate_new_case_numbers))]
     all_accurate_jobs = accurate_new_jobs.append(only_in_accurate_old, sort=True, ignore_index=True)
 
     # merge inaccurate jobs, remove necessary case numbers from inaccurate jobs, append jobs that are only in low_accuracies (postgres but not DOL)
     # also move any fixed inaccurates to accurates
-    inaccurate_new_jobs, accurate_new_jobs, inaccurate_old_jobs, accurate_old_jobs = merge_common_rows(inaccurate_new_jobs, accurate_new_jobs, inaccurate_old_jobs, accurate_old_jobs, "inaccurate")
     inaccurate_new_case_numbers = inaccurate_new_jobs["CASE_NUMBER"].tolist()
     only_in_inaccurate_old = inaccurate_old_jobs[~(inaccurate_old_jobs["CASE_NUMBER"].isin(inaccurate_new_case_numbers))]
     all_inaccurate_jobs = inaccurate_new_jobs.append(only_in_inaccurate_old, sort=True, ignore_index=True)
-    accurates_in_inaccurates = all_inaccurate_jobs[all_inaccurate_jobs["fixed"]]
+    accurates_in_inaccurates = all_inaccurate_jobs[all_inaccurate_jobs["notes"] == "accurate"]
     all_accurate_jobs = all_accurate_jobs.append(accurates_in_inaccurates, sort=True, ignore_index=True)
-    all_inaccurate_jobs = all_inaccurate_jobs[~all_inaccurate_jobs["fixed"]]
-    all_inaccurate_jobs["fixed"] = False
+    all_inaccurate_jobs = all_inaccurate_jobs[all_inaccurate_jobs["notes"] != "accurate"]
 
     return all_accurate_jobs, all_inaccurate_jobs
+
+def test(expected, result, name=""):
+    if expected == result:
+        print(name + ": " + Fore.GREEN +  "passed! :)" + Fore.BLACK + f"\nResult: {expected},  Expected: {result}")
+        print(Style.RESET_ALL)
+        return True
+    else:
+        print(name + ": " + Fore.RED +  "failed! :(" + Fore.BLACK + f"\nGot: {expected}, Expected: {result}")
+        print(Style.RESET_ALL)
+        return False

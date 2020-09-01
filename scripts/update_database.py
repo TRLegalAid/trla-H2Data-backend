@@ -6,6 +6,7 @@ from sqlalchemy import create_engine
 from geocodio import GeocodioClient
 database_connection_string, geocodio_api_key = helpers.get_secret_variables()
 engine, client = create_engine(database_connection_string), GeocodioClient(geocodio_api_key)
+import fake_jobs
 
 def update_database():
 
@@ -73,10 +74,9 @@ def update_database():
     raw_new_and_old_jobs = raw_new_and_old_jobs.drop_duplicates(subset='CASE_NUMBER', keep="last")
     raw_new_and_old_jobs.to_sql("raw_scraper_jobs", engine, if_exists="replace", index=False, dtype=helpers.column_types)
 
-    # geocode, split by accuracy, merge old with new data
+    # geocode, split by accuracy, get old data, merge old with new data
     new_accurate_jobs, new_inaccurate_jobs = helpers.geocode_and_split_by_accuracy(full_jobs_df)
-    job_central = pd.read_sql("job_central", con=engine)
-    low_accuracies = pd.read_sql("low_accuracies", con=engine)
+    job_central, low_accuracies = pd.read_sql("job_central", con=engine), pd.read_sql("low_accuracies", con=engine)
     accurate_jobs, inaccurate_jobs = helpers.merge_all_data(new_accurate_jobs, new_inaccurate_jobs, job_central, low_accuracies)
 
     # send updated data back to postgres

@@ -8,10 +8,9 @@ from geocodio import GeocodioClient
 database_connection_string, geocodio_api_key = helpers.get_secret_variables()
 engine, client = create_engine(database_connection_string), GeocodioClient(geocodio_api_key)
 
-def merge_dol():
-
+dol_jobs = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/dol_data.xlsx'), converters={'ATTORNEY_AGENT_PHONE':str,'PHONE_TO_APPLY':str})
+def merge_dol(dol_jobs, job_central, low_accuracies):
     # get dol data and postgres data (accurate and inaccurate), perform necessary data management on dol data
-    dol_jobs = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/dol_data.xlsx'), converters={'ATTORNEY_AGENT_PHONE':str,'PHONE_TO_APPLY':str})
     accurate_old_jobs = pd.read_sql("job_central", con=engine)
     inaccurate_old_jobs = pd.read_sql("low_accuracies", con=engine)
     dol_jobs = dol_jobs.drop_duplicates(subset='CASE_NUMBER', keep="last")
@@ -48,4 +47,4 @@ def merge_dol():
     accurate_jobs.to_sql("job_central", engine, if_exists='replace', index=False, dtype=helpers.column_types)
     inaccurate_jobs.to_sql("low_accuracies", engine, if_exists='replace', index=False, dtype=helpers.column_types)
 
-merge_dol()
+merge_dol(dol_jobs, "job_central", "low_accuracies")
