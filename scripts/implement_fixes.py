@@ -1,4 +1,5 @@
 import helpers
+from helpers import myprint
 import pandas as pd
 import numpy as np
 import math
@@ -6,7 +7,7 @@ from sqlalchemy import create_engine
 import psycopg2
 from geocodio import GeocodioClient
 import numpy as np
-database_connection_string, geocodio_api_key = helpers.get_secret_variables()
+database_connection_string, geocodio_api_key, _, _ = helpers.get_secret_variables()
 engine, client = create_engine(database_connection_string), GeocodioClient(geocodio_api_key)
 
 def implement_fixes():
@@ -27,11 +28,11 @@ def implement_fixes():
             elif row["table"] == "dol_h":
                 full_address = helpers.create_address_from(row["PHYSICAL_LOCATION_ADDRESS1"], row["PHYSICAL_LOCATION_CITY"], row["PHYSICAL_LOCATION_STATE"], row["PHYSICAL_LOCATION_POSTAL_CODE"])
             else:
-                print(f"Table column for {job['CASE_NUMBER']} not specified - must be either `dol_h` or `central`")
+                myprint(f"Table column for {job['CASE_NUMBER']} not specified - must be either `dol_h` or `central`", is_red="red")
                 mark_as_failed(i, worksite_or_housing, df)
                 return
         else:
-            print(f"There was an error fixing the job with case number: {row['CASE_NUMBER']}. worksite_or_housing must be either `worksite` or `housing`")
+            myprint(f"There was an error fixing the job with case number: {row['CASE_NUMBER']}. worksite_or_housing must be either `worksite` or `housing`", is_red="red")
             return
 
         try:
@@ -43,11 +44,11 @@ def implement_fixes():
             df.at[i, f"{worksite_or_housing} accuracy type"] = accuracy_type
 
             if (accuracy < 0.8) or (accuracy_type in helpers.bad_accuracy_types):
-                print(f"Geocoding {full_address} (case number {row['CASE_NUMBER']}) resulted in either an accuracy below 0.8 or a bad accuracy type. ")
+                myprint(f"Geocoding {full_address} (case number {row['CASE_NUMBER']}) resulted in either an accuracy below 0.8 or a bad accuracy type. ", is_red="red")
                 mark_as_failed(i, worksite_or_housing, df)
 
         except:
-            print(f"There was an error geocoding the address: {full_address} (case number{row['CASE_NUMBER']}).")
+            myprint(f"There was an error geocoding the address: {full_address} (case number{row['CASE_NUMBER']}).", is_red="red")
             mark_as_failed(i, worksite_or_housing, df)
 
     def fix_by_coords(i, worksite_or_housing, df):
@@ -62,7 +63,7 @@ def implement_fixes():
             pass
         else:
             if (not row[f"{worksite_or_housing} accuracy"]) or (not row[f"{worksite_or_housing} accuracy type"]) or (not row[f"{worksite_or_housing} coordinates"]) or (row[f"{worksite_or_housing} accuracy"] < 0.8) or (row[f"{worksite_or_housing} accuracy type"] in helpers.bad_accuracy_types):
-                print(f"The {worksite_or_housing} data of {row['CASE_NUMBER']} requires fixing, but its {worksite_or_housing}_fixed_by column was not specified to either address, coordinates, or impossible.")
+                myprint(f"The {worksite_or_housing} data of {row['CASE_NUMBER']} requires fixing, but its {worksite_or_housing}_fixed_by column was not specified to either address, coordinates, or impossible.", is_red="red")
                 mark_as_failed(i, worksite_or_housing, df)
 
 
@@ -77,7 +78,7 @@ def implement_fixes():
         elif method == "impossible":
             pass
         else:
-            print(f"Cannot fix job with case number: {row['CASE_NUMBER']}. This is because {worksite_or_housing}_fixed_by column must be either `address`, `coordinates`, `impossible`, `NA`, or null - and it's case sensitive!")
+            myprint(f"Cannot fix job with case number: {row['CASE_NUMBER']}. This is because {worksite_or_housing}_fixed_by column must be either `address`, `coordinates`, `impossible`, `NA`, or null - and it's case sensitive!", is_red="red")
             mark_as_failed(i, worksite_or_housing, df)
             return
 
@@ -101,6 +102,7 @@ def implement_fixes():
         return data.drop(columns_only_in_low_accuracies, axis=1)
 
     central = remove_extra_columns(central, "job_central")
+    central = helpers.sort_df_by_date(central)
     central.to_sql('job_central', engine, if_exists='append', index=False, dtype=helpers.column_types)
 
     housing = remove_extra_columns(housing, "additional_housing")
@@ -111,6 +113,7 @@ def implement_fixes():
     failures = fixed[failure_conditions]
     not_fixed = pd.read_sql_query('select * from "low_accuracies" where fixed=false', con=engine)
     failures_and_not_fixed = failures.append(not_fixed, ignore_index=True)
+    failures_and_not_fixed = helpers.sort_df_by_date(failures_and_not_fixed)
     failures_and_not_fixed.to_sql('low_accuracies', engine, if_exists='replace', index=False, dtype=helpers.column_types)
 
 implement_fixes()

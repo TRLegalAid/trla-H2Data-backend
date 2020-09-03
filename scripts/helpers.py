@@ -6,8 +6,21 @@ import requests
 import logging
 import sqlalchemy
 from colorama import Fore, Style
+from inspect import currentframe, getframeinfo
+frameinfo = getframeinfo(currentframe())
 
-# pd.options.mode.chained_assignment = None
+
+def print_red(message):
+    print(Fore.RED + message)
+    print(Style.RESET_ALL)
+
+def myprint(message, is_red=""):
+    file_and_line_info = Fore.LIGHTBLUE_EX + "  (" + frameinfo.filename.split("/")[-1] + ", line " + str(frameinfo.lineno) + ")" + Style.RESET_ALL
+    if is_red == "red":
+        print_red(message + file_and_line_info)
+    else:
+        print(message + file_and_line_info)
+
 logger = logging.Logger('catch_all')
 bad_accuracy_types = ["place", "state", "street_center"]
 column_types = {
@@ -31,8 +44,8 @@ def get_secret_variables():
     # LOCAL_DEV is an environemnt variable that I set to be "true" on my mac and "false" in the heroku config variables
     if os.getenv("LOCAL_DEV") == "true":
         import secret_variables
-        return secret_variables.DATABASE_URL, secret_variables.GEOCODIO_API_KEY
-    return os.getenv("DATABASE_URL"), os.getenv("GEOCODIO_API_KEY")
+        return secret_variables.DATABASE_URL, secret_variables.GEOCODIO_API_KEY, secret_variables.MOST_RECENT_RUN_URL, secret_variables.DATE_OF_RUN_URL
+    return os.getenv("DATABASE_URL"), os.getenv("GEOCODIO_API_KEY"), os.getenv("MOST_RECENT_RUN_URL"), os.getenv("DATE_OF_RUN_URL")
 geocodio_api_key = get_secret_variables()[1]
 client = GeocodioClient(geocodio_api_key)
 
@@ -43,7 +56,7 @@ def create_address_from(address, city, state, zip):
         return ""
 
 def geocode_table(df, worksite_or_housing):
-    print(f"Geocoding {worksite_or_housing}...")
+    myprint(f"Geocoding {worksite_or_housing}...")
 
     if worksite_or_housing == "worksite":
         geocoding_type = "worksite"
@@ -55,7 +68,7 @@ def geocode_table(df, worksite_or_housing):
         geocoding_type = "housing"
         addresses = df.apply(lambda job: create_address_from(job["PHYSICAL_LOCATION_ADDRESS1"], job["PHYSICAL_LOCATION_CITY"], job["PHYSICAL_LOCATION_STATE"], job["PHYSICAL_LOCATION_POSTAL_CODE"]), axis=1).tolist()
     else:
-        print("`worksite_or_housing` must be either `worksite` or `housing` or `housing addendum`")
+        myprint("`worksite_or_housing` must be either `worksite` or `housing` or `housing addendum`", is_red="red")
         return
 
     geocoding_results = client.geocode(addresses)
@@ -66,7 +79,7 @@ def geocode_table(df, worksite_or_housing):
     df[f"{geocoding_type} coordinates"] = coordinates
     df[f"{geocoding_type} accuracy"] = accuracies
     df[f"{geocoding_type} accuracy type"] = accuracy_types
-    print(f"Finished geocoding {worksite_or_housing}. \n")
+    myprint(f"Finished geocoding {worksite_or_housing}.")
 
 def geocode_and_split_by_accuracy(df, table=""):
     if table != "housing addendum":
@@ -77,7 +90,7 @@ def geocode_and_split_by_accuracy(df, table=""):
     accurate = df.apply(lambda job: is_accurate(job), axis=1)
     accurate_jobs, inaccurate_jobs = df.copy()[accurate], df.copy()[~accurate]
     inaccurate_jobs["fixed"] = False
-    print(f"There were {len(accurate_jobs)} accurate jobs.\nThere were {len(inaccurate_jobs)} inaccurate jobs. \n")
+    myprint(f"There were {len(accurate_jobs)} accurate jobs.\nThere were {len(inaccurate_jobs)} inaccurate jobs.")
     return accurate_jobs, inaccurate_jobs
 
 def fix_zip_code(zip_code):
@@ -103,14 +116,14 @@ def is_accurate(job):
         elif job["Visa type"] == "H-2B":
             return not ((job["worksite coordinates"] == None) or (job["worksite accuracy"] < 0.8) or (job["worksite accuracy type"] in bad_accuracy_types))
         else:
-            print(f"the `Visa type` column of this job - case number {job['CASE_NUMBER']} -  was neither `H-2a` nor `H-2B`")
+            myprint(f"The `Visa type` column of this job -case number {job['CASE_NUMBER']}- was neither `H-2A` nor `H-2B`, marking as inaccurate.", is_red="red")
             return False
 
     elif job["table"] == "dol_h":
         return not ((job["housing coordinates"] == None) or (job["housing accuracy"] < 0.8) or (job["housing accuracy type"] in bad_accuracy_types))
 
     else:
-        print(f"the `table` column of this job - case number {job['CASE_NUMBER']} -  was neither `dol_h` nor `central`")
+        myprint(f"The `table` column of this job -case number {job['CASE_NUMBER']}- was neither `dol_h` nor `central`", is_red="red")
         return False
 
 def get_column_mappings_dictionary():
@@ -141,9 +154,10 @@ def rename_columns(df):
 def h2a_or_h2b(job):
     if (job["CASE_NUMBER"][2] == "3") or (job["CASE_NUMBER"][0] == "3"):
         return "H-2A"
-    elif job["CASE_NUMBER"][2] == "4":
+    elif (job["CASE_NUMBER"][2] == "4") or (job["CASE_NUMBER"][0] == "4"):
         return "H-2B"
     else:
+        myprint(f"Case number malformed: {job['CASE_NUMBER']}", is_red="red")
         return ""
 
 def get_value(job, column):
@@ -160,7 +174,7 @@ def remove_case_number_from_df(df, case_number):
 
 def handle_previously_fixed(df, i, old_job, worksite_or_housing, accurate_or_inaccurate=""):
     if worksite_or_housing not in ["worksite", "housing"]:
-        print("worksite_or_housing parameter to handle_previously_fixed function must be either `worksite` ot `housing`")
+        myprint("worksite_or_housing parameter to handle_previously_fixed function must be either `worksite` ot `housing`", is_red="red")
         return df
     if accurate_or_inaccurate == "accurate":
         for column in ["fixed", f"{worksite_or_housing}_fixed_by"]:
@@ -187,7 +201,7 @@ def is_previously_fixed(old_job):
 
 def check_and_handle_previously_fixed(data, old_job, i, accurate_or_inaccurate=""):
     if is_previously_fixed(old_job):
-        print("PREVIOUSLY FIXED:", get_value(old_job, "CASE_NUMBER"), "has already been fixed. \n")
+        myprint("PREVIOUSLY FIXED: " + get_value(old_job, "CASE_NUMBER") + " has already been fixed.")
         data = handle_previously_fixed(data, i, old_job , "worksite", accurate_or_inaccurate=accurate_or_inaccurate)
         data = handle_previously_fixed(data, i, old_job, "housing", accurate_or_inaccurate=accurate_or_inaccurate)
     return data
@@ -196,9 +210,9 @@ def check_and_handle_previously_fixed(data, old_job, i, accurate_or_inaccurate="
 # if accurate_or_innacurate is "inaccurate", it's the opposite
 def merge_common_rows(new_df, new_df_opposite, old_df, old_df_opposite, accurate_or_inaccurate):
     if accurate_or_inaccurate not in ["accurate", "inaccurate"]:
-        print("accurate_or_inaccurate parameter to merge_new_with_old_data function must be either `accurate` ot `inaccurate` \n")
+        myprint("accurate_or_inaccurate parameter to merge_new_with_old_data function must be either `accurate` ot `inaccurate`", is_red="red")
         return
-    print(f"MERGING {accurate_or_inaccurate} new data... \n")
+    myprint(f"MERGING {accurate_or_inaccurate} new data...")
     old_case_numbers = old_df["CASE_NUMBER"].tolist()
     old_opposite_case_numbers = old_df_opposite["CASE_NUMBER"].tolist()
     all_old_columns = old_df.columns
@@ -211,7 +225,7 @@ def merge_common_rows(new_df, new_df_opposite, old_df, old_df_opposite, accurate
         new_case_number = job["CASE_NUMBER"]
         # if this jobs is already in postgres
         if new_case_number in old_case_numbers:
-            print("DUPLICATE CASE NUMBER:", new_case_number, f"is in both the ({accurate_or_inaccurate}) new dataset and the {accurate_or_inaccurate} table in postgres. \n")
+            myprint(f"DUPLICATE CASE NUMBER: {new_case_number} is in both the ({accurate_or_inaccurate}) new dataset and the {accurate_or_inaccurate} table in postgres.")
             old_job = old_df[(old_df["CASE_NUMBER"] == new_case_number) & (old_df["table"] != "dol_h")]
             # add the value of each column only found in postgres to new data
             for column in only_old_columns:
@@ -223,12 +237,12 @@ def merge_common_rows(new_df, new_df_opposite, old_df, old_df_opposite, accurate
         elif new_case_number in old_opposite_case_numbers:
             # if this job is accurate in new but inaccurate in postgres
             if accurate_or_inaccurate == "accurate":
-                print("DUPLICATE CASE NUMBER:", new_case_number, f"is in both the ({accurate_or_inaccurate}) new dataset and the low_accuracies table in postgres. \n")
+                myprint(f"DUPLICATE CASE NUMBER: {new_case_number} is in both the ({accurate_or_inaccurate}) new dataset and the low_accuracies table in postgres.")
                 # just remove it from the postgres inaccurate df (unless it comes from the additional housing table)
                 old_df_opposite = remove_case_number_from_df(old_df_opposite, new_case_number)
             # if this job is inaccurate in new but accurate in postgres
             else:
-                print("DUPLICATE CASE NUMBER:", new_case_number, f"is in both the ({accurate_or_inaccurate}) new dataset and the job_central table in postgres. \n")
+                myprint(f"DUPLICATE CASE NUMBER: {new_case_number} is in both the ({accurate_or_inaccurate}) new dataset and the job_central table in postgres.")
                 old_job = old_df_opposite[old_df_opposite["CASE_NUMBER"] == new_case_number]
                 # if previously fixed, adjust it in the new data accordingly, otherwise leave it (this probably means the address has been changed since we last received it)
                 if is_previously_fixed(old_job):
@@ -242,7 +256,7 @@ def merge_common_rows(new_df, new_df_opposite, old_df, old_df_opposite, accurate
             pass
     # if accurate_or_inaccurate == "accurate", returns: accurate dol df, inaccurate dol df, low_accuracies table from postgres
     # if accurate_or_inaccurate == "inaccurate", returns: inaccurate dol df, accurate dol df, job_central table from postgres
-    print(f"FINISHED merging {accurate_or_inaccurate} DOL data. \n")
+    myprint(f"FINISHED merging {accurate_or_inaccurate} DOL data.")
     return new_df, new_df_opposite, old_df, old_df_opposite
 
 def merge_all_data(accurate_new_jobs, inaccurate_new_jobs, accurate_old_jobs, inaccurate_old_jobs):
@@ -263,6 +277,9 @@ def merge_all_data(accurate_new_jobs, inaccurate_new_jobs, accurate_old_jobs, in
     all_inaccurate_jobs = all_inaccurate_jobs[all_inaccurate_jobs["notes"] != "accurate"]
 
     return all_accurate_jobs, all_inaccurate_jobs
+
+def sort_df_by_date(df):
+    return df.sort_values(by=["RECEIVED_DATE"], ascending=False)
 
 def test(expected, result, name=""):
     if expected == result:
