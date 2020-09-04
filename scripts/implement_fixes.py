@@ -1,5 +1,5 @@
 import helpers
-from helpers import myprint
+from helpers import myprint, print_red_and_email
 import pandas as pd
 import numpy as np
 import math
@@ -7,7 +7,7 @@ from sqlalchemy import create_engine
 import psycopg2
 from geocodio import GeocodioClient
 import numpy as np
-database_connection_string, geocodio_api_key, _, _ = helpers.get_secret_variables()
+database_connection_string, geocodio_api_key, _, _, _, _ = helpers.get_secret_variables()
 engine, client = create_engine(database_connection_string), GeocodioClient(geocodio_api_key)
 
 def implement_fixes():
@@ -28,28 +28,29 @@ def implement_fixes():
             elif row["table"] == "dol_h":
                 full_address = helpers.create_address_from(row["PHYSICAL_LOCATION_ADDRESS1"], row["PHYSICAL_LOCATION_CITY"], row["PHYSICAL_LOCATION_STATE"], row["PHYSICAL_LOCATION_POSTAL_CODE"])
             else:
-                myprint(f"Table column for {job['CASE_NUMBER']} not specified - must be either `dol_h` or `central`", is_red="red")
+                print_red_and_email(f"Table column for {job['CASE_NUMBER']} not specified - must be either `dol_h` or `central`", "Unspecified or Incorrect table Column Value")
                 mark_as_failed(i, worksite_or_housing, df)
                 return
         else:
-            myprint(f"There was an error fixing the job with case number: {row['CASE_NUMBER']}. worksite_or_housing must be either `worksite` or `housing`", is_red="red")
+            print_red_and_email(f"There was an error fixing the job with case number: {row['CASE_NUMBER']}. worksite_or_housing parameter in fix_by_address must be either `worksite` or `housing`", "Invalid Function Parameter")
             return
 
         try:
             geocoded = client.geocode(full_address)
-            accuracy = geocoded.accuracy
-            accuracy_type = geocoded["results"][0]["accuracy_type"]
-            df.at[i, f"{worksite_or_housing} coordinates"] = geocoded.coords
-            df.at[i, f"{worksite_or_housing} accuracy"] = accuracy
-            df.at[i, f"{worksite_or_housing} accuracy type"] = accuracy_type
+            results = geocoded['results'][0]
+            df.at[i, f"{worksite_or_housing}_long"] = results['location']['lng']
+            df.at[i, f"{worksite_or_housing}_lat"] = results['location']['lat']
+            df.at[i, f"{worksite_or_housing} accuracy"] = results['accuracy']
+            df.at[i, f"{worksite_or_housing} accuracy type"] = results['accuracy_type']
 
-            if (accuracy < 0.8) or (accuracy_type in helpers.bad_accuracy_types):
-                myprint(f"Geocoding {full_address} (case number {row['CASE_NUMBER']}) resulted in either an accuracy below 0.8 or a bad accuracy type. ", is_red="red")
+            if (results['accuracy'] < 0.8) or (results['accuracy_type'] in helpers.bad_accuracy_types):
+                print_red_and_email(f"Geocoding {full_address} (case number {row['CASE_NUMBER']}) resulted in either an accuracy below 0.8 or a bad accuracy type. ", "Fixing Failed")
                 mark_as_failed(i, worksite_or_housing, df)
 
-        except:
-            myprint(f"There was an error geocoding the address: {full_address} (case number{row['CASE_NUMBER']}).", is_red="red")
+        except Exception as error:
+            print_red_and_email(f"Failed to geocode ~{row['CASE_NUMBER']}~ here's the error message:\n{str(error)}", "Geocoding Failure in Implement Fixes")
             mark_as_failed(i, worksite_or_housing, df)
+
 
     def fix_by_coords(i, worksite_or_housing, df):
         df.at[i, f"{worksite_or_housing} accuracy"] = 1
@@ -62,8 +63,8 @@ def implement_fixes():
         elif (row["Visa type"] == "H-2B") and (worksite_or_housing == "housing"):
             pass
         else:
-            if (not row[f"{worksite_or_housing} accuracy"]) or (not row[f"{worksite_or_housing} accuracy type"]) or (not row[f"{worksite_or_housing} coordinates"]) or (row[f"{worksite_or_housing} accuracy"] < 0.8) or (row[f"{worksite_or_housing} accuracy type"] in helpers.bad_accuracy_types):
-                myprint(f"The {worksite_or_housing} data of {row['CASE_NUMBER']} requires fixing, but its {worksite_or_housing}_fixed_by column was not specified to either address, coordinates, or impossible.", is_red="red")
+            if (not row[f"{worksite_or_housing} accuracy type"]) or (row[f"{worksite_or_housing} accuracy"] < 0.8) or (row[f"{worksite_or_housing} accuracy type"] in helpers.bad_accuracy_types):
+                print_red_and_email(f"The {worksite_or_housing} data of {row['CASE_NUMBER']} requires fixing, but its {worksite_or_housing}_fixed_by column was not specified to either address, coordinates, or impossible.", "Address Needs Fixing but Not Fixed")
                 mark_as_failed(i, worksite_or_housing, df)
 
 
@@ -78,7 +79,8 @@ def implement_fixes():
         elif method == "impossible":
             pass
         else:
-            myprint(f"Cannot fix job with case number: {row['CASE_NUMBER']}. This is because {worksite_or_housing}_fixed_by column must be either `address`, `coordinates`, `impossible`, `NA`, or null - and it's case sensitive!", is_red="red")
+            error_message = f"Cannot fix job with case number: {row['CASE_NUMBER']}. This is because {worksite_or_housing}_fixed_by column must be either `address`, `coordinates`, `impossible`, `NA`, or null - and it's case sensitive!"
+            print_red_and_email(error_message, "Incorrect fixed_by Column Value")
             mark_as_failed(i, worksite_or_housing, df)
             return
 

@@ -4,7 +4,7 @@ import pandas as pd
 import sqlalchemy
 from sqlalchemy import create_engine
 from geocodio import GeocodioClient
-database_connection_string, geocodio_api_key, most_recent_run_url, date_of_run_url = helpers.get_secret_variables()
+database_connection_string, geocodio_api_key, most_recent_run_url, date_of_run_url, _, _ = helpers.get_secret_variables()
 engine, client = create_engine(database_connection_string), GeocodioClient(geocodio_api_key)
 import fake_jobs
 

@@ -6,7 +6,7 @@ import numpy as np
 from datetime import datetime
 from sqlalchemy import create_engine
 from geocodio import GeocodioClient
-database_connection_string, geocodio_api_key, _, _ = helpers.get_secret_variables()
+database_connection_string, geocodio_api_key, _, _, _, _ = helpers.get_secret_variables()
 engine, client = create_engine(database_connection_string), GeocodioClient(geocodio_api_key)
 
 dol_jobs = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/dol_data.xlsx'), converters={'ATTORNEY_AGENT_PHONE':str,'PHONE_TO_APPLY':str, 'SOC_CODE': str, 'NAICS_CODE': str})
@@ -33,7 +33,7 @@ def merge_dol(dol_jobs, job_central, low_accuracies):
         elif yes_no.strip() == "N":
             return False
         else:
-            myprint("There was an error converting the multiple worksite value to a boolean.", is_red="red")
+            print_red_and_email("There was an error converting the multiple worksite value to a boolean.", "Error Converting to Boolean")
             return yes_no
 
     for column in columns_to_change_to_boolean:
