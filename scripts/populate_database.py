@@ -6,7 +6,7 @@ from sqlalchemy import create_engine
 database_connection_string = helpers.get_secret_variables()[0]
 engine = create_engine(database_connection_string)
 
-def populate_database(df):
+def geocode_manage_split(df):
     renaming_info_dict = {"Section A": "Job Info", "Section C": "Place of Employment Info", "Section D":"Housing Info"}
     column_names_dict = {}
     for column in df.columns:
@@ -48,11 +48,12 @@ def populate_database(df):
     accurate_jobs, inaccurate_jobs = helpers.sort_df_by_date(accurate_jobs), helpers.sort_df_by_date(inaccurate_jobs)
     return accurate_jobs, inaccurate_jobs, raw_scraper_jobs
 
-def populate_and_send_to_postgres():
+def send_to_postgres():
     scraper_jobs = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/scraper_data.xlsx'))
-    accurate_jobs, inaccurate_jobs, raw_scraper_jobs = populate_database(scraper_jobs)
+    accurate_jobs, inaccurate_jobs, raw_scraper_jobs = geocode_manage_split(scraper_jobs)
     accurate_jobs.to_sql('job_central', engine, if_exists='replace', index=False, dtype=helpers.column_types)
     inaccurate_jobs.to_sql('low_accuracies', engine, if_exists='replace', index=False, dtype=helpers.column_types)
     raw_scraper_jobs.to_sql('raw_scraper_jobs', engine, if_exists='replace', index=False, dtype=helpers.column_types)
 
-# populate_and_send_to_postgres()
+if __name__ == "__main__":
+   send_to_postgres()
