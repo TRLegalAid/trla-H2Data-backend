@@ -6,11 +6,9 @@ from sqlalchemy import create_engine
 database_connection_string = helpers.get_secret_variables()[0]
 engine = create_engine(database_connection_string)
 
-renaming_info_dict = {"Section A": "Job Info", "Section C": "Place of Employment Info", "Section D":"Housing Info"}
-column_names_dict = {}
-df = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/scraper_data.xlsx'))
-
 def populate_database(df, job_central, low_accuracies, raw_scraper_jobs):
+    renaming_info_dict = {"Section A": "Job Info", "Section C": "Place of Employment Info", "Section D":"Housing Info"}
+    column_names_dict = {}
     for column in df.columns:
         for key in renaming_info_dict:
             if key in column:
@@ -35,17 +33,25 @@ def populate_database(df, job_central, low_accuracies, raw_scraper_jobs):
         else:
             return job["Number of Workers Requested H-2B"]
     df['TOTAL_WORKERS_NEEDED'] = df.apply(lambda job: get_num_workers(job), axis=1)
-    helpers.fix_zip_code_columns(df, ["EMPLOYER_POSTAL_CODE", "WORKSITE_POSTAL_CODE",  "Place of Employment Info/Postal Code", "HOUSING_POSTAL_CODE"])
+    df = helpers.fix_zip_code_columns(df, ["EMPLOYER_POSTAL_CODE", "WORKSITE_POSTAL_CODE",  "Place of Employment Info/Postal Code", "HOUSING_POSTAL_CODE"])
 
-    df.to_sql(raw_scraper_jobs, engine, if_exists='replace', index=False, dtype=helpers.column_types)
-
+    raw_scraper_jobs = df
     df = df.drop_duplicates(subset='CASE_NUMBER', keep="last")
 
-    df["fixed"], df["worksite_fixed_by"], df["housing_fixed_by"], df["notes"], df["table"] = None, None, None, "", "central"
+    # df.loc[:, "fixed"], df.loc[:, "worksite_fixed_by"], df.loc[:, "housing_fixed_by"], df.loc[:, "notes"], df.loc[:, "table"] = None, None, None, "", "central"
+    i = len(df.columns)
+    df.insert(i, "fixed", None)
+    df.insert(i, "worksite_fixed_by", None)
+    df.insert(i, "housing_fixed_by", None)
+    df.insert(i, "notes", "")
+    df.insert(i, "table", "central")
+
     accurate_jobs, inaccurate_jobs = helpers.geocode_and_split_by_accuracy(df)
     accurate_jobs, inaccurate_jobs = helpers.sort_df_by_date(accurate_jobs), helpers.sort_df_by_date(inaccurate_jobs)
+    return accurate_jobs, inaccurate_jobs, raw_scraper_jobs
 
-    accurate_jobs.to_sql(job_central, engine, if_exists='replace', index=False, dtype=helpers.column_types)
-    inaccurate_jobs.to_sql(low_accuracies, engine, if_exists='replace', index=False, dtype=helpers.column_types)
-
-populate_database(df, 'job_central', 'low_accuracies', 'raw_scraper_jobs')
+scraper_jobs = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/scraper_data.xlsx'))
+accurate_jobs, inaccurate_jobs, raw_scraper_jobs = populate_database(scraper_jobs, 'job_central', 'low_accuracies', 'raw_scraper_jobs')
+accurate_jobs.to_sql('job_central', engine, if_exists='replace', index=False, dtype=helpers.column_types)
+inaccurate_jobs.to_sql('low_accuracies', engine, if_exists='replace', index=False, dtype=helpers.column_types)
+raw_scraper_jobs.to_sql('raw_scraper_jobs', engine, if_exists='replace', index=False, dtype=helpers.column_types)

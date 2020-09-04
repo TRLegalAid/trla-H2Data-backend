@@ -15,7 +15,7 @@ all_tests = []
 def run_test(value, should_be, name):
     all_tests.append(test(value, should_be, name=name))
 
-job_central = "job_central_test"
+job_central, low_accuracies, additional_housing, raw_scraper_jobs, all_table_names = "job_central_test"
 low_accuracies = "low_accuracies_test"
 additional_housing = "additional_housing_test"
 raw_scraper_jobs = "raw_scraper_jobs_test"

@@ -105,16 +105,18 @@ def geocode_table(df, worksite_or_housing):
             longitudes.append(None)
         i +=1
 
-    df[f"{geocoding_type}_lat"] = latitudes
-    df[f"{geocoding_type}_long"] = longitudes
-    df[f"{geocoding_type} accuracy"] = accuracies
-    df[f"{geocoding_type} accuracy type"] = accuracy_types
+    i = len(df.columns)
+    df.insert(i, f"{geocoding_type}_lat", latitudes)
+    df.insert(i, f"{geocoding_type}_long", longitudes)
+    df.insert(i, f"{geocoding_type} accuracy", accuracies)
+    df.insert(i, f"{geocoding_type} accuracy type", accuracy_types)
     myprint(f"Finished geocoding {worksite_or_housing}.")
+    return df
 
 def geocode_and_split_by_accuracy(df, table=""):
     if table != "housing addendum":
-        geocode_table(df, "worksite")
-        geocode_table(df, "housing")
+        df = geocode_table(df, "worksite")
+        df = geocode_table(df, "housing")
     else:
         geocode_table(df, "housing addendum")
     accurate = df.apply(lambda job: is_accurate(job), axis=1)
@@ -135,6 +137,7 @@ def fix_zip_code(zip_code):
 def fix_zip_code_columns(df, columns):
     for column in columns:
         df[column] = df.apply(lambda job: fix_zip_code(job[column]), axis=1)
+    return df
 
 def is_accurate(job):
     our_states = ["texas", "kentucky", "tennessee", "arkansas", "louisiana", "mississippi", "alabama"]
