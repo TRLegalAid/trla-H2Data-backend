@@ -320,10 +320,8 @@ def sort_df_by_date(df):
 
 def test(expected, result, name=""):
     if expected == result:
-        print(name + ": " + Fore.GREEN +  "passed! :)" + Fore.BLACK + f"\nResult: {expected},  Expected: {result}")
-        print(Style.RESET_ALL)
+        print("\n" + name + ": " + Fore.GREEN +  "passed! :)" + Fore.BLACK + f"\nResult: {expected},  Expected: {result}" + Style.RESET_ALL)
         return True
     else:
-        print(name + ": " + Fore.RED +  "failed! :(" + Fore.BLACK + f"\nGot: {expected}, Expected: {result}")
-        print(Style.RESET_ALL)
+        print("\n" + name + ": " + Fore.RED +  "failed! :(" + Fore.BLACK + f"\nGot: {expected}, Expected: {result}" + Style.RESET_ALL)
         return False
