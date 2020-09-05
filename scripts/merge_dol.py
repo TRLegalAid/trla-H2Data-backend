@@ -10,6 +10,8 @@ database_connection_string, geocodio_api_key, _, _, _, _ = helpers.get_secret_va
 engine, client = create_engine(database_connection_string), GeocodioClient(geocodio_api_key)
 
 dol_jobs = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/dol_data.xlsx'), converters={'ATTORNEY_AGENT_PHONE':str,'PHONE_TO_APPLY':str, 'SOC_CODE': str, 'NAICS_CODE': str})
+
+# def geocode_manage_split_
 def merge_dol(dol_jobs, job_central, low_accuracies):
     # get dol data and postgres data (accurate and inaccurate), perform necessary data management on dol data
     accurate_old_jobs = pd.read_sql("job_central", con=engine)

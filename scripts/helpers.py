@@ -317,11 +317,3 @@ def merge_all_data(accurate_new_jobs, inaccurate_new_jobs, accurate_old_jobs, in
 
 def sort_df_by_date(df):
     return df.sort_values(by=["RECEIVED_DATE"], ascending=False)
-
-def test(expected, result, name=""):
-    if expected == result:
-        print("\n" + name + ": " + Fore.GREEN +  "passed! :)" + Fore.BLACK + f"\nResult: {expected},  Expected: {result}" + Style.RESET_ALL)
-        return True
-    else:
-        print("\n" + name + ": " + Fore.RED +  "failed! :(" + Fore.BLACK + f"\nGot: {expected}, Expected: {result}" + Style.RESET_ALL)
-        return False
