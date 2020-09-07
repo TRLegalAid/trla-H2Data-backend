@@ -196,6 +196,7 @@ def h2a_or_h2b(job):
         return ""
 
 def get_value(job, column):
+    # print(job, column)
     return job[column].tolist()[0]
 
 def get_address_columns(worksite_or_housing):
@@ -208,6 +209,7 @@ def remove_case_number_from_df(df, case_number):
     return df[(df["CASE_NUMBER"] != case_number) | (df["table"] == "dol_h")]
 
 def handle_previously_fixed(df, i, old_job, worksite_or_housing, accurate_or_inaccurate=""):
+
     if worksite_or_housing not in ["worksite", "housing"]:
         error_message = "worksite_or_housing parameter to handle_previously_fixed function must be either `worksite` ot `housing`"
         print_red_and_email(error_message, "Invalid Function Parameter")
@@ -229,6 +231,9 @@ def handle_previously_fixed(df, i, old_job, worksite_or_housing, accurate_or_ina
         # if worksite_or_housing needs fixing in new df, mark notes column to not move to accuracies later - see lin 236
         if (not df.at[i, f"{worksite_or_housing} accuracy type"]) or (df.at[i, f"{worksite_or_housing} accuracy"] < 0.8) or (df.at[i ,f"{worksite_or_housing} accuracy type"] in bad_accuracy_types):
             df.at[i, "notes"] = "ignore (and feel free to replace) this note"
+
+    if df.at[i, "notes"] == "ignore (and feel free to replace) this note":
+        df.at[i, "fixed"] = False
 
     return df
 
@@ -252,8 +257,8 @@ def merge_common_rows(new_df, new_df_opposite, old_df, old_df_opposite, accurate
     myprint(f"MERGING {accurate_or_inaccurate} new data...")
     old_case_numbers = old_df["CASE_NUMBER"].tolist()
     old_opposite_case_numbers = old_df_opposite["CASE_NUMBER"].tolist()
-    all_old_columns = old_df.columns
-    all_new_columns = new_df.columns
+    all_old_columns = old_df.columns.tolist()
+    all_new_columns = new_df.columns.tolist()
     only_old_columns = [column for column in all_old_columns if column not in all_new_columns and column != "index"]
     # add each columnd in postgres but not new to new
     for column in only_old_columns:
@@ -268,19 +273,24 @@ def merge_common_rows(new_df, new_df_opposite, old_df, old_df_opposite, accurate
             for column in only_old_columns:
                 new_df.at[i, column] = get_value(old_job, column)
             # if previously fixed, replace new address/geocoding data with that from postgres (where appropriate, depending on fixed_by columns)
-            new_df = check_and_handle_previously_fixed(new_df, old_job, i, accurate_or_inaccurate={accurate_or_inaccurate})
-            # remove this jobs from old_df, since it's in new_df and has been updated
+            new_df = check_and_handle_previously_fixed(new_df, old_job, i, accurate_or_inaccurate=accurate_or_inaccurate)
+            # remove this job from old_df, since it's in new_df and has been updated
             old_df = remove_case_number_from_df(old_df, new_case_number)
         elif new_case_number in old_opposite_case_numbers:
             # if this job is accurate in new but inaccurate in postgres
             if accurate_or_inaccurate == "accurate":
                 myprint(f"DUPLICATE CASE NUMBER: {new_case_number} is in both the ({accurate_or_inaccurate}) new dataset and the low_accuracies table in postgres.")
-                # just remove it from the postgres inaccurate df (unless it comes from the additional housing table)
+                old_job = old_df_opposite[(old_df_opposite["CASE_NUMBER"] == new_case_number) & (old_df_opposite["table"] != "dol_h")]
+                for column in only_old_columns:
+                    new_df.at[i, column] = get_value(old_job, column)
+                # remove it from the postgres inaccurate df (unless it comes from the additional housing table)
                 old_df_opposite = remove_case_number_from_df(old_df_opposite, new_case_number)
             # if this job is inaccurate in new but accurate in postgres
             else:
                 myprint(f"DUPLICATE CASE NUMBER: {new_case_number} is in both the ({accurate_or_inaccurate}) new dataset and the job_central table in postgres.")
-                old_job = old_df_opposite[old_df_opposite["CASE_NUMBER"] == new_case_number]
+                old_job = old_df_opposite[(old_df_opposite["CASE_NUMBER"] == new_case_number) & (old_df_opposite["table"] != "dol_h")]
+                for column in only_old_columns:
+                    new_df.at[i, column] = get_value(old_job, column)
                 # if previously fixed, adjust it in the new data accordingly, otherwise leave it (this probably means the address has been changed since we last received it)
                 if is_previously_fixed(old_job):
                     new_df = check_and_handle_previously_fixed(new_df, old_job, i)
@@ -307,7 +317,7 @@ def merge_all_data(accurate_new_jobs, inaccurate_new_jobs, accurate_old_jobs, in
     # merge inaccurate jobs, remove necessary case numbers from inaccurate jobs, append jobs that are only in low_accuracies (postgres but not DOL)
     # also move any fixed inaccurates to accurates
     inaccurate_new_case_numbers = inaccurate_new_jobs["CASE_NUMBER"].tolist()
-    only_in_inaccurate_old = inaccurate_old_jobs[~(inaccurate_old_jobs["CASE_NUMBER"].isin(inaccurate_new_case_numbers))]
+    only_in_inaccurate_old = inaccurate_old_jobs[(~(inaccurate_old_jobs["CASE_NUMBER"].isin(inaccurate_new_case_numbers))) | (inaccurate_old_jobs["table"] == "dol_h")]
     all_inaccurate_jobs = inaccurate_new_jobs.append(only_in_inaccurate_old, sort=True, ignore_index=True)
     accurates_in_inaccurates = all_inaccurate_jobs[all_inaccurate_jobs["notes"] == "accurate"]
     all_accurate_jobs = all_accurate_jobs.append(accurates_in_inaccurates, sort=True, ignore_index=True)
