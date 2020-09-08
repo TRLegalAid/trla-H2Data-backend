@@ -1,16 +1,11 @@
 import helpers
 from helpers import myprint, print_red_and_email
 import pandas as pd
-import numpy as np
-import math
 from sqlalchemy import create_engine
 import psycopg2
 from geocodio import GeocodioClient
-import numpy as np
 database_connection_string, geocodio_api_key, _, _, _, _ = helpers.get_secret_variables()
 engine, client = create_engine(database_connection_string), GeocodioClient(geocodio_api_key)
-
-
 
 def implement_fixes(fixed):
 

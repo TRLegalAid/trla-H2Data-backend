@@ -9,7 +9,7 @@ from inspect import getframeinfo, stack
 import smtplib, ssl
 
 def get_secret_variables():
-    # LOCAL_DEV is an environemnt variable that I set to be "true" on my mac and "false" in the heroku config variables
+    # LOCAL_DEV is an environment variable that I set to be "true" on my mac and "false" in the heroku config variables
     if os.getenv("LOCAL_DEV") == "true":
         import secret_variables
         return secret_variables.DATABASE_URL, secret_variables.GEOCODIO_API_KEY, secret_variables.MOST_RECENT_RUN_URL, secret_variables.DATE_OF_RUN_URL, secret_variables.ERROR_EMAIL_ADDRESS, secret_variables.ERROR_EMAIL_ADDRESS_PASSWORD
@@ -17,11 +17,9 @@ def get_secret_variables():
 geocodio_api_key = get_secret_variables()[1]
 client = GeocodioClient(geocodio_api_key)
 
-# x = client.geocode("4 Rainbow Rd, Argentinca Antarctica 11111")
-# print(x.coords)
-# print(x.accuracy)
-# print(x)
-# exit()
+# if running locally, don't do the state checking (to make it easier for tesing)
+state_checking = not (os.getenv("LOCAL_DEV") == "true")
+our_states = ["texas", "tx", "kentucky", "ky", "tennessee", "tn", "arkansas", "ar", "louisiana", "la", "mississippi", "ms", "alabama", "al"]
 
 def print_red(message):
     print(Fore.RED + message + Style.RESET_ALL)
@@ -38,6 +36,8 @@ def myprint(message, is_red="", email_also=""):
         print(message + file_and_line_info)
 
 def send_email(message):
+    if os.getenv("LOCAL_DEV") == "true":
+        return
     email, password = get_secret_variables()[4], get_secret_variables()[5]
     port, smtp_server, context  = 465, "smtp.gmail.com", ssl.create_default_context()
     with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
@@ -48,7 +48,7 @@ def print_red_and_email(message, subject):
     frameinfo = getframeinfo((stack()[1][0]))
     file_name_and_line_info = "(" + frameinfo.filename.split("/")[-1] + ", line " + str(frameinfo.lineno) + ")"
     myprint(message + "  " + file_name_and_line_info, is_red="red", email_also="yes")
-    # send_email("Subject: " + subject + "\n\n" + message + "\n" + file_name_and_line_info)
+    send_email("Subject: " + subject + "\n\n" + message + "\n" + file_name_and_line_info)
 
 bad_accuracy_types = ["place", "state", "street_center"]
 column_types = {
@@ -101,9 +101,7 @@ def geocode_table(df, worksite_or_housing):
             accuracy_types.append(results['accuracy_type'])
             latitudes.append(results['location']['lat'])
             longitudes.append(results['location']['lng'])
-        # except Exception as error:
         except:
-            # print(str(e))
             accuracies.append(None)
             accuracy_types.append(None)
             latitudes.append(None)
@@ -145,9 +143,8 @@ def fix_zip_code_columns(df, columns):
     return df
 
 def is_accurate(job):
-    our_states = ["texas", "kentucky", "tennessee", "arkansas", "louisiana", "mississippi", "alabama"]
-    # if (job["WORKSITE_STATE"].lower() not in our_states):
-    #     return True
+    if state_checking and (job["WORKSITE_STATE"].lower() not in our_states):
+        return True
     if job["table"] == "central":
         if job["Visa type"] == "H-2A":
             return not ((not job["worksite accuracy type"]) or (not job["housing accuracy type"]) or (job["worksite accuracy"] < 0.8) or (job["housing accuracy"] < 0.8) or (job["worksite accuracy type"] in bad_accuracy_types) or (job["housing accuracy type"] in bad_accuracy_types))

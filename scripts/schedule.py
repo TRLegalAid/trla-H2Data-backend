@@ -1,33 +1,33 @@
 from apscheduler.schedulers.blocking import BlockingScheduler
-import os
+from update_database import update_database
+from implement_fixes import send_fixes_to_postgres
+from helpers import print_red_and_email, myprint
+from colorama import Fore, Style
+
+print_red_and_email("hello", Fore.RED + "HELLO" + Style.RESET_ALL)
+myprint("hi", is_red="red")
 import pandas as pd
-from sqlalchemy import create_engine
-import geocodio
+housing = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/housing_addendum.xlsx'))
+print(housing)
 
+exit()
 
+def perform_task_and_catch_errors(task_function, task_name):
+    print(Fore.GREEN + f"{task_name}..." + Style.RESET_ALL)
+    try:
+        task_function()
+    except Exception as eroor:
+        print_red_and_email(str(error), f"UNANTICIPATED ERROR {task_name}")
+    print(Fore.GREEN + f"Finished {task_name}." + "\n" + Style.RESET_ALL)
 
+def update_task():
+    perform_task_and_catch_errors(update_database, "UPDATING DATABASE")
 
+def implement_fixes_task():
+    perform_task_and_catch_errors(send_fixes_to_postgres, "IMPLEMENTING FIXES")
 
-# def scheduled_job():
-#     print("made it into the scheduled job script...")
-def job():
-    for i in range(5):
-        print(i)
-    print("all done")
-
-
-# sched = BlockingScheduler()
-# # change minutes=2 to days=1
-# sched.add_job(job, 'interval', seconds=5, start_date='2020-08-25 22:10:00', timezone='US/Eastern')
-# # sched.add_job(fix, 'interval', days=1)
-#
-# sched.start()
-
-# for checking for changes in low_accuracies
-# def fix():
-#     old_df = pd.from_sql(low_accuracies)
-#     while True:
-#         new_df = pd.from_sql(low_accuracies)
-#         if not (new_df == old_df).all().all():
-#             run_implement_fixes()
-#         old_df = new_df
+sched = BlockingScheduler()
+# update database at 5:15 pm EST every day, check for fixes every 6 hours
+sched.add_job(update_task, 'interval', days=1, start_date='2020-09-08 17:15:00', timezone='US/Eastern')
+sched.add_job(implement_fixes_task, 'interval', hours=6, start_date='2020-09-10 18:00:00', timezone='US/Eastern')
+sched.start()

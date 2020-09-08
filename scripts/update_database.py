@@ -6,12 +6,9 @@ from sqlalchemy import create_engine
 from geocodio import GeocodioClient
 database_connection_string, geocodio_api_key, most_recent_run_url, date_of_run_url, _, _ = helpers.get_secret_variables()
 engine, client = create_engine(database_connection_string), GeocodioClient(geocodio_api_key)
-import fake_jobs
 
 def update_database():
     latest_jobs = requests.get(most_recent_run_url).json()
-    latest_jobs = requests.get('https://api.apify.com/v2/datasets/g0awKuoXUdCsY2oBa/items?format=json&clean=1').json()[:11]
-    latest_jobs.append(fake_jobs.fake_h2a_job)
     if not latest_jobs:
         return
 
@@ -71,9 +68,9 @@ def update_database():
     parsed_jobs = [parse(job) for job in latest_jobs]
     full_jobs = [add_necessary_columns(job) for job in parsed_jobs]
     full_jobs_df = pd.DataFrame(full_jobs)
-    raw_scraper_jobs = pd.read_sql('raw_scraper_jobs', con=engine)
-    raw_new_and_old_jobs = full_jobs_df.append(raw_scraper_jobs, ignore_index=True, sort=True)
-    raw_new_and_old_jobs.to_sql("raw_scraper_jobs", engine, if_exists="replace", index=False, dtype=helpers.column_types)
+    # raw_scraper_jobs = pd.read_sql('raw_scraper_jobs', con=engine)
+    # raw_new_and_old_jobs = full_jobs_df.append(raw_scraper_jobs, ignore_index=True, sort=True)
+    full_jobs_df.to_sql("raw_scraper_jobs", engine, if_exists="append", index=False, dtype=helpers.column_types)
 
     # geocode, split by accuracy, get old data, merge old with new data, sort data
     new_accurate_jobs, new_inaccurate_jobs = helpers.geocode_and_split_by_accuracy(full_jobs_df)
@@ -87,6 +84,6 @@ def update_database():
     # send updated data back to postgres
     accurate_jobs.to_sql('job_central', engine, if_exists='replace', index=False, dtype=helpers.column_types)
     inaccurate_jobs.to_sql('low_accuracies', engine, if_exists='replace', index=False, dtype=helpers.column_types)
-    
+
 if __name__ == "__main__":
    update_database()
