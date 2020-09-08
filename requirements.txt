@@ -8,3 +8,8 @@ client
 pygeocodio
 datetime
 xlrd
+colorama
+smtplib
+ssl
+inspect
+os
