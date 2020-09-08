@@ -10,6 +10,8 @@ import helpers
 # print_red_and_email("hello", Fore.RED + "HELLO" + Style.RESET_ALL)
 myprint("hi", is_red="red")
 email, password = helpers.get_secret_variables()[4], helpers.get_secret_variables()[5]
+print(email[:9])
+print(password[:3])
 port, smtp_server, context  = 465, "smtp.gmail.com", ssl.create_default_context()
 with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
     server.login(email, password)
