@@ -7,11 +7,12 @@ import os
 import ssl, smtplib
 import helpers
 import time
+import pandas as pd
 
 # print_red_and_email("hello", Fore.RED + "HELLO" + Style.RESET_ALL)
 while True:
     myprint("hi, starting again...", is_red="red")
-    print_red_and_email("hiii", "helloooooo")
+    print_red_and_email(Fore.RED + "hiii" + Style.RESET_ALL, "helloooooo")
     # email, password = helpers.get_secret_variables()[4], helpers.get_secret_variables()[5]
     # print(email[:9])
     # print(password[:3])
