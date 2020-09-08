@@ -3,12 +3,14 @@ from update_database import update_database
 from implement_fixes import send_fixes_to_postgres
 from helpers import print_red_and_email, myprint
 from colorama import Fore, Style
+import os
 
 print_red_and_email("hello", Fore.RED + "HELLO" + Style.RESET_ALL)
 myprint("hi", is_red="red")
 import pandas as pd
 housing = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/housing_addendum.xlsx'))
 print(housing)
+# test geocoding again as well
 
 exit()
 

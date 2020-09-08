@@ -7,7 +7,6 @@ from helpers import merge_all_data, get_value, myprint
 from colorama import Fore, Style
 import os
 import pandas as pd
-import numpy as np
 import helpers
 bad_accuracy_types = helpers.bad_accuracy_types
 

@@ -2,7 +2,6 @@ import os
 from helpers import myprint
 import helpers
 import pandas as pd
-import numpy as np
 from datetime import datetime
 from sqlalchemy import create_engine
 from geocodio import GeocodioClient
