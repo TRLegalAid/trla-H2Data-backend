@@ -19,6 +19,7 @@ client = GeocodioClient(geocodio_api_key)
 
 # if running locally, don't do the state checking (to make it easier for tesing)
 state_checking = not (os.getenv("LOCAL_DEV") == "true")
+state_checking = True
 our_states = ["texas", "tx", "kentucky", "ky", "tennessee", "tn", "arkansas", "ar", "louisiana", "la", "mississippi", "ms", "alabama", "al"]
 
 def print_red(message):
@@ -36,8 +37,8 @@ def myprint(message, is_red="", email_also=""):
         print(message + file_and_line_info)
 
 def send_email(message):
-    if os.getenv("LOCAL_DEV") == "true":
-        return
+    # if os.getenv("LOCAL_DEV") == "true":
+    #     return
     email, password = get_secret_variables()[4], get_secret_variables()[5]
     port, smtp_server, context  = 465, "smtp.gmail.com", ssl.create_default_context()
     with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:

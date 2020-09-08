@@ -19,8 +19,6 @@ def geocode_manage_split(df):
     df = df.rename(columns=column_names_dict)
     df = df.drop(columns=["Telephone number"])
     df = helpers.rename_columns(df)
-    # print(df["CASE_NUMBER"])
-    # exit()
     df["Source"] = "Apify"
     df['Visa type'] = df.apply(lambda job: helpers.h2a_or_h2b(job), axis=1)
     def fix_case_number_if_needed(job):
@@ -52,7 +50,7 @@ def geocode_manage_split(df):
 
 def send_to_postgres():
     # scraper_jobs = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/scraper_data.xlsx'))
-    scraper_jobs = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/all_dol_data.xlsx'))
+    scraper_jobs = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/all_scraper_data.xlsx'), nrows=3811)
 
     accurate_jobs, inaccurate_jobs, raw_scraper_jobs = geocode_manage_split(scraper_jobs)
     accurate_jobs.to_sql('job_central', engine, if_exists='replace', index=False, dtype=helpers.column_types)
