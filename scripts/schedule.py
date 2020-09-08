@@ -3,28 +3,15 @@ from update_database import update_database
 from implement_fixes import send_fixes_to_postgres
 from helpers import print_red_and_email, myprint
 from colorama import Fore, Style
-import os
-import ssl, smtplib
-import helpers
-import time
-import pandas as pd
 
-# print_red_and_email("hello", Fore.RED + "HELLO" + Style.RESET_ALL)
-while True:
-    myprint("hi, starting again...", is_red="red")
-    print_red_and_email(Fore.RED + "hiii" + Style.RESET_ALL, "helloooooo")
-    # email, password = helpers.get_secret_variables()[4], helpers.get_secret_variables()[5]
-    # print(email[:9])
-    # print(password[:3])
-    # port, smtp_server, context  = 465, "smtp.gmail.com", ssl.create_default_context()
-    # with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
-    #     server.login(email, password)
-    #     server.sendmail(email, email, "whoops")
-    # import pandas as pd
-    housing = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/housing_addendum.xlsx'))
-    print(housing)
-    time.sleep(5)
-    # test geocoding again as well
+
+
+import helpers
+from geocodio import GeocodioClient
+geocodio_api_key = helpers.get_secret_variables()[1]
+client = GeocodioClient(geocodio_api_key)
+print(client.geocode("11 cortlandt manor rd katonah ny 10536"))
+exit()
 
 
 def perform_task_and_catch_errors(task_function, task_name):

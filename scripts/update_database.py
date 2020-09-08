@@ -1,5 +1,6 @@
 import requests
 import helpers
+from column_name_mappings import column_name_mappings
 import pandas as pd
 import sqlalchemy
 from sqlalchemy import create_engine
@@ -13,7 +14,7 @@ def update_database():
         return
 
     def parse(job):
-        column_mappings_dict = helpers.get_column_mappings_dictionary()
+        column_mappings_dict = column_name_mappings
         columns_names_dict = {"Section A": "Job Info", "Section C": "Place of Employment Info", "Section D":"Housing Info"}
         parsed_job = {}
         for key in job:
