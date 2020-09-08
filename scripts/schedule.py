@@ -4,12 +4,18 @@ from implement_fixes import send_fixes_to_postgres
 from helpers import print_red_and_email, myprint
 from colorama import Fore, Style
 import os
+import ssl, smtplib
 
-print_red_and_email("hello", Fore.RED + "HELLO" + Style.RESET_ALL)
+# print_red_and_email("hello", Fore.RED + "HELLO" + Style.RESET_ALL)
 myprint("hi", is_red="red")
-import pandas as pd
-housing = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/housing_addendum.xlsx'))
-print(housing)
+email, password = helpers.get_secret_variables()[4], helpers.get_secret_variables()[5]
+port, smtp_server, context  = 465, "smtp.gmail.com", ssl.create_default_context()
+with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
+    server.login(email, password)
+    server.sendmail(email, email, "whoops")
+# import pandas as pd
+# housing = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/housing_addendum.xlsx'))
+# print(housing)
 # test geocoding again as well
 
 exit()
