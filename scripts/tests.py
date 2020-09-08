@@ -2,6 +2,7 @@ import unittest
 from populate_database import geocode_manage_split
 from add_housing import geocode_manage_split_housing
 from merge_dol import geocode_manage_split_merge
+from implement_fixes import implement_fixes
 from helpers import merge_all_data, get_value, myprint
 from colorama import Fore, Style
 import os
@@ -9,6 +10,16 @@ import pandas as pd
 import numpy as np
 import helpers
 bad_accuracy_types = helpers.bad_accuracy_types
+
+def has_no_dups(accurates, inaccurates):
+    accurate_case_numbers = accurates["CASE_NUMBER"].tolist()
+    accs_no_dups = (len(accurate_case_numbers) == len(set(accurate_case_numbers)))
+    inaccurate_case_numbers = inaccurates["CASE_NUMBER"].tolist()
+    inaccs_no_dups = (len(inaccurate_case_numbers) == len(set(inaccurate_case_numbers)))
+    all_case_numbers = accurate_case_numbers + inaccurate_case_numbers
+    no_dups_anywhere = len(all_case_numbers) == len(set(all_case_numbers))
+    return accs_no_dups, inaccs_no_dups, no_dups_anywhere
+
 def assert_accuracies_and_inaccuracies(accurates, inaccurates):
     worksites_accurate = ((accurates["worksite accuracy"] >= 0.8) & (~accurates["worksite accuracy type"].isin(bad_accuracy_types))).all()
     accurates_h2a = accurates[accurates["Visa type"] == "H-2A"]
@@ -24,6 +35,7 @@ def assert_accuracies_and_inaccuracies(accurates, inaccurates):
         h2b_inaccurates_inaccurate = True
     return worksites_accurate, housings_accurate, h2a_inaccurates_inaccurate, h2b_inaccurates_inaccurate
 
+myprint("Start of populate database test", is_red="red")
 scraper_data = pd.read_excel(os.path.join(os.getcwd(), '..',  "excel_files/scraper_data.xlsx"))
 accurates, inaccurates, raw_scrapers = geocode_manage_split(scraper_data)
 class TestPopulateDatabase(unittest.TestCase):
@@ -38,8 +50,8 @@ class TestPopulateDatabase(unittest.TestCase):
         self.assertTrue(housings_accurate)
         self.assertTrue(h2a_inaccurates_inaccurate)
         self.assertTrue(h2b_inaccurates_inaccurate)
-#
-#
+
+myprint("Start of add housing test", is_red="red")
 housing = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/housing_addendum.xlsx'))
 accurate_housing, inaccurate_housing = geocode_manage_split_housing(housing)
 class TestAddHousing(unittest.TestCase):
@@ -53,7 +65,7 @@ class TestAddHousing(unittest.TestCase):
         inaccurates_are_inaccurate = ((inaccurate_housing["housing accuracy"].isnull()) | (inaccurate_housing["housing accuracy"] < 0.8) | (inaccurate_housing["housing accuracy type"].isin(bad_accuracy_types))).all()
         self.assertTrue(inaccurates_are_inaccurate)
 
-
+myprint("Start of merge dol test", is_red="red")
 old_accurates = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/accurates_geocoded.xlsx'))
 old_inaccurates = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/inaccurates_geocoded.xlsx'))
 dol_jobs = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/dol_data.xlsx'))
@@ -69,28 +81,13 @@ class TestMergeDol(unittest.TestCase):
         self.assertTrue(h2a_inaccurates_inaccurate)
         self.assertTrue(h2b_inaccurates_inaccurate)
 
-class TestImplementFixes(unittest.TestCase):
-    pass
-
-class TestUpdateDatabase(unittest.TestCase):
-    pass
-
-
 # TESTING MERGE ALL DATA FUNCTION - see project documentation to see what is meant by case_1 through case_8
 accurate_new_jobs = pd.read_excel(os.path.join(os.getcwd(), '..',  "excel_files/accurate_dol_geocoded.xlsx"), converters={'fixed': bool, 'housing_fixed_by': str, 'worksite_fixed_by': str})
 inaccurate_new_jobs = pd.read_excel(os.path.join(os.getcwd(), '..',  "excel_files/inaccurate_dol_geocoded.xlsx"),  converters={'fixed': bool, 'housing_fixed_by': str, 'worksite_fixed_by': str})
 accurate_old_jobs = pd.read_excel(os.path.join(os.getcwd(), '..',  "excel_files/accurates_geocoded.xlsx"), converters={'fixed': bool, 'housing_fixed_by': str, 'worksite_fixed_by': str})
 inaccurate_old_jobs = pd.read_excel(os.path.join(os.getcwd(), '..',  "excel_files/inaccurates_geocoded.xlsx"),  converters={'fixed': bool, 'housing_fixed_by': str, 'worksite_fixed_by': str})
 
-def has_no_dups(accurates, inaccurates):
-    accurate_case_numbers = accurates["CASE_NUMBER"].tolist()
-    accs_no_dups = (len(accurate_case_numbers) == len(set(accurate_case_numbers)))
-    inaccurate_case_numbers = inaccurates["CASE_NUMBER"].tolist()
-    inaccs_no_dups = (len(inaccurate_case_numbers) == len(set(inaccurate_case_numbers)))
-    all_case_numbers = accurate_case_numbers + inaccurate_case_numbers
-    no_dups_anywhere = len(all_case_numbers) == len(set(all_case_numbers))
-    return accs_no_dups, inaccs_no_dups, no_dups_anywhere
-
+myprint("Start of test case 0", is_red="red")
 all_accurate_jobs, all_inaccurate_jobs = merge_all_data(accurate_new_jobs.copy(), inaccurate_new_jobs.copy(), accurate_old_jobs.copy(), inaccurate_old_jobs.copy())
 class TestCaseZero(unittest.TestCase):
     def test_initital_case(self):
@@ -102,6 +99,7 @@ acc_new1 = accurate_new_jobs.copy()
 acc_new1_len = len(acc_new1)
 acc_new1.at[acc_new1_len - 1, "CASE_NUMBER"] = "H-300-20119-524313"
 acc_new1.at[acc_new1_len - 2, "CASE_NUMBER"] = "H-300-20125-538913"
+myprint("Start of test case 1", is_red="red")
 all_accs1, all_inaccs1 = merge_all_data(acc_new1, inaccurate_new_jobs.copy(), accurate_old_jobs.copy(), inaccurate_old_jobs.copy())
 all_accs1_len, all_inaccs1_len = len(all_accs1), len(all_inaccs1)
 class TestCaseOne(unittest.TestCase):
@@ -130,6 +128,7 @@ accs_old2.at[len_accs_old2 - 2, "housing_fixed_by"] = "address"
 accs_new2 = accurate_new_jobs.copy()
 len_accs_new2 = len(accs_new2)
 accs_new2.at[len_accs_new2 - 1, "CASE_NUMBER"] = "H-300-20125-538913"
+myprint("Start of test case 2", is_red="red")
 all_accs2, all_inaccs2 = merge_all_data(accs_new2, inaccurate_new_jobs.copy(), accs_old2, inaccurate_old_jobs.copy())
 class TestCaseTwo(unittest.TestCase):
     def test_lengths(self):
@@ -146,9 +145,9 @@ class TestCaseTwo(unittest.TestCase):
         self.assertEqual(get_value(dup_job, "HOUSING_ADDRESS_LOCATION"), "3272 440th St")
         self.assertEqual(get_value(dup_job, "W to H Ratio"), "W=H")
 
-
 accs_new3 = accurate_new_jobs.copy()
 accs_new3.at[len(accs_new3) - 1, "CASE_NUMBER"] = "H-300-20108-494660"
+myprint("Start of test case 3", is_red="red")
 all_accs3, all_inaccs3 = merge_all_data(accs_new3, inaccurate_new_jobs.copy(), accurate_old_jobs.copy(), inaccurate_old_jobs.copy())
 class TestCaseThree(unittest.TestCase):
     def test_lengths(self):
@@ -165,11 +164,11 @@ class TestCaseThree(unittest.TestCase):
         self.assertEqual(get_value(dup_job, "HOUSING_ADDRESS_LOCATION"), "3272 440th St")
         self.assertEqual(get_value(dup_job, "W to H Ratio"), "W=H")
 
-
 accs_new4 = accurate_new_jobs.copy()
 accs_new4.at[len(accs_new4) - 1, "CASE_NUMBER"] = "H-300-20108-494660"
 inaccs_old4 = inaccurate_old_jobs.copy()
 inaccs_old4.at[len(inaccs_old4) - 1, "fixed"] = True
+myprint("Start of test case 4", is_red="red")
 all_accs4, all_inaccs4 = merge_all_data(accs_new4, inaccurate_new_jobs.copy(), accurate_old_jobs.copy(), inaccs_old4)
 class TestCaseFour(unittest.TestCase):
     def test_lengths(self):
@@ -188,6 +187,7 @@ class TestCaseFour(unittest.TestCase):
 
 inaccs_new5 = inaccurate_new_jobs.copy()
 inaccs_new5.at[len(inaccs_new5) - 3, "CASE_NUMBER"] = "H-300-20121-530549"
+myprint("Start of test case 5", is_red="red")
 all_accs5, all_inaccs5 = merge_all_data(accurate_new_jobs.copy(), inaccs_new5, accurate_old_jobs.copy(), inaccurate_old_jobs.copy())
 class TestCaseFive(unittest.TestCase):
     def test_lengths(self):
@@ -213,6 +213,7 @@ accs_old6i.at[job_in_acc_pos, "fixed"] = True
 accs_old6i.at[job_in_acc_pos, "housing_fixed_by"] = "address"
 accs_old6i.at[job_in_acc_pos, "worksite_fixed_by"] = "address"
 accs_old6i.at[job_in_acc_pos, "worksite accuracy"] = 0.8
+myprint("Start of test case 6I", is_red="red")
 all_accs6i, all_inaccs6i = merge_all_data(accurate_new_jobs.copy(), inaccs_new6i, accs_old6i, inaccurate_old_jobs.copy())
 class TestCaseSixI(unittest.TestCase):
     def test_lengths(self):
@@ -254,6 +255,7 @@ job_in_acc_pos = len(accs_old6ii) - 3
 accs_old6ii.at[job_in_acc_pos, "fixed"] = True
 accs_old6ii.at[job_in_acc_pos, "housing_fixed_by"] = "coordinates"
 accs_old6ii.at[job_in_acc_pos, "worksite_fixed_by"] = "coordinates"
+myprint("Start of test case 6II", is_red="red")
 all_accs6ii, all_inaccs6ii = merge_all_data(accurate_new_jobs.copy(), inaccs_new6ii, accs_old6ii, inaccurate_old_jobs.copy())
 class TestCaseSixII(unittest.TestCase):
     def test_lengths(self):
@@ -294,6 +296,7 @@ accs_old6iiiA = accurate_old_jobs.copy()
 job_in_acc_pos = len(accs_old6iiiA) - 3
 accs_old6iiiA.at[job_in_acc_pos, "fixed"] = True
 accs_old6iiiA.at[job_in_acc_pos, "housing_fixed_by"] = "coordinates"
+myprint("Start of test case 6iiiA", is_red="red")
 all_accs6iiiA, all_inaccs6iiiA = merge_all_data(accurate_new_jobs.copy(), inaccs_new6iiiA, accs_old6iiiA, inaccurate_old_jobs.copy())
 class TestCaseSixIIIa(unittest.TestCase):
     def test_lengths(self):
@@ -334,6 +337,7 @@ accs_old6iiiB = accurate_old_jobs.copy()
 job_in_acc_pos = len(accs_old6iiiB) - 3
 accs_old6iiiB.at[job_in_acc_pos, "fixed"] = True
 accs_old6iiiB.at[job_in_acc_pos, "worksite_fixed_by"] = "coordinates"
+myprint("Start of test case 6iiiB", is_red="red")
 all_accs6iiiB, all_inaccs6iiiB = merge_all_data(accurate_new_jobs.copy(), inaccs_new6iiiB, accs_old6iiiB, inaccurate_old_jobs.copy())
 class TestCaseSixIIIb(unittest.TestCase):
     def test_lengths(self):
@@ -369,6 +373,7 @@ class TestCaseSixIIIb(unittest.TestCase):
 
 inaccs_new7 = inaccurate_new_jobs.copy()
 inaccs_new7.at[len(inaccs_new7) - 1, "CASE_NUMBER"] = "H-300-20114-511870"
+myprint("Start of test case 7", is_red="red")
 all_accs7, all_inaccs7 = merge_all_data(accurate_new_jobs.copy(), inaccs_new7, accurate_old_jobs.copy(), inaccurate_old_jobs.copy())
 class TestCaseSeven(unittest.TestCase):
     def test_lengths(self):
@@ -386,16 +391,19 @@ class TestCaseSeven(unittest.TestCase):
         self.assertEqual(get_value(dup_job, "W to H Ratio"), "W=H")
 
 inaccs_new8 = inaccurate_new_jobs.copy()
-inaccs_new8.at[len(inaccs_new8) - 1, "CASE_NUMBER"] = "H-300-20114-511870"
-inaccs_new8.at[len(inaccs_new8) - 1, "housing accuracy type"] = "rooftop"
-inaccs_new8.at[len(inaccs_new8) - 1, "housing accuracy"] = 1.0
+len_inaccs_new8 = len(inaccs_new8)
+inaccs_new8.at[len_inaccs_new8 - 1, "CASE_NUMBER"] = "H-300-20114-511870"
+inaccs_new8.at[len_inaccs_new8 - 1, "housing accuracy type"] = "rooftop"
+inaccs_new8.at[len_inaccs_new8 - 1, "housing accuracy"] = 1.0
 inaccs_old8 = inaccurate_old_jobs.copy()
-inaccs_old8.at[len(inaccs_old8) - 2, "fixed"] = True
-inaccs_old8.at[len(inaccs_old8) - 2, "worksite_fixed_by"] = "address"
-inaccs_old8.at[len(inaccs_old8) - 2, "WORKSITE_POSTAL_CODE"] = 11111
-inaccs_old8.at[len(inaccs_old8) - 2, "worksite accuracy type"] = "roof"
-inaccs_old8.at[len(inaccs_old8) - 2, "worksite accuracy"] = 0.999
-inaccs_old8.at[len(inaccs_old8) - 2, "worksite_long"] = 1000
+len_inaccs_old8 = len(inaccs_old8)
+inaccs_old8.at[len_inaccs_old8 - 2, "fixed"] = True
+inaccs_old8.at[len_inaccs_old8 - 2, "worksite_fixed_by"] = "address"
+inaccs_old8.at[len_inaccs_old8 - 2, "WORKSITE_POSTAL_CODE"] = 11111
+inaccs_old8.at[len_inaccs_old8 - 2, "worksite accuracy type"] = "roof"
+inaccs_old8.at[len_inaccs_old8 - 2, "worksite accuracy"] = 0.999
+inaccs_old8.at[len_inaccs_old8 - 2, "worksite_long"] = 1000
+myprint("Start of test case 8", is_red="red")
 all_accs8, all_inaccs8 = merge_all_data(accurate_new_jobs.copy(), inaccs_new8, accurate_old_jobs.copy(), inaccs_old8)
 class TestCaseEight(unittest.TestCase):
     def test_lengths(self):
@@ -440,19 +448,192 @@ inaccs_old_w_dolH.at[len_inaccs_old - 2, "table"] = "dol_h"
 inaccs_new_dolH_test = inaccurate_new_jobs.copy()
 inaccs_new_dolH_test.at[len(inaccs_new_dolH_test) - 1, "CASE_NUMBER"] = "H-300-20108-494660"
 all_accs_dolH_test, all_inaccs_dolH_test = merge_all_data(accurate_new_jobs.copy(), inaccs_new_dolH_test, accurate_old_jobs.copy(), inaccs_old_w_dolH)
-
 class TestKeepsDOL_Hs(unittest.TestCase):
     def test_lengths(self):
         self.assertEqual(len(all_accs_dolH_test), 19)
         self.assertEqual(len(all_inaccs_dolH_test), 10)
-    def has_duplicates(self):
+    def test_has_duplicates(self):
         accs_no_dups, inaccs_no_dups, no_dups_anywhere = has_no_dups(all_accs_dolH_test, all_inaccs_dolH_test)
         self.assertTrue(accs_no_dups)
         self.assertEqual(inaccs_no_dups, False)
         self.assertEqual(no_dups_anywhere, False)
 
-class TestAnEntireCycle(unittest.TestCase):
-    pass
+# Hamilton college: 198 College Hill Rd, Clinton, NY 13323  -  43.051469, -75.402153, 1, rooftop
+# Vassar college: 124 Raymond Ave, Poughkeepsie NY 12604  -  41.686518, -73.897729, 1, rooftop
+inaccurates_if_test = pd.read_excel(os.path.join(os.getcwd(), '..',  "excel_files/implement_fixes_tester.xlsx"))
+myprint("Start of implement fixes test", is_red="red")
+successes, housing_successes, failures = implement_fixes(inaccurates_if_test)
+class TestImplementFixes(unittest.TestCase):
+    def test_both_fixed_by_address(self):
+        job = successes[successes["CASE_NUMBER"] == "H-300-20227-769297"]
+        self.assertEqual(get_value(job, "HOUSING_ADDRESS_LOCATION"), "198 College Hill Rd")
+        self.assertEqual(get_value(job, "HOUSING_CITY"), "Clinton")
+        self.assertEqual(get_value(job, "HOUSING_POSTAL_CODE"), 13323)
+        self.assertEqual(get_value(job, "HOUSING_STATE"), "NY")
+        self.assertEqual(get_value(job, "housing accuracy"), 1)
+        self.assertEqual(get_value(job, "housing accuracy type"), "rooftop")
+        self.assertEqual(get_value(job, "housing_lat"), 43.051469)
+        self.assertEqual(get_value(job, "housing_long"), -75.402153)
+        self.assertEqual(get_value(job, "housing_fixed_by"), "address")
+        self.assertEqual(get_value(job, "WORKSITE_ADDRESS"), "124 Raymond Ave")
+        self.assertEqual(get_value(job, "WORKSITE_CITY"), "Poughkeepsie")
+        self.assertEqual(get_value(job, "worksite accuracy"), 1)
+        self.assertEqual(get_value(job, "worksite accuracy type"), "rooftop")
+        self.assertEqual(get_value(job, "worksite_lat"), 41.686518)
+        self.assertEqual(get_value(job, "worksite_long"), -73.897729)
+        self.assertEqual(get_value(job, "worksite_fixed_by"), "address")
+        self.assertTrue(get_value(job, "fixed"))
 
+    def test_both_fixed_by_coords(self):
+        job = successes[successes["CASE_NUMBER"] == "H-300-20154-620944"]
+        self.assertEqual(get_value(job, "HOUSING_CITY"), "Hammett")
+        self.assertEqual(get_value(job, "HOUSING_POSTAL_CODE"), 83627)
+        self.assertEqual(get_value(job, "housing accuracy"), 1)
+        self.assertEqual(get_value(job, "housing accuracy type"), "rooftop")
+        self.assertEqual(get_value(job, "housing_lat"), 22)
+        self.assertEqual(get_value(job, "housing_long"), 21)
+        self.assertEqual(get_value(job, "housing_fixed_by"), "coordinates")
+        self.assertEqual(get_value(job, "WORKSITE_ADDRESS"), "8895 West Spangler Road (Including fields within a 15 mile radius)")
+        self.assertEqual(get_value(job, "worksite accuracy"), 1)
+        self.assertEqual(get_value(job, "worksite accuracy type"), "rooftop")
+        self.assertEqual(get_value(job, "worksite_lat"), 33)
+        self.assertEqual(get_value(job, "worksite_long"), 24)
+        self.assertEqual(get_value(job, "worksite_fixed_by"), "coordinates")
+        self.assertTrue(get_value(job, "fixed"))
+
+    def test_one_coords_one_add(self):
+        job = successes[successes["CASE_NUMBER"] == "H-300-20163-644868"]
+        self.assertEqual(get_value(job, "HOUSING_CITY"), "Clinton")
+        self.assertEqual(get_value(job, "HOUSING_POSTAL_CODE"), 13323)
+        self.assertEqual(get_value(job, "housing accuracy"), 1)
+        self.assertEqual(get_value(job, "housing accuracy type"), "rooftop")
+        self.assertEqual(get_value(job, "housing_lat"), 43.051469)
+        self.assertEqual(get_value(job, "housing_long"), -75.402153)
+        self.assertEqual(get_value(job, "housing_fixed_by"), "address")
+        self.assertEqual(get_value(job, "WORKSITE_ADDRESS"), "14095 N. Peyton Highway")
+        self.assertEqual(get_value(job, "worksite accuracy"), 1)
+        self.assertEqual(get_value(job, "worksite accuracy type"), "rooftop")
+        self.assertEqual(get_value(job, "worksite_lat"), 100)
+        self.assertEqual(get_value(job, "worksite_long"), 99)
+        self.assertEqual(get_value(job, "worksite_fixed_by"), "coordinates")
+        self.assertTrue(get_value(job, "fixed"))
+
+    def test_one_impossible(self):
+        job = successes[successes["CASE_NUMBER"] == "H-300-20163-644097"]
+        self.assertEqual(get_value(job, "HOUSING_CITY"), "Fife")
+        self.assertEqual(get_value(job, "housing accuracy"), 0.67)
+        self.assertEqual(get_value(job, "housing accuracy type"), "place")
+        self.assertEqual(get_value(job, "housing_long"), -122.359432)
+        self.assertEqual(get_value(job, "housing_fixed_by"), "impossible")
+        self.assertEqual(get_value(job, "WORKSITE_ADDRESS"), "3601 54th Ave E")
+        self.assertEqual(get_value(job, "worksite accuracy"), 0.9)
+        self.assertEqual(get_value(job, "worksite accuracy type"), "range_interpolation")
+        self.assertEqual(get_value(job, "worksite_long"), -122.3572)
+        self.assertTrue(pd.isnull(get_value(job, "worksite_fixed_by")))
+        self.assertTrue(get_value(job, "fixed"))
+
+    def test_both_impossible(self):
+        job = successes[successes["CASE_NUMBER"] == "H-300-20108-494660"]
+        self.assertEqual(get_value(job, "HOUSING_CITY"), "Hollister")
+        self.assertEqual(get_value(job, "housing accuracy"), 1)
+        self.assertEqual(get_value(job, "housing_long"), -121.402368)
+        self.assertEqual(get_value(job, "housing_fixed_by"), "impossible")
+        self.assertEqual(get_value(job, "WORKSITE_ADDRESS"), "Ranch 12: 95 Mc Fadden Road")
+        self.assertEqual(get_value(job, "worksite accuracy type"), "place")
+        self.assertEqual(get_value(job, "worksite_long"), -121.599444)
+        self.assertEqual(get_value(job, "worksite_fixed_by"), "impossible")
+        self.assertTrue(get_value(job, "fixed"))
+
+    def test_one_na(self):
+        job = successes[successes["CASE_NUMBER"] == "H-300-20161-638892"]
+        self.assertEqual(get_value(job, "HOUSING_CITY"), "Clear Lake")
+        self.assertEqual(get_value(job, "housing accuracy"), 0.8)
+        self.assertEqual(get_value(job, "housing accuracy type"), "range_interpolation")
+        self.assertTrue(pd.isnull(get_value(job, "housing_fixed_by")))
+        self.assertEqual(get_value(job, "WORKSITE_ADDRESS"), "124 Raymond Ave")
+        self.assertEqual(get_value(job, "WORKSITE_CITY"), "Poughkeepsie")
+        self.assertEqual(get_value(job, "worksite accuracy"), 1)
+        self.assertEqual(get_value(job, "worksite accuracy type"), "rooftop")
+        self.assertEqual(get_value(job, "worksite_fixed_by"), "address")
+        self.assertTrue(get_value(job, "fixed"))
+
+    def test_one_na_but_needs_fixing(self):
+        job = failures[failures["CASE_NUMBER"] == "H-300-20214-746991"]
+        self.assertEqual(get_value(job, "HOUSING_CITY"), "Yuma")
+        self.assertEqual(get_value(job, "housing accuracy"), 1)
+        self.assertEqual(get_value(job, "housing accuracy type"), "rooftop")
+        self.assertEqual(get_value(job, "housing_fixed_by"), "coordinates")
+        self.assertEqual(get_value(job, "WORKSITE_ADDRESS"), "A Loghry: hal-1-3, hal-1-4: County 15th Street & Avenue A (W)")
+        self.assertEqual(get_value(job, "worksite accuracy"), 1)
+        self.assertEqual(get_value(job, "worksite accuracy type"), "place")
+        self.assertEqual(get_value(job, "worksite_fixed_by"), "failed")
+        self.assertEqual(get_value(job, "fixed"), False)
+
+    def test_works_for_dolH_row(self):
+        job = housing_successes[housing_successes["CASE_NUMBER"] == "H-300-19296-103454"]
+        self.assertEqual(get_value(job, "housing_fixed_by"), "address")
+        self.assertEqual(get_value(job, "PHYSICAL_LOCATION_ADDRESS1"), "124 Raymond Ave")
+        self.assertEqual(get_value(job, "PHYSICAL_LOCATION_CITY"), "Poughkeepsie")
+        self.assertEqual(get_value(job, "PHYSICAL_LOCATION_POSTAL_CODE"), 12604)
+        self.assertEqual(get_value(job, "PHYSICAL_LOCATION_STATE"), "NY")
+        self.assertEqual(get_value(job, "housing accuracy"), 1)
+        self.assertEqual(get_value(job, "housing accuracy type"), "rooftop")
+        self.assertEqual(get_value(job, "housing_lat"), 41.686518)
+        self.assertEqual(get_value(job, "housing_long"), -73.897729)
+        self.assertEqual(get_value(job, "housing_fixed_by"), "address")
+        self.assertTrue(get_value(job, "fixed"))
+
+    def test_h2b_doesnt_need_housing(self):
+        job = successes[successes["CASE_NUMBER"] == "H-400-2111"]
+        self.assertTrue(pd.isnull(get_value(job, "HOUSING_CITY")))
+        self.assertTrue(pd.isnull(get_value(job, "housing accuracy")))
+        self.assertTrue(pd.isnull(get_value(job, "housing_fixed_by")))
+        self.assertEqual(get_value(job, "WORKSITE_CITY"), "Somerset County")
+        self.assertEqual(get_value(job, "worksite accuracy"), 1)
+        self.assertEqual(get_value(job, "worksite accuracy type"), "rooftop")
+        self.assertEqual(get_value(job, "worksite_lat"), 3)
+        self.assertEqual(get_value(job, "worksite_long"), 5)
+        self.assertEqual(get_value(job, "worksite_fixed_by"), "coordinates")
+        self.assertTrue(get_value(job, "fixed"))
+
+    def test_fixed_but_failed(self):
+        job = failures[failures["CASE_NUMBER"] == "H-300-20150-612472"]
+        self.assertEqual(get_value(job, "HOUSING_ADDRESS_LOCATION"), "W1026 Buttercup Court")
+        self.assertEqual(get_value(job, "housing accuracy type"), "rooftop")
+        self.assertEqual(get_value(job, "housing_long"), -88.932913)
+        self.assertTrue(pd.isnull(get_value(job, "housing_fixed_by")))
+        self.assertEqual(get_value(job, "WORKSITE_ADDRESS"), "4 Rainbow Rd")
+        self.assertEqual(get_value(job, "WORKSITE_CITY"), "Argentina")
+        self.assertEqual(get_value(job, "worksite accuracy"), 0.16)
+        self.assertEqual(get_value(job, "worksite accuracy type"), "place")
+        self.assertEqual(get_value(job, "worksite_lat"), 40.744824)
+        self.assertEqual(get_value(job, "worksite_long"), -73.948749)
+        self.assertEqual(get_value(job, "worksite_fixed_by"), "failed")
+        self.assertEqual(get_value(job, "fixed"), False)
+
+    def test_lengths_and_no_dups(self):
+        self.assertEqual(len(successes), 7)
+        self.assertEqual(len(failures), 2)
+        self.assertEqual(len(housing_successes), 1)
+        self.assertTrue(all(has_no_dups(successes, failures)))
+
+    def test_columns(self):
+        housing_columns, accurate_columns, inaccurate_columns = housing_successes.columns, successes.columns, failures.columns
+        self.assertTrue("PHYSICAL_LOCATION_ADDRESS1" in housing_columns)
+        self.assertTrue("fixed" in housing_columns)
+        self.assertTrue("housing_fixed_by" in housing_columns)
+        self.assertFalse("WORKSITE_STATE" in housing_columns)
+        self.assertFalse("worksite accuracy type" in housing_columns)
+        self.assertTrue("HOUSING_POSTAL_CODE" in accurate_columns)
+        self.assertTrue("worksite accuracy type" in accurate_columns)
+        self.assertFalse("PHYSICAL_LOCATION_ADDRESS1" in accurate_columns)
+        self.assertTrue("PHYSICAL_LOCATION_ADDRESS1" in inaccurate_columns)
+        self.assertTrue("fixed" in inaccurate_columns)
+        self.assertTrue("housing_fixed_by" in inaccurate_columns)
+        self.assertTrue("WORKSITE_STATE" in inaccurate_columns)
+        self.assertTrue("worksite accuracy type" in inaccurate_columns)
+        self.assertTrue("HOUSING_POSTAL_CODE" in inaccurate_columns)
+        self.assertTrue("worksite accuracy type" in inaccurate_columns)
 
 unittest.main(verbosity=2)
+# unittest.main()

@@ -17,9 +17,14 @@ def get_secret_variables():
 geocodio_api_key = get_secret_variables()[1]
 client = GeocodioClient(geocodio_api_key)
 
+# x = client.geocode("4 Rainbow Rd, Argentinca Antarctica 11111")
+# print(x.coords)
+# print(x.accuracy)
+# print(x)
+# exit()
+
 def print_red(message):
-    print(Fore.RED + message)
-    print(Style.RESET_ALL)
+    print(Fore.RED + message + Style.RESET_ALL)
 
 def myprint(message, is_red="", email_also=""):
     if email_also != "yes":
@@ -43,7 +48,7 @@ def print_red_and_email(message, subject):
     frameinfo = getframeinfo((stack()[1][0]))
     file_name_and_line_info = "(" + frameinfo.filename.split("/")[-1] + ", line " + str(frameinfo.lineno) + ")"
     myprint(message + "  " + file_name_and_line_info, is_red="red", email_also="yes")
-    send_email("Subject: " + subject + "\n\n" + message + "\n" + file_name_and_line_info)
+    # send_email("Subject: " + subject + "\n\n" + message + "\n" + file_name_and_line_info)
 
 bad_accuracy_types = ["place", "state", "street_center"]
 column_types = {
@@ -196,7 +201,6 @@ def h2a_or_h2b(job):
         return ""
 
 def get_value(job, column):
-    # print(job, column)
     return job[column].tolist()[0]
 
 def get_address_columns(worksite_or_housing):

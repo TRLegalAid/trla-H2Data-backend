@@ -87,5 +87,6 @@ def update_database():
     # send updated data back to postgres
     accurate_jobs.to_sql('job_central', engine, if_exists='replace', index=False, dtype=helpers.column_types)
     inaccurate_jobs.to_sql('low_accuracies', engine, if_exists='replace', index=False, dtype=helpers.column_types)
-
-update_database()
+    
+if __name__ == "__main__":
+   update_database()

@@ -35,5 +35,9 @@ def add_housing_to_postgres():
             connection.execute(query_to_add_columns)
     inaccurate_housing.to_sql("low_accuracies", engine, if_exists='append', index=False, dtype=helpers.column_types)
 
+
 if __name__ == "__main__":
    add_housing_to_postgres()
+
+df = pd.read_sql('low_accuracies', con=engine)
+df.to_excel("inaccurates_geocoded_bigger.xlsx")
