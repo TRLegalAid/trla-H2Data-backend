@@ -52,7 +52,7 @@ def geocode_manage_split(df):
 
 def send_to_postgres():
     # scraper_jobs = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/scraper_data.xlsx'))
-    scraper_jobs = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/DOL Data.xlsx'), nrows=49)
+    scraper_jobs = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/all_dol_data.xlsx'))
 
     accurate_jobs, inaccurate_jobs, raw_scraper_jobs = geocode_manage_split(scraper_jobs)
     accurate_jobs.to_sql('job_central', engine, if_exists='replace', index=False, dtype=helpers.column_types)

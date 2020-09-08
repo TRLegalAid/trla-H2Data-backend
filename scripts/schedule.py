@@ -6,22 +6,25 @@ from colorama import Fore, Style
 import os
 import ssl, smtplib
 import helpers
+import time
 
 # print_red_and_email("hello", Fore.RED + "HELLO" + Style.RESET_ALL)
-myprint("hi", is_red="red")
-email, password = helpers.get_secret_variables()[4], helpers.get_secret_variables()[5]
-print(email[:9])
-print(password[:3])
-port, smtp_server, context  = 465, "smtp.gmail.com", ssl.create_default_context()
-with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
-    server.login(email, password)
-    server.sendmail(email, email, "whoops")
-# import pandas as pd
-# housing = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/housing_addendum.xlsx'))
-# print(housing)
-# test geocoding again as well
+while True:
+    myprint("hi, starting again...", is_red="red")
+    print_red_and_email("hiii", "helloooooo")
+    # email, password = helpers.get_secret_variables()[4], helpers.get_secret_variables()[5]
+    # print(email[:9])
+    # print(password[:3])
+    # port, smtp_server, context  = 465, "smtp.gmail.com", ssl.create_default_context()
+    # with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
+    #     server.login(email, password)
+    #     server.sendmail(email, email, "whoops")
+    # import pandas as pd
+    housing = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/housing_addendum.xlsx'))
+    print(housing)
+    time.sleep(5)
+    # test geocoding again as well
 
-exit()
 
 def perform_task_and_catch_errors(task_function, task_name):
     print(Fore.GREEN + f"{task_name}..." + Style.RESET_ALL)
