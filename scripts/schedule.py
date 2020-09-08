@@ -4,16 +4,6 @@ from implement_fixes import send_fixes_to_postgres
 from helpers import print_red_and_email, myprint
 from colorama import Fore, Style
 
-
-
-import helpers
-from geocodio import GeocodioClient
-geocodio_api_key = helpers.get_secret_variables()[1]
-client = GeocodioClient(geocodio_api_key)
-print(client.geocode("11 cortlandt manor rd katonah ny 10536"))
-exit()
-
-
 def perform_task_and_catch_errors(task_function, task_name):
     print(Fore.GREEN + f"{task_name}..." + Style.RESET_ALL)
     try:
