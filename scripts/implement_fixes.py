@@ -4,7 +4,7 @@ import pandas as pd
 from sqlalchemy import create_engine
 import psycopg2
 from geocodio import GeocodioClient
-database_connection_string, geocodio_api_key, _, _, _, _, _ = helpers.get_secret_variables()
+database_connection_string, geocodio_api_key, _, _, _, _, _, _ = helpers.get_secret_variables()
 engine, client = create_engine(database_connection_string), GeocodioClient(geocodio_api_key)
 
 def implement_fixes(fixed):
