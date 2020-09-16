@@ -1,12 +1,12 @@
 from arcgis.gis import GIS
 from arcgis.features import FeatureLayerCollection
-from arcgis import features
 from colorama import Fore, Style
-from helpers import myprint
+from helpers import myprint, get_secret_variables
 import os
 import pandas as pd
 from sqlalchemy import create_engine
-from secret_variables import DATABASE_URL, ARCGIS_USERNAME, ARCGIS_PASSWORD
+secrets = get_secret_variables()
+DATABASE_URL, ARCGIS_USERNAME, ARCGIS_PASSWORD = secrets[0], secrets[6], secrets[7]
 engine = create_engine(DATABASE_URL)
 
 def overwrite_feature(username, password, new_df, old_feature_name):

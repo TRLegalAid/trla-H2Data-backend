@@ -12,8 +12,8 @@ def get_secret_variables():
     # LOCAL_DEV is an environment variable that I set to be "true" on my mac and "false" in the heroku config variables
     if os.getenv("LOCAL_DEV") == "true":
         import secret_variables
-        return secret_variables.DATABASE_URL, secret_variables.GEOCODIO_API_KEY, secret_variables.MOST_RECENT_RUN_URL, secret_variables.DATE_OF_RUN_URL, secret_variables.ERROR_EMAIL_ADDRESS, secret_variables.ERROR_EMAIL_ADDRESS_PASSWORD
-    return os.getenv("DATABASE_URL"), os.getenv("GEOCODIO_API_KEY"), os.getenv("MOST_RECENT_RUN_URL"), os.getenv("DATE_OF_RUN_URL"), os.getenv("ERROR_EMAIL_ADDRESS"), os.getenv("ERROR_EMAIL_ADDRESS_PASSWORD")
+        return secret_variables.DATABASE_URL, secret_variables.GEOCODIO_API_KEY, secret_variables.MOST_RECENT_RUN_URL, secret_variables.DATE_OF_RUN_URL, secret_variables.ERROR_EMAIL_ADDRESS, secret_variables.ERROR_EMAIL_ADDRESS_PASSWORD, secret_variables.ARCGIS_USERNAME, secret_variables.ARCGIS_PASSWORD
+    return os.getenv("DATABASE_URL"), os.getenv("GEOCODIO_API_KEY"), os.getenv("MOST_RECENT_RUN_URL"), os.getenv("DATE_OF_RUN_URL"), os.getenv("ERROR_EMAIL_ADDRESS"), os.getenv("ERROR_EMAIL_ADDRESS_PASSWORD"), os.getenv("ARCGIS_USERNAME"), os.getenv("ARCGIS_PASSWORD")
 geocodio_api_key = get_secret_variables()[1]
 client = GeocodioClient(geocodio_api_key)
 
