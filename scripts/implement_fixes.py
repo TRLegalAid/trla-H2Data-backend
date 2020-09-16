@@ -106,6 +106,7 @@ def send_fixes_to_postgres():
     central.to_sql('job_central', engine, if_exists='append', index=False, dtype=helpers.column_types)
     housing.to_sql('additional_housing', engine, if_exists='append', index=False, dtype=helpers.column_types)
     failures_and_not_fixed.to_sql('low_accuracies', engine, if_exists='replace', index=False, dtype=helpers.column_types)
+    myprint(f"Done implementing fixes. There were {len(failures)} failed fixes out of {len(fixed)} attempts.")
 
 if __name__ == "__main__":
    send_fixes_to_postgres()

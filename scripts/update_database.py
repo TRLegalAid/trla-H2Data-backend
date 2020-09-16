@@ -11,7 +11,9 @@ engine, client = create_engine(database_connection_string), GeocodioClient(geoco
 def update_database():
     latest_jobs = requests.get(most_recent_run_url).json()
     if not latest_jobs:
+        myprint("No new jobs.")
         return
+    myprint(f"There are {len(latest_jobs)} new jobs.")
 
     def parse(job):
         column_mappings_dict = column_name_mappings
