@@ -10,7 +10,7 @@ def perform_task_and_catch_errors(task_function, task_name):
     try:
         task_function()
     except Exception as error:
-        print_red_and_email(str(error), f"Unanticipate Error {task_name}!!")
+        print_red_and_email(str(error), f"Unanticipated Error {task_name.lower()}!!")
     print(Fore.GREEN + f"Finished {task_name}." + "\n" + Style.RESET_ALL)
 
 def update_task():
