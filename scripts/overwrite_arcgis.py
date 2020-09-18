@@ -16,13 +16,7 @@ def overwrite_feature(username, password, new_df, old_feature_name):
     csv_file_name = f"{old_feature_name}.csv"
     new_df.to_csv(csv_file_name)
 
-    myprint("before searching for item")
-    # old_jobs_item = gis.content.search(f"title: {old_feature_name}", 'Feature Layer')[0]
-    old_jobs = gis.content.search(f"title: {old_feature_name}", 'Feature Layer')
-    myprint("old jobs is:")
-    print(old_jobs)
-    old_jobs_item = old_jobs[0]
-    myprint("after searching for item")
+    old_jobs_item = gis.content.search(f"title: {old_feature_name}", 'Feature Layer')[0]
     old_feature_layer = FeatureLayerCollection.fromitem(old_jobs_item)
 
     myprint(f"Overwriting feature layer.... there will now be {len(new_df)} features.")

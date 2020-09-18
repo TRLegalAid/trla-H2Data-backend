@@ -25,7 +25,6 @@ def check_in():
 
 sched = BlockingScheduler()
 # update database at 5:15 pm EST every day, check for fixes every 6 hours
-update_task()
 sched.add_job(update_task, 'interval', days=1, start_date='2020-09-09 17:15:00', timezone='US/Eastern')
 sched.add_job(implement_fixes_task, 'interval', hours=6, start_date='2020-09-10 18:00:00', timezone='US/Eastern')
 sched.add_job(check_in, 'interval', hours=3, start_date='2020-09-08 00:30:00', timezone='US/Eastern')
