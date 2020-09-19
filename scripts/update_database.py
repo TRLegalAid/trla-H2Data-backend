@@ -37,10 +37,11 @@ def update_database():
         return parsed_job
 
     # add necessary columns to job
+    date_of_run = requests.get(date_of_run_url).json()["data"]["finishedAt"]
     def add_necessary_columns(job):
         # add source and date of run column
         job["Source"], job["table"] = "Apify", "central"
-        job["Date of run"] = requests.get(date_of_run_url).json()["data"]["finishedAt"]
+        job["Date of run"] = date_of_run
         # check if job is h2a
         if helpers.h2a_or_h2b(job) == "H-2A":
             job["Visa type"] = "H-2A"
@@ -71,13 +72,18 @@ def update_database():
     # parse each job, add all columns to each job, append this to raw scraper data and push back to postgres
     parsed_jobs = [parse(job) for job in latest_jobs]
     full_jobs = [add_necessary_columns(job) for job in parsed_jobs]
+    print("done adding columns")
     full_jobs_df = pd.DataFrame(full_jobs)
+    full_jobs_df.to_excel("jobs.xlsx")
     # raw_scraper_jobs = pd.read_sql('raw_scraper_jobs', con=engine)
     # raw_new_and_old_jobs = full_jobs_df.append(raw_scraper_jobs, ignore_index=True, sort=True)
-    full_jobs_df.to_sql("raw_scraper_jobs", engine, if_exists="append", index=False, dtype=helpers.column_types)
+    full_raw_jobs = full_jobs_df.drop(columns=["table"])
+    full_raw_jobs.to_sql("raw_scraper_jobs", engine, if_exists="append", index=False, dtype=helpers.column_types)
+    print("added scraper jobs successfully")
 
     # geocode, split by accuracy, get old data, merge old with new data, sort data
     new_accurate_jobs, new_inaccurate_jobs = helpers.geocode_and_split_by_accuracy(full_jobs_df)
+    print("successfully geocoded")
     job_central, low_accuracies = pd.read_sql("job_central", con=engine), pd.read_sql("low_accuracies", con=engine)
     accurate_jobs, inaccurate_jobs = helpers.merge_all_data(new_accurate_jobs, new_inaccurate_jobs, job_central, low_accuracies)
 
