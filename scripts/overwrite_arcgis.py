@@ -27,7 +27,19 @@ def overwrite_feature(username, password, new_df, old_feature_name):
 
 job_central_df = pd.read_sql('job_central', con=engine)
 def overwrite_our_feature():
-    overwrite_feature(ARCGIS_USERNAME, ARCGIS_PASSWORD, job_central_df, 'FW_from_db')
+    overwrite_feature(ARCGIS_USERNAME, ARCGIS_PASSWORD, job_central_df, 'h2a_h2b_jobs')
 
 if __name__ == "__main__":
    overwrite_our_feature()
+
+
+
+# code to create a new layer
+# gis = GIS(url='https://www.arcgis.com', username=ARCGIS_USERNAME, password=ARCGIS_PASSWORD)
+# job_central_df = pd.read_sql('job_central', con=engine).head(10)
+# file_name = "h2a_h2b_job_postings.csv"
+# job_central_df.to_csv(file_name)
+# properties = {'title': 'H-2A and H-2B Job Postings', 'description': 'Datatset of H-2A and H-2B job postings. Updated daily','tags': 'data', 'type': 'CSV'}
+# to_publish = gis.content.add(properties, data=file_name)
+# item = to_publish.publish()
+# print("layer published.")
