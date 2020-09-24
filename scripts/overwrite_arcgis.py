@@ -32,8 +32,6 @@ def overwrite_our_feature():
 if __name__ == "__main__":
    overwrite_our_feature()
 
-
-
 # code to create a new layer
 # gis = GIS(url='https://www.arcgis.com', username=ARCGIS_USERNAME, password=ARCGIS_PASSWORD)
 # job_central_df = pd.read_sql('job_central', con=engine).head(10)
