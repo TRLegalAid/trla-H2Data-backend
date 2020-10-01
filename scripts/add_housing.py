@@ -37,6 +37,3 @@ def add_housing_to_postgres():
 
 if __name__ == "__main__":
    add_housing_to_postgres()
-
-df = pd.read_sql('low_accuracies', con=engine)
-df.to_excel("inaccurates_geocoded_bigger.xlsx")
