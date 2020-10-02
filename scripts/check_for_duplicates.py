@@ -4,7 +4,8 @@ from sqlalchemy import create_engine
 database_connection_string, _, _, _, _, _, _, _ = get_secret_variables()
 engine = create_engine(database_connection_string)
 
-def check_for_duplicates(table_names):
+def check_for_duplicates():
+    table_names = ["job_central"]
     tables = {}
     for table_name in table_names:
         table = pd.read_sql(table_name, con=engine)
@@ -20,5 +21,4 @@ def check_for_duplicates(table_names):
         else:
             myprint(f"No duplicates in {table_name}.")
 
-table_names = ["job_central"]
-check_for_duplicates(table_names)
+check_for_duplicates()

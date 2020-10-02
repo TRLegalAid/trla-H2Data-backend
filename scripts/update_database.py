@@ -72,7 +72,7 @@ def update_database():
     # parse each job, add all columns to each job, append this to raw scraper data and push back to postgres
     parsed_jobs = [parse(job) for job in latest_jobs]
     full_jobs = [add_necessary_columns(job) for job in parsed_jobs]
-    full_jobs_df = pd.DataFrame(full_jobs)
+    full_jobs_df = pd.DataFrame(full_jobs).drop_duplicates(subset="CASE_NUMBER", keep="last")
     full_raw_jobs = full_jobs_df.drop(columns=["table"])
     full_raw_jobs.to_sql("raw_scraper_jobs", engine, if_exists="append", index=False, dtype=helpers.column_types)
 
