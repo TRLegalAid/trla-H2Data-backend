@@ -6,6 +6,7 @@ geocodio==1.0.0
 requests
 client
 pygeocodio
+pytz
 datetime
 xlrd
 colorama
