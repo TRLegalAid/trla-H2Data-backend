@@ -6,8 +6,8 @@ geocodio==1.0.0
 requests
 client
 pygeocodio
-pytz>=2013b
 datetime
+pytz=2020.1
 xlrd
 colorama
 arcgis
