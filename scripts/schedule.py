@@ -23,7 +23,7 @@ def implement_fixes_task():
     perform_task_and_catch_errors(send_fixes_to_postgres, "IMPLEMENTING FIXES")
 
 def check_for_duplicates_task():
-    perform_task_and_catch_errors(check_for_duplicates, "CHECKING FOR DUPLICATES
+    perform_task_and_catch_errors(check_for_duplicates, "CHECKING FOR DUPLICATES")
 
 def backup_database_task():
     perform_task_and_catch_errors(backup_database, "BACKING UP DATABASE")
@@ -37,6 +37,6 @@ sched = BlockingScheduler()
 # sched.add_job(implement_fixes_task, 'interval', hours=6, start_date='2020-09-10 18:00:00', timezone='US/Eastern')
 # sched.add_job(check_for_duplicates_task, 'interval', days=1, start_date='2020-09-08 22:45:00', timezone='US/Eastern')
 # sched.add_job(check_in, 'interval', hours=3, start_date='2020-09-08 00:30:00', timezone='US/Eastern')
-sched.add_job(backup_database_task, 'interval', minutes=2, start_date='2020-10-03 11:32:00', timezone='US/Eastern')
+sched.add_job(backup_database_task, 'interval', minutes=2, start_date='2020-10-03 11:35:00', timezone='US/Eastern')
 
 sched.start()
