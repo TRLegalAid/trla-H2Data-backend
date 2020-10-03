@@ -8,6 +8,7 @@ from colorama import Fore, Style
 from inspect import getframeinfo, stack
 import smtplib, ssl
 from datetime import datetime
+from pytz import timezone
 
 def get_secret_variables():
     # LOCAL_DEV is an environment variable that I set to be "true" on my mac and "false" in the heroku config variables
@@ -116,7 +117,10 @@ def geocode_table(df, worksite_or_housing):
     df.insert(i, f"{geocoding_type} accuracy", accuracies)
     df.insert(i, f"{geocoding_type} accuracy type", accuracy_types)
     myprint(f"Finished geocoding {worksite_or_housing}.")
-    df.to_excel(f"geocoded_result_{datetime.now()}.xlsx")
+
+    now = datetime.now(tz=timezone('US/Eastern')).strftime("%I:%M%:%S_%p_%B_%d_%Y")
+    df.to_excel(f"../geocoding_backups/{now}.xlsx")
+
     return df
 
 def geocode_and_split_by_accuracy(df, table=""):
@@ -124,7 +128,8 @@ def geocode_and_split_by_accuracy(df, table=""):
         df = geocode_table(df, "worksite")
         df = geocode_table(df, "housing")
     else:
-        geocode_table(df, "housing addendum")
+        df = geocode_table(df, "housing addendum")
+
     accurate = df.apply(lambda job: is_accurate(job), axis=1)
     accurate_jobs, inaccurate_jobs = df.copy()[accurate], df.copy()[~accurate]
     inaccurate_jobs["fixed"] = False
@@ -261,9 +266,17 @@ def merge_common_rows(new_df, new_df_opposite, old_df, old_df_opposite, accurate
         print_red_and_email(error_message, "Invalid Function Parameter")
         return
     myprint(f"MERGING {accurate_or_inaccurate} new data...")
-    old_case_numbers = old_df["CASE_NUMBER"].tolist()
-    old_opposite_case_numbers = old_df_opposite["CASE_NUMBER"].tolist()
-    all_old_columns = old_df.columns.tolist()
+
+    # to ensure that we get the columns from job_central not low_accuracies (since low_accuracies has ones from additional_housing)
+    if accurate_or_inaccurate == "accurate":
+        all_old_columns = old_df.columns.tolist()
+        old_case_numbers = old_df["CASE_NUMBER"].tolist()
+        old_opposite_case_numbers = old_df_opposite[old_df_opposite["table"] != "dol_h"]["CASE_NUMBER"].tolist()
+    else:
+        all_old_columns = old_df_opposite.columns.tolist()
+        old_case_numbers = old_df[old_df["table"] != "dol_h"]["CASE_NUMBER"].tolist()
+        old_opposite_case_numbers = old_df_opposite["CASE_NUMBER"].tolist()
+
     all_new_columns = new_df.columns.tolist()
     only_old_columns = [column for column in all_old_columns if column not in all_new_columns and column != "index"]
     # add each columnd in postgres but not new to new
@@ -278,6 +291,7 @@ def merge_common_rows(new_df, new_df_opposite, old_df, old_df_opposite, accurate
             # add the value of each column only found in postgres to new data
             for column in only_old_columns:
                 new_df.at[i, column] = get_value(old_job, column)
+
             # if previously fixed, replace new address/geocoding data with that from postgres (where appropriate, depending on fixed_by columns)
             new_df = check_and_handle_previously_fixed(new_df, old_job, i, accurate_or_inaccurate=accurate_or_inaccurate)
             # remove this job from old_df, since it's in new_df and has been updated
@@ -287,8 +301,10 @@ def merge_common_rows(new_df, new_df_opposite, old_df, old_df_opposite, accurate
             if accurate_or_inaccurate == "accurate":
                 myprint(f"DUPLICATE CASE NUMBER: {new_case_number} is in both the ({accurate_or_inaccurate}) new dataset and the low_accuracies table in postgres.")
                 old_job = old_df_opposite[(old_df_opposite["CASE_NUMBER"] == new_case_number) & (old_df_opposite["table"] != "dol_h")]
+
                 for column in only_old_columns:
                     new_df.at[i, column] = get_value(old_job, column)
+
                 # remove it from the postgres inaccurate df (unless it comes from the additional housing table)
                 old_df_opposite = remove_case_number_from_df(old_df_opposite, new_case_number)
             # if this job is inaccurate in new but accurate in postgres
@@ -296,10 +312,7 @@ def merge_common_rows(new_df, new_df_opposite, old_df, old_df_opposite, accurate
                 myprint(f"DUPLICATE CASE NUMBER: {new_case_number} is in both the ({accurate_or_inaccurate}) new dataset and the job_central table in postgres.")
                 old_job = old_df_opposite[(old_df_opposite["CASE_NUMBER"] == new_case_number) & (old_df_opposite["table"] != "dol_h")]
                 for column in only_old_columns:
-                    try:
-                        new_df.at[i, column] = get_value(old_job, column)
-                    except:
-                        myprint(f"Couldn't find value in old job for column {column}. (hopefully b/c it comes from additional_housing)", is_red="red")
+                    new_df.at[i, column] = get_value(old_job, column)
                 # if previously fixed, adjust it in the new data accordingly, otherwise leave it (this probably means the address has been changed since we last received it)
                 if is_previously_fixed(old_job):
                     new_df = check_and_handle_previously_fixed(new_df, old_job, i)

@@ -8,7 +8,7 @@ engine, client = create_engine(database_connection_string), GeocodioClient(geoco
 
 def geocode_manage_split_housing(housing):
     housing = helpers.fix_zip_code_columns(housing, ["PHYSICAL_LOCATION_POSTAL_CODE"])
-    housing["table"], housing["source"], housing["fixed"], housing["housing_fixed_by"] = "dol_h", "DOL", None, None
+    housing["table"], housing["Source"], housing["fixed"], housing["housing_fixed_by"] = "dol_h", "DOL", None, None
     accurate_housing, inaccurate_housing = helpers.geocode_and_split_by_accuracy(housing, table="housing addendum")
     return accurate_housing, inaccurate_housing
 
