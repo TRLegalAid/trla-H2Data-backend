@@ -7,7 +7,6 @@ requests
 client
 pygeocodio
 datetime
-pytz
 xlrd
 colorama
 arcgis
