@@ -7,7 +7,6 @@ requests
 client
 pygeocodio
 datetime
-pytz=2020.1
 xlrd
 colorama
 arcgis

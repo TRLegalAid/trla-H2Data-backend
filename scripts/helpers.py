@@ -120,6 +120,7 @@ def geocode_table(df, worksite_or_housing):
 
     now = datetime.now(tz=timezone('US/Eastern')).strftime("%I:%M%:%S_%p_%B_%d_%Y")
     df.to_excel(f"../geocoding_backups/{now}.xlsx")
+    exit()
 
     return df
 
