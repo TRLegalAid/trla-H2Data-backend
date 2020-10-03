@@ -46,22 +46,18 @@ def geocode_manage_split_merge(dol_jobs, accurate_old_jobs, inaccurate_old_jobs)
     return accurate_jobs, inaccurate_jobs
 
 def push_merged_to_sql():
-    dol_jobs = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/h-2a_q3_additional.xlsx.xlsx'), converters={'ATTORNEY_AGENT_PHONE':str,'PHONE_TO_APPLY':str, 'SOC_CODE': str, 'NAICS_CODE': str}).head(3)
+    dol_jobs = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/h-2a_q3_additional.xlsx'), converters={'ATTORNEY_AGENT_PHONE':str,'PHONE_TO_APPLY':str, 'SOC_CODE': str, 'NAICS_CODE': str})
     accurate_old_jobs = pd.read_sql("job_central", con=engine)
     inaccurate_old_jobs = pd.read_sql("low_accuracies", con=engine)
-    accurate_jobs, inaccurate_jobs = geocode_manage_split_merge(1, accurate_old_jobs, inaccurate_old_jobs)
-    helpers.myprint("done geocode manage split merge")
-    accurate_jobs.to_excel("accurateeeeeee.xlsx")
-    inaccurate_jobs.to_excel("inaccurateeeeeee.xlsx")
-    helpers.myprint("done backing up to excel")
-    print("Accurate, inaccurate lengths:", len(accurate_jobs), len(inaccurate_jobs))
-    with engine.connect() as connection:
-        connection.execute("delete from job_central")
+    accurate_jobs, inaccurate_jobs = geocode_manage_split_merge(dol_jobs, accurate_old_jobs, inaccurate_old_jobs)
+    # accurate_jobs.to_excel("accurateeeeeee.xlsx")
+    # inaccurate_jobs.to_excel("inaccurateeeeeee.xlsx")
+    # with engine.connect() as connection:
+    #     connection.execute("delete from job_central")
     accurate_jobs.to_sql("job_central", engine, if_exists='replace', index=False, dtype=helpers.column_types)
-    helpers.myprint("done pushing to job central")
+    # with engine.connect() as connection:
+    #     connection.execute("delete from low_accuracies")
     inaccurate_jobs.to_sql("low_accuracies", engine, if_exists='replace', index=False, dtype=helpers.column_types)
-    helpers.myprint("done pushing to low_accs")
-
 
 if __name__ == "__main__":
    push_merged_to_sql()
