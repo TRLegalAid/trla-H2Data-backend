@@ -13,7 +13,7 @@ def geocode_manage_split_housing(housing):
     return accurate_housing, inaccurate_housing
 
 def add_housing_to_postgres():
-    housing = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/housing_addendum.xlsx'))
+    housing = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/h-2a_q3_housing_addendum.xlsx'))
     accurate_housing, inaccurate_housing = geocode_manage_split_housing(housing)
     accurate_housing.to_sql("additional_housing", engine, if_exists='append', index=False, dtype=helpers.column_types)
     with engine.connect() as connection:

@@ -7,6 +7,7 @@ import sqlalchemy
 from colorama import Fore, Style
 from inspect import getframeinfo, stack
 import smtplib, ssl
+from datetime import datetime
 
 def get_secret_variables():
     # LOCAL_DEV is an environment variable that I set to be "true" on my mac and "false" in the heroku config variables
@@ -115,6 +116,7 @@ def geocode_table(df, worksite_or_housing):
     df.insert(i, f"{geocoding_type} accuracy", accuracies)
     df.insert(i, f"{geocoding_type} accuracy type", accuracy_types)
     myprint(f"Finished geocoding {worksite_or_housing}.")
+    df.to_excel(f"geocoded_result_{datetime.now()}.xlsx")
     return df
 
 def geocode_and_split_by_accuracy(df, table=""):
@@ -199,6 +201,8 @@ def h2a_or_h2b(job):
         return ""
 
 def get_value(job, column):
+    # print(job)
+    # print(column)
     return job[column].tolist()[0]
 
 def get_address_columns(worksite_or_housing):
@@ -292,7 +296,10 @@ def merge_common_rows(new_df, new_df_opposite, old_df, old_df_opposite, accurate
                 myprint(f"DUPLICATE CASE NUMBER: {new_case_number} is in both the ({accurate_or_inaccurate}) new dataset and the job_central table in postgres.")
                 old_job = old_df_opposite[(old_df_opposite["CASE_NUMBER"] == new_case_number) & (old_df_opposite["table"] != "dol_h")]
                 for column in only_old_columns:
-                    new_df.at[i, column] = get_value(old_job, column)
+                    try:
+                        new_df.at[i, column] = get_value(old_job, column)
+                    except:
+                        myprint(f"Couldn't find value in old job for column {column}. (hopefully b/c it comes from additional_housing)", is_red="red")
                 # if previously fixed, adjust it in the new data accordingly, otherwise leave it (this probably means the address has been changed since we last received it)
                 if is_previously_fixed(old_job):
                     new_df = check_and_handle_previously_fixed(new_df, old_job, i)
@@ -313,17 +320,33 @@ def merge_all_data(accurate_new_jobs, inaccurate_new_jobs, accurate_old_jobs, in
     accurate_new_jobs, inaccurate_new_jobs, accurate_old_jobs, inaccurate_old_jobs = merge_common_rows(accurate_new_jobs, inaccurate_new_jobs, accurate_old_jobs, inaccurate_old_jobs, "accurate")
     inaccurate_new_jobs, accurate_new_jobs, inaccurate_old_jobs, accurate_old_jobs = merge_common_rows(inaccurate_new_jobs, accurate_new_jobs, inaccurate_old_jobs, accurate_old_jobs, "inaccurate")
     accurate_new_case_numbers = accurate_new_jobs["CASE_NUMBER"].tolist()
+    myprint("here")
     only_in_accurate_old = accurate_old_jobs[~(accurate_old_jobs["CASE_NUMBER"].isin(accurate_new_case_numbers))]
+    myprint("here")
     all_accurate_jobs = accurate_new_jobs.append(only_in_accurate_old, sort=True, ignore_index=True)
+    myprint("here")
+
 
     # merge inaccurate jobs, remove necessary case numbers from inaccurate jobs, append jobs that are only in low_accuracies (postgres but not DOL)
     # also move any fixed inaccurates to accurates
     inaccurate_new_case_numbers = inaccurate_new_jobs["CASE_NUMBER"].tolist()
+    myprint("here")
+
     only_in_inaccurate_old = inaccurate_old_jobs[(~(inaccurate_old_jobs["CASE_NUMBER"].isin(inaccurate_new_case_numbers))) | (inaccurate_old_jobs["table"] == "dol_h")]
+    myprint("here")
+
     all_inaccurate_jobs = inaccurate_new_jobs.append(only_in_inaccurate_old, sort=True, ignore_index=True)
+    myprint("here")
+
     accurates_in_inaccurates = all_inaccurate_jobs[all_inaccurate_jobs["notes"] == "accurate"]
+    myprint("here")
+
     all_accurate_jobs = all_accurate_jobs.append(accurates_in_inaccurates, sort=True, ignore_index=True)
+    myprint("here")
+
     all_inaccurate_jobs = all_inaccurate_jobs[all_inaccurate_jobs["notes"] != "accurate"]
+    myprint("done")
+
 
     return all_accurate_jobs, all_inaccurate_jobs
 
