@@ -98,16 +98,21 @@ def implement_fixes(fixed):
 
 def send_fixes_to_postgres():
     fixed = pd.read_sql_query('select * from "low_accuracies" where fixed=true', con=engine)
+
     if len(fixed) == 0:
         helpers.myprint("No jobs have been fixed.")
         return
+
     central, housing, failures = implement_fixes(fixed)
-    not_fixed = pd.read_sql_query('select * from "low_accuracies" where fixed=false', con=engine)
-    failures_and_not_fixed = failures.append(not_fixed, ignore_index=True)
-    failures_and_not_fixed = helpers.sort_df_by_date(failures_and_not_fixed)
+    assert len(central) + len(housing) + len(failures) == len(fixed)
+
     central.to_sql('job_central', engine, if_exists='append', index=False, dtype=helpers.column_types)
     housing.to_sql('additional_housing', engine, if_exists='append', index=False, dtype=helpers.column_types)
-    failures_and_not_fixed.to_sql('low_accuracies', engine, if_exists='replace', index=False, dtype=helpers.column_types)
+    failures.to_sql('low_accuracies', engine, if_exists='append', index=False, dtype=helpers.column_types)
+
+    with engine.connect() as connection:
+        connection.execute("delete from low_accuracies where fixed=true")
+
     myprint(f"Done implementing fixes. There were {len(failures)} failed fixes out of {len(fixed)} attempts.")
 
 if __name__ == "__main__":
