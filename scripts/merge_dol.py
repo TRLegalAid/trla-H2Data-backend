@@ -50,13 +50,8 @@ def push_merged_to_sql():
     accurate_old_jobs = pd.read_sql("job_central", con=engine)
     inaccurate_old_jobs = pd.read_sql("low_accuracies", con=engine)
     accurate_jobs, inaccurate_jobs = geocode_manage_split_merge(dol_jobs, accurate_old_jobs, inaccurate_old_jobs)
-    # accurate_jobs.to_excel("accurateeeeeee.xlsx")
-    # inaccurate_jobs.to_excel("inaccurateeeeeee.xlsx")
-    # with engine.connect() as connection:
-    #     connection.execute("delete from job_central")
+
     accurate_jobs.to_sql("job_central", engine, if_exists='replace', index=False, dtype=helpers.column_types)
-    # with engine.connect() as connection:
-    #     connection.execute("delete from low_accuracies")
     inaccurate_jobs.to_sql("low_accuracies", engine, if_exists='replace', index=False, dtype=helpers.column_types)
 
 if __name__ == "__main__":
