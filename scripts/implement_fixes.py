@@ -98,6 +98,9 @@ def implement_fixes(fixed):
 
 def send_fixes_to_postgres():
     fixed = pd.read_sql_query('select * from "low_accuracies" where fixed=true', con=engine)
+    if len(fixed) == 0:
+        helpers.myprint("No jobs have been fixed.")
+        return
     central, housing, failures = implement_fixes(fixed)
     not_fixed = pd.read_sql_query('select * from "low_accuracies" where fixed=false', con=engine)
     failures_and_not_fixed = failures.append(not_fixed, ignore_index=True)
