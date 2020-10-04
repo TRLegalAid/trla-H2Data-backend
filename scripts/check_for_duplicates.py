@@ -21,4 +21,5 @@ def check_for_duplicates():
         else:
             myprint(f"No duplicates in {table_name}.")
 
-check_for_duplicates()
+if __name__ == "__main__":
+    check_for_duplicates()
