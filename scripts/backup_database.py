@@ -26,10 +26,12 @@ def backup_database_on_postgres():
     with engine.connect() as connection:
         engine.execute("delete from low_accuracies_backup")
         engine.execute("insert into low_accuracies_backup select * from low_accuracies")
+
         engine.execute("delete from job_central_backup")
         engine.execute("insert into job_central_backup select * from job_central")
 
-
+        engine.execute("delete from additional_housing_backup")
+        engine.execute("insert into additional_housing_backup select * from additional_housing")
 
 if __name__ == "__main__":
    # backup_database_locally()
