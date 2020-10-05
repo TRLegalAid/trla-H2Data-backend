@@ -32,17 +32,12 @@ def check_for_duplicates_task():
 def check_in():
     print("don't worry, i'm still running...")
 
-implement_fixes_task()
-update_task()
-
-exit()
-
 # update database at 5:15 pm EST every day, check for fixes every 6 hours, check for duplicates at 10:45 pm every day
 sched = BlockingScheduler()
 sched.add_job(update_task, 'interval', days=1, start_date='2020-09-09 17:15:00', timezone='US/Eastern')
 sched.add_job(implement_fixes_task, 'interval', hours=6, start_date='2020-09-10 18:00:00', timezone='US/Eastern')
 # sched.add_job(check_for_duplicates_task, 'interval', days=1, start_date='2020-09-08 22:45:00', timezone='US/Eastern')
-# sched.add_job(check_in, 'interval', hours=3, start_date='2020-09-08 00:30:00', timezone='US/Eastern')
+sched.add_job(check_in, 'interval', hours=3, start_date='2020-09-08 00:30:00', timezone='US/Eastern')
 # sched.add_job(backup_database_task, 'interval', minutes=2, start_date='2020-10-03 11:35:00', timezone='US/Eastern')
 
 sched.start()
