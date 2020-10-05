@@ -7,7 +7,7 @@ from pytz import timezone
 database_connection_string, _, _, _, _, _, _, _ = helpers.get_secret_variables()
 engine = create_engine(database_connection_string)
 
-def backup_database():
+def backup_database_locally():
 
     table_names = pd.read_sql_query("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'", con=engine)['table_name'].tolist()
 
@@ -21,5 +21,16 @@ def backup_database():
         table = pd.read_sql(table_name, con=engine)
         table.to_excel(f"../database_backups/{now}/{table_name}.xlsx")
 
+
+def backup_database_on_postgres():
+    with engine.connect() as connection:
+        engine.execute("delete from low_accuracies_backup")
+        engine.execute("insert into low_accuracies_backup select * from low_accuracies")
+        engine.execute("delete from job_central_backup")
+        engine.execute("insert into job_central_backup select * from job_central")
+
+
+
 if __name__ == "__main__":
-   backup_database()
+   # backup_database_locally()
+   backup_database_on_postgres()
