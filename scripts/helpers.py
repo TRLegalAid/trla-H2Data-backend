@@ -63,6 +63,14 @@ column_types = {
     "WORKSITE_POSTAL_CODE": sqlalchemy.types.Text, "ATTORNEY_AGENT_PHONE": sqlalchemy.types.Text, "EMPLOYER_POC_PHONE": sqlalchemy.types.Text,
     "EMPLOYER_PHONE": sqlalchemy.types.Text, "SOC_CODE": sqlalchemy.types.Text, "NAICS_CODE": sqlalchemy.types.Text, "notes": sqlalchemy.types.Text,
     "worksite_lat": sqlalchemy.types.Float, "housing_lat": sqlalchemy.types.Float, "worksite_long": sqlalchemy.types.Float, "housing_long": sqlalchemy.types.Float,
+    "790A_ADDENDUM_B_ATTACHED": sqlalchemy.types.Boolean, "OTHER_WORKSITE_LOCATION": sqlalchemy.types.Boolean, "SUPERVISE_OTHER_EMP": sqlalchemy.types.Boolean,
+    "790A_addendum_a_attached": sqlalchemy.types.Boolean,"ADDENDUM_B_HOUSING_ATTACHED": sqlalchemy.types.Boolean, "APPENDIX_A_ATTACHED": sqlalchemy.types.Boolean, "CRIMINAL_BACKGROUND_CHECK": sqlalchemy.types.Boolean,
+    "DRIVER_REQUIREMENTS": sqlalchemy.types.Boolean, "DRUG_SCREEN": sqlalchemy.types.Boolean, "EMERGENCY_FILING": sqlalchemy.types.Boolean, "EXTENSIVE_SITTING_WALKING": sqlalchemy.types.Boolean,
+    "EXTENSIVE_PUSHING_PULLING": sqlalchemy.types.Boolean, "EXPOSURE_TO_TEMPERATURES": sqlalchemy.types.Boolean, "FREQUENT_STOOPING_BENDING_OVER": sqlalchemy.types.Boolean,
+    "H-2A_LABOR_CONTRACTOR": sqlalchemy.types.Boolean, "HOUSING_COMPLIANCE_FEDERAL": sqlalchemy.types.Boolean, "HOUSING_COMPLIANCE_STATE": sqlalchemy.types.Boolean, "HOUSING_COMPLIANCE_LOCAL": sqlalchemy.types.Boolean,
+    "HOUSING_TRANSPORTATION": sqlalchemy.types.Boolean, "JOINT_EMPLOYER_APPENDIX_A_ATTACHED": sqlalchemy.types.Boolean, "LIFTING_REQUIREMENTS": sqlalchemy.types.Boolean, "MEALS_PROVIDED": sqlalchemy.types.Boolean,
+    "ON_CALL_REQUIREMENT": sqlalchemy.types.Boolean, "REPETITIVE_MOVEMENTS": sqlalchemy.types.Boolean, "SURETY_BOND_ATTACHED": sqlalchemy.types.Boolean, "WORK_CONTRACTS_ATTACHED": sqlalchemy.types.Boolean,
+    "CERTIFICATION_REQUIREMENTS": sqlalchemy.types.Boolean
 }
 housing_address_columns = ["HOUSING_ADDRESS_LOCATION", "HOUSING_CITY", "HOUSING_STATE", "HOUSING_POSTAL_CODE", "housing_lat", "housing_long", "housing accuracy", "housing accuracy type", "housing_fixed_by", "fixed"]
 worksite_address_columns = ["WORKSITE_ADDRESS", "WORKSITE_CITY", "WORKSITE_STATE", "WORKSITE_POSTAL_CODE", "worksite_lat", "worksite_long", "worksite accuracy", "worksite accuracy type", "worksite_fixed_by", "fixed"]
@@ -118,17 +126,20 @@ def geocode_table(df, worksite_or_housing):
     df.insert(i, f"{geocoding_type} accuracy type", accuracy_types)
     myprint(f"Finished geocoding {worksite_or_housing}.")
 
-    # now = datetime.now(tz=timezone('US/Eastern')).strftime("%I.%M%.%S_%p_%B_%d_%Y")
+    now = datetime.now(tz=timezone('US/Eastern')).strftime("%I.%M%.%S_%p_%B_%d_%Y")
     # df.to_excel(f"../geocoding_backups/{now}.xlsx")
+    # myprint("Backed up geocoding results")
 
     return df
 
 def geocode_and_split_by_accuracy(df, table=""):
-    if table != "housing addendum":
+    if table == "dol_h2b":
+        df = geocode_table(df, "worksite")
+    elif table == "housing addendum":
+        df = geocode_table(df, "housing addendum")
+    else:
         df = geocode_table(df, "worksite")
         df = geocode_table(df, "housing")
-    else:
-        df = geocode_table(df, "housing addendum")
 
     accurate = df.apply(lambda job: is_accurate(job), axis=1)
     accurate_jobs, inaccurate_jobs = df.copy()[accurate], df.copy()[~accurate]

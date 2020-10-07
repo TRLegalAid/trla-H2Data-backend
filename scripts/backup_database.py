@@ -24,14 +24,23 @@ def backup_database_locally():
 
 def backup_database_on_postgres():
     with engine.connect() as connection:
-        engine.execute("delete from low_accuracies_backup")
-        engine.execute("insert into low_accuracies_backup select * from low_accuracies")
+        # engine.execute("delete from low_accuracies_backup")
+        # engine.execute("insert into low_accuracies_backup select * from low_accuracies")
+        #
+        # engine.execute("delete from job_central_backup")
+        # engine.execute("insert into job_central_backup select * from job_central")
+        #
+        # engine.execute("delete from additional_housing_backup")
+        # engine.execute("insert into additional_housing_backup select * from additional_housing")
 
-        engine.execute("delete from job_central_backup")
-        engine.execute("insert into job_central_backup select * from job_central")
+        engine.execute("drop table low_accuracies_backup")
+        engine.execute("CREATE TABLE low_accuracies_backup AS TABLE low_accuracies")
 
-        engine.execute("delete from additional_housing_backup")
-        engine.execute("insert into additional_housing_backup select * from additional_housing")
+        engine.execute("drop table job_central_backup")
+        engine.execute("CREATE TABLE job_central_backup AS TABLE job_central")
+
+        engine.execute("drop table additional_housing_backup")
+        engine.execute("CREATE TABLE additional_housing_backup AS TABLE additional_housing")
 
 if __name__ == "__main__":
    # backup_database_locally()

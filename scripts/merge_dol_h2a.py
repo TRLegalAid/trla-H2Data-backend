@@ -11,6 +11,8 @@ engine, client = create_engine(database_connection_string), GeocodioClient(geoco
 def geocode_manage_split_merge(dol_jobs, accurate_old_jobs, inaccurate_old_jobs):
     # get dol data and postgres data (accurate and inaccurate), perform necessary data management on dol data
     dol_jobs = dol_jobs.drop_duplicates(subset='CASE_NUMBER', keep="last")
+    dol_jobs = dol_jobs.rename(columns={"FREQUENCY_OF_PAY": "Additional Wage Information"})
+
     helpers.fix_zip_code_columns(dol_jobs, ["HOUSING_POSTAL_CODE", "EMPLOYER_POC_POSTAL_CODE", "EMPLOYER_POSTAL_CODE", "WORKSITE_POSTAL_CODE", "ATTORNEY_AGENT_POSTAL_CODE"])
     dol_jobs["Source"], dol_jobs["table"] = "DOL", "central"
     dol_jobs["Date of run"] = datetime.today()
