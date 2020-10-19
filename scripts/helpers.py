@@ -39,8 +39,8 @@ def myprint(message, is_red="", email_also=""):
         print(message + file_and_line_info)
 
 def send_email(message):
-    # if os.getenv("LOCAL_DEV") == "true":
-    #     return
+    if os.getenv("LOCAL_DEV") == "true":
+        return
     email, password = get_secret_variables()[4], get_secret_variables()[5]
     port, smtp_server, context  = 465, "smtp.gmail.com", ssl.create_default_context()
     with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:

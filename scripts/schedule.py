@@ -18,12 +18,12 @@ def perform_task_and_catch_errors(task_function, task_name):
     print(Fore.GREEN + f"Finished {task_name} in {time.time() - before} seconds." + "\n" + Style.RESET_ALL)
 
 def update_task():
-    perform_task_and_catch_errors(backup_database_on_postgres, "BACKING UP DATABASE")
+    # perform_task_and_catch_errors(backup_database_on_postgres, "BACKING UP DATABASE")
     perform_task_and_catch_errors(update_database, "UPDATING DATABASE")
     perform_task_and_catch_errors(overwrite_our_feature, "OVERWRITING ARCGIS FEATURE")
 
 def implement_fixes_task():
-    perform_task_and_catch_errors(backup_database_on_postgres, "BACKING UP DATABASE")
+    # perform_task_and_catch_errors(backup_database_on_postgres, "BACKING UP DATABASE")
     perform_task_and_catch_errors(send_fixes_to_postgres, "IMPLEMENTING FIXES")
 
 def check_for_duplicates_task():
@@ -38,5 +38,4 @@ sched.add_job(update_task, 'interval', days=1, start_date='2020-09-09 17:15:00',
 sched.add_job(implement_fixes_task, 'interval', hours=6, start_date='2020-09-10 18:00:00', timezone='US/Eastern')
 # sched.add_job(check_for_duplicates_task, 'interval', days=1, start_date='2020-09-08 22:45:00', timezone='US/Eastern')
 # sched.add_job(check_in, 'interval', hours=3, start_date='2020-09-08 00:30:00', timezone='US/Eastern')
-
 sched.start()
