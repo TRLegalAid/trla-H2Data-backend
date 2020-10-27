@@ -20,8 +20,8 @@ geocodio_api_key = get_secret_variables()[1]
 client = GeocodioClient(geocodio_api_key)
 
 # if running locally, don't do the state checking (to make it easier for tesing - tests don't pass otherwise)
-state_checking = not (os.getenv("LOCAL_DEV") == "true")
-# state_checking = True
+# state_checking = not (os.getenv("LOCAL_DEV") == "true")
+state_checking = True
 our_states = ["texas", "tx", "kentucky", "ky", "tennessee", "tn", "arkansas", "ar", "louisiana", "la", "mississippi", "ms", "alabama", "al"]
 
 def print_red(message):
