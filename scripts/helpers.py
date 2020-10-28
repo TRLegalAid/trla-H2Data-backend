@@ -344,33 +344,23 @@ def merge_all_data(accurate_new_jobs, inaccurate_new_jobs, accurate_old_jobs, in
     accurate_new_jobs, inaccurate_new_jobs, accurate_old_jobs, inaccurate_old_jobs = merge_common_rows(accurate_new_jobs, inaccurate_new_jobs, accurate_old_jobs, inaccurate_old_jobs, "accurate")
     inaccurate_new_jobs, accurate_new_jobs, inaccurate_old_jobs, accurate_old_jobs = merge_common_rows(inaccurate_new_jobs, accurate_new_jobs, inaccurate_old_jobs, accurate_old_jobs, "inaccurate")
     accurate_new_case_numbers = accurate_new_jobs["CASE_NUMBER"].tolist()
-    myprint("here")
     only_in_accurate_old = accurate_old_jobs[~(accurate_old_jobs["CASE_NUMBER"].isin(accurate_new_case_numbers))]
-    myprint("here")
     all_accurate_jobs = accurate_new_jobs.append(only_in_accurate_old, sort=True, ignore_index=True)
-    myprint("here")
 
 
     # merge inaccurate jobs, remove necessary case numbers from inaccurate jobs, append jobs that are only in low_accuracies (postgres but not DOL)
     # also move any fixed inaccurates to accurates
     inaccurate_new_case_numbers = inaccurate_new_jobs["CASE_NUMBER"].tolist()
-    myprint("here")
 
     only_in_inaccurate_old = inaccurate_old_jobs[(~(inaccurate_old_jobs["CASE_NUMBER"].isin(inaccurate_new_case_numbers))) | (inaccurate_old_jobs["table"] == "dol_h")]
-    myprint("here")
 
     all_inaccurate_jobs = inaccurate_new_jobs.append(only_in_inaccurate_old, sort=True, ignore_index=True)
-    myprint("here")
 
     accurates_in_inaccurates = all_inaccurate_jobs[all_inaccurate_jobs["notes"] == "accurate"]
-    myprint("here")
 
     all_accurate_jobs = all_accurate_jobs.append(accurates_in_inaccurates, sort=True, ignore_index=True)
-    myprint("here")
 
     all_inaccurate_jobs = all_inaccurate_jobs[all_inaccurate_jobs["notes"] != "accurate"]
-    myprint("done")
-
 
     return all_accurate_jobs, all_inaccurate_jobs
 
