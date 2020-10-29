@@ -268,7 +268,8 @@ def get_columns(table_name):
     return [column[0] for column in list(query_res)]
 
 def add_columns(table, columns):
-    for column in df.columns:
+    for column in columns:
+        myprint(f"Adding {column} as type VARCHAR...")
         make_query(f'ALTER TABLE {table} ADD COLUMN "{column}" VARCHAR')
 
 def remove_case_num_from_table(case_number, table):
@@ -279,10 +280,10 @@ def remove_case_num_from_table(case_number, table):
 
 def add_job_to_postgres(job, table):
     job_df = pd.DataFrame(job.to_dict(), index=[0])
-    job_df.to_sql(table, engine, if_exists='append', index=False, dtype=helpers.column_types)
+    job_df.to_sql(table, engine, if_exists='append', index=False, dtype=column_types)
 
 def sort_df_by_date(df):
-    return df.sort_values(by=["RECEIVED_DATE"], ascending=False)
+    return df.sort_values(by=["RECEIVED_DATE"], ascending=True)
 
 def get_old_job_and_add_missing_columns(new_job, new_case_number, cols_in_both, cols_only_in_old, table):
     old_job_df = pd.read_sql(f"""SELECT * FROM {table} where "CASE_NUMBER"='{new_case_number}' and "table" != 'dol_h'""", con=engine)
@@ -336,7 +337,7 @@ def merge_data(jobs, old_accurate_case_nums, old_inaccurate_case_nums, accurate=
 
             remove_case_num_from_table(new_case_number, "job_central")
 
-        elif case_number in old_inaccurate_case_nums:
+        elif new_case_number in old_inaccurate_case_nums:
             myprint(f"DUPLICATE CASE NUMBER: {new_case_number} is in both the ({accurate_or_inaccurate}) new dataset and the inaccurates table in postgres.")
             old_job, new_job = get_old_job_and_add_missing_columns(new_job, new_case_number, cols_in_inaccurate_and_new, cols_only_in_inaccurate, "low_accuracies")
 
@@ -352,6 +353,6 @@ def merge_data(jobs, old_accurate_case_nums, old_inaccurate_case_nums, accurate=
 def merge_all_data(accurate_new_jobs, inaccurate_new_jobs):
     old_accurate_case_nums = get_case_nums(accurate=True)
     old_inaccurate_case_nums = get_case_nums(accurate=False)
-    
+
     merge_data(accurate_new_jobs, old_accurate_case_nums, old_inaccurate_case_nums, accurate=True)
     merge_data(inaccurate_new_jobs, old_accurate_case_nums, old_inaccurate_case_nums, accurate=False)

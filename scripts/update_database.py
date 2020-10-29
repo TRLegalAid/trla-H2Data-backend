@@ -41,7 +41,9 @@ def update_database():
         return parsed_job
 
     # add necessary columns to job
-    date_of_run = requests.get(date_of_run_url).json()["data"]["finishedAt"]
+    # date_of_run = requests.get(date_of_run_url).json()["data"]["finishedAt"]
+    date_of_run = "2022/05/31"
+
     def add_necessary_columns(job):
         # add source and date of run column
         job["Source"], job["table"] = "Apify", "central"
@@ -77,18 +79,16 @@ def update_database():
     parsed_jobs = [parse(job) for job in latest_jobs]
     full_jobs = [add_necessary_columns(job) for job in parsed_jobs]
     full_jobs_df = pd.DataFrame(full_jobs).drop_duplicates(subset="CASE_NUMBER", keep="last")
+
+    date_columns = ["RECEIVED_DATE", "EMPLOYMENT_END_DATE", "EMPLOYMENT_BEGIN_DATE", "Date of run"]
+    for column in date_columns:
+        full_jobs_df[column] = pd.to_datetime(full_jobs_df[column], errors='coerce')
+
     full_raw_jobs = full_jobs_df.drop(columns=["table"])
     full_raw_jobs.to_sql("raw_scraper_jobs", engine, if_exists="append", index=False, dtype=helpers.column_types)
 
     # geocode, split by accuracy, get old data, merge old with new data, sort data
     new_accurate_jobs, new_inaccurate_jobs = helpers.geocode_and_split_by_accuracy(full_jobs_df)
-
-    # need to change column names here
-    new_accurate_jobs["RECEIVED_DATE"] = pd.to_datetime(new_accurate_jobs["RECEIVED_DATE"])
-    new_inaccurate_jobs["RECEIVED_DATE"] = pd.to_datetime(new_inaccurate_jobs["RECEIVED_DATE"])
-
-    new_accurate_jobs, new_inaccurate_jobs = helpers.sort_df_by_date(accurate_jobs), helpers.sort_df_by_date(inaccurate_jobs)
-
     helpers.merge_all_data(new_accurate_jobs, new_inaccurate_jobs)
 
 
