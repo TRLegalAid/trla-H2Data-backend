@@ -5,12 +5,16 @@ from column_name_mappings import column_name_mappings
 import pandas as pd
 import sqlalchemy
 from sqlalchemy import create_engine
+from sqlalchemy.sql import text
 from geocodio import GeocodioClient
 database_connection_string, geocodio_api_key, most_recent_run_url, date_of_run_url, _, _, _, _ = helpers.get_secret_variables()
 engine, client = create_engine(database_connection_string), GeocodioClient(geocodio_api_key)
 
+
 def update_database():
-    latest_jobs = requests.get(most_recent_run_url).json()
+    # latest_jobs = requests.get(most_recent_run_url).json()
+    latest_jobs = requests.get("https://api.apify.com/v2/datasets/4RcRFePf6vSGlsbUu/items?format=json&clean=1").json()
+
     if not latest_jobs:
         myprint("No new jobs.")
         return
@@ -78,16 +82,16 @@ def update_database():
 
     # geocode, split by accuracy, get old data, merge old with new data, sort data
     new_accurate_jobs, new_inaccurate_jobs = helpers.geocode_and_split_by_accuracy(full_jobs_df)
-    job_central, low_accuracies = pd.read_sql("job_central", con=engine), pd.read_sql("low_accuracies", con=engine)
-    accurate_jobs, inaccurate_jobs = helpers.merge_all_data(new_accurate_jobs, new_inaccurate_jobs, job_central, low_accuracies)
 
-    accurate_jobs["RECEIVED_DATE"] = pd.to_datetime(accurate_jobs["RECEIVED_DATE"])
-    inaccurate_jobs["RECEIVED_DATE"] = pd.to_datetime(inaccurate_jobs["RECEIVED_DATE"])
-    accurate_jobs, inaccurate_jobs = helpers.sort_df_by_date(accurate_jobs), helpers.sort_df_by_date(inaccurate_jobs)
+    # need to change column names here
+    new_accurate_jobs["RECEIVED_DATE"] = pd.to_datetime(new_accurate_jobs["RECEIVED_DATE"])
+    new_inaccurate_jobs["RECEIVED_DATE"] = pd.to_datetime(new_inaccurate_jobs["RECEIVED_DATE"])
 
-    # send updated data back to postgres
-    accurate_jobs.to_sql('job_central', engine, if_exists='replace', index=False, dtype=helpers.column_types)
-    inaccurate_jobs.to_sql('low_accuracies', engine, if_exists='replace', index=False, dtype=helpers.column_types)
+    new_accurate_jobs, new_inaccurate_jobs = helpers.sort_df_by_date(accurate_jobs), helpers.sort_df_by_date(inaccurate_jobs)
+
+    helpers.merge_all_data(new_accurate_jobs, new_inaccurate_jobs)
+
+
 
 if __name__ == "__main__":
    update_database()
