@@ -17,14 +17,16 @@ engine, client = get_database_engine(force_cloud=True), GeocodioClient(geocodio_
 def update_database():
     latest_jobs = requests.get(most_recent_run_url).json()
 
-    # use these two lines if you're updating using a local csv file, may not need encoding parameter
-    # latest_jobs = pd.read_csv("file_name", encoding='unicode_escape').drop(columns=['Unnamed: 0'])
+    # use these two lines if you're updating using a local csv file
+    # latest_jobs = pd.read_csv("dataset_apify-dol-actor_2020-10-30_20-35-55-536.csv")
     # latest_jobs = latest_jobs.to_dict('records')
 
     if not latest_jobs:
         myprint("No new jobs.")
         return
     myprint(f"There are {len(latest_jobs)} new jobs.")
+
+
 
     # # use this version of parse function if using a local csv file
     # def parse(job):
