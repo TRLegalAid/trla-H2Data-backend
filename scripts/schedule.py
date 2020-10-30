@@ -20,8 +20,10 @@ def update_task():
     perform_task_and_catch_errors(overwrite_our_feature, "OVERWRITING ARCGIS FEATURE")
 
 def implement_fixes_task():
-    # perform_task_and_catch_errors(backup_database_on_postgres, "BACKING UP DATABASE")
     perform_task_and_catch_errors(send_fixes_to_postgres, "IMPLEMENTING FIXES")
+
+
+perform_task_and_catch_errors(overwrite_our_feature, "OVERWRITING ARCGIS FEATURE")
 
 # update database at 5:15 pm EST every day, check for fixes every 6 hours, check for duplicates at 10:45 pm every day
 sched = BlockingScheduler()
