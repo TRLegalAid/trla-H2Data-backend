@@ -54,7 +54,7 @@ def get_database_engine(force_cloud=False):
     else:
         return create_engine(os.getenv("LOCAL_DATABASE_URL"))
 
-force_cloud = True
+force_cloud = False
 engine = get_database_engine(force_cloud=force_cloud)
 
 bad_accuracy_types = ["place", "state", "street_center"]
