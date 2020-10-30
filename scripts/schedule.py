@@ -18,7 +18,7 @@ def perform_task_and_catch_errors(task_function, task_name):
 
 def update_task():
     perform_task_and_catch_errors(update_database, "UPDATING DATABASE")
-    perform_task_and_catch_errors(overwrite_our_feature, "OVERWRITING ARCGIS FEATURE")
+    # perform_task_and_catch_errors(overwrite_our_feature, "OVERWRITING ARCGIS FEATURE")
     perform_task_and_catch_errors(update_status_columns, "UPDATING STATUS COLUMNS")
 
 def implement_fixes_task():
