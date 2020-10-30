@@ -25,7 +25,7 @@ def implement_fixes_task():
 
 perform_task_and_catch_errors(update_database, "UPDATING DATABASE")
 
-# update database at 5:15 pm EST every day, check for fixes every 6 hours, check for duplicates at 10:45 pm every day
+# update database at 5:15 pm EST every day, check for fixes every 6 hours, check for duplicates at 10:45 pm each day
 sched = BlockingScheduler()
 sched.add_job(update_task, 'interval', days=1, start_date='2020-09-09 01:00:00', timezone='US/Eastern')
 # sched.add_job(implement_fixes_task, 'interval', hours=6, start_date='2020-09-10 18:00:00', timezone='US/Eastern')
