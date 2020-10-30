@@ -8,7 +8,7 @@ from sqlalchemy import create_engine
 if os.getenv("LOCAL_DEV") == "true":
     from dotenv import load_dotenv
     load_dotenv()
-ARCGIS_USERNAME, ARCGIS_PASSWORD = os.getenev("ARCGIS_USERNAME"), os.getenev("ARCGIS_PASSWORD")
+ARCGIS_USERNAME, ARCGIS_PASSWORD = os.getenv("ARCGIS_USERNAME"), os.getenv("ARCGIS_PASSWORD")
 engine = get_database_engine()
 
 def overwrite_feature(username, password, new_df, old_feature_name):
