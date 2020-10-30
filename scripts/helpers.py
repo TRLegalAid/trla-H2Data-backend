@@ -255,7 +255,6 @@ def handle_previously_fixed(new_job, old_job, worksite_or_housing, set_fixed_to_
 
     return new_job, True
 
-
 def make_query(query):
     with engine.connect() as connection:
         result = connection.execute(query)

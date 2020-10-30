@@ -45,36 +45,36 @@ def assert_accuracies_and_inaccuracies(accurates, inaccurates):
     else:
         h2b_inaccurates_inaccurate = True
     return worksites_accurate, housings_accurate, h2a_inaccurates_inaccurate, h2b_inaccurates_inaccurate
+# 
+# myprint("Start of populate database test", is_red="red")
+# scraper_data = pd.read_excel(os.path.join(os.getcwd(), '..',  "excel_files/scraper_data.xlsx"))
+# accurates, inaccurates, raw_scrapers = geocode_manage_split(scraper_data)
+# class TestPopulateDatabase(unittest.TestCase):
+#     def test_length_and_table_column(self):
+#         self.assertEqual(len(accurates), 12)
+#         self.assertEqual(len(inaccurates), 2)
+#         self.assertEqual(len(raw_scrapers), 15)
+#         self.assertTrue((accurates["table"] == "central").all() and (inaccurates["table"] == "central").all())
+#     def test_accuracies(self):
+#         worksites_accurate, housings_accurate, h2a_inaccurates_inaccurate, h2b_inaccurates_inaccurate = assert_accuracies_and_inaccuracies(accurates, inaccurates)
+#         self.assertTrue(worksites_accurate)
+#         self.assertTrue(housings_accurate)
+#         self.assertTrue(h2a_inaccurates_inaccurate)
+#         self.assertTrue(h2b_inaccurates_inaccurate)
 
-myprint("Start of populate database test", is_red="red")
-scraper_data = pd.read_excel(os.path.join(os.getcwd(), '..',  "excel_files/scraper_data.xlsx"))
-accurates, inaccurates, raw_scrapers = geocode_manage_split(scraper_data)
-class TestPopulateDatabase(unittest.TestCase):
-    def test_length_and_table_column(self):
-        self.assertEqual(len(accurates), 12)
-        self.assertEqual(len(inaccurates), 2)
-        self.assertEqual(len(raw_scrapers), 15)
-        self.assertTrue((accurates["table"] == "central").all() and (inaccurates["table"] == "central").all())
-    def test_accuracies(self):
-        worksites_accurate, housings_accurate, h2a_inaccurates_inaccurate, h2b_inaccurates_inaccurate = assert_accuracies_and_inaccuracies(accurates, inaccurates)
-        self.assertTrue(worksites_accurate)
-        self.assertTrue(housings_accurate)
-        self.assertTrue(h2a_inaccurates_inaccurate)
-        self.assertTrue(h2b_inaccurates_inaccurate)
-
-myprint("Start of add housing test", is_red="red")
-housing = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/housing_addendum.xlsx'))
-accurate_housing, inaccurate_housing = geocode_manage_split_housing(housing)
-class TestAddHousing(unittest.TestCase):
-    def test_length_and_table_column(self):
-        self.assertEqual(len(accurate_housing), 9)
-        self.assertEqual(len(inaccurate_housing), 1)
-        self.assertTrue((accurate_housing["table"] == "dol_h").all() and (inaccurate_housing["table"] == "dol_h").all())
-    def test_accuracies(self):
-        accurates_are_accurate = ((accurate_housing["housing accuracy"] >= 0.8) & (~(accurate_housing["housing accuracy type"].isin(bad_accuracy_types)))).all()
-        self.assertTrue(accurates_are_accurate)
-        inaccurates_are_inaccurate = ((inaccurate_housing["housing accuracy"].isnull()) | (inaccurate_housing["housing accuracy"] < 0.8) | (inaccurate_housing["housing accuracy type"].isin(bad_accuracy_types))).all()
-        self.assertTrue(inaccurates_are_inaccurate)
+# myprint("Start of add housing test", is_red="red")
+# housing = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/housing_addendum.xlsx'))
+# accurate_housing, inaccurate_housing = geocode_manage_split_housing(housing)
+# class TestAddHousing(unittest.TestCase):
+#     def test_length_and_table_column(self):
+#         self.assertEqual(len(accurate_housing), 9)
+#         self.assertEqual(len(inaccurate_housing), 1)
+#         self.assertTrue((accurate_housing["table"] == "dol_h").all() and (inaccurate_housing["table"] == "dol_h").all())
+#     def test_accuracies(self):
+#         accurates_are_accurate = ((accurate_housing["housing accuracy"] >= 0.8) & (~(accurate_housing["housing accuracy type"].isin(bad_accuracy_types)))).all()
+#         self.assertTrue(accurates_are_accurate)
+#         inaccurates_are_inaccurate = ((inaccurate_housing["housing accuracy"].isnull()) | (inaccurate_housing["housing accuracy"] < 0.8) | (inaccurate_housing["housing accuracy type"].isin(bad_accuracy_types))).all()
+#         self.assertTrue(inaccurates_are_inaccurate)
 
 # myprint("Start of merge dol test", is_red="red")
 # old_accurates = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/accurates_geocoded.xlsx'))
@@ -658,6 +658,6 @@ class TestImplementFixes(unittest.TestCase):
         self.assertTrue("worksite accuracy type" in inaccurate_columns)
         self.assertTrue("HOUSING_POSTAL_CODE" in inaccurate_columns)
         self.assertTrue("worksite accuracy type" in inaccurate_columns)
-#
+
 unittest.main(verbosity=2)
 # # unittest.main()

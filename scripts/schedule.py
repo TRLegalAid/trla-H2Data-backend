@@ -3,6 +3,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from update_database import update_database
 from implement_fixes import send_fixes_to_postgres
 from overwrite_arcgis import overwrite_our_feature
+from update_status_columns import update_status_columns
 from helpers import print_red_and_email
 from colorama import Fore, Style
 
@@ -18,6 +19,7 @@ def perform_task_and_catch_errors(task_function, task_name):
 def update_task():
     perform_task_and_catch_errors(update_database, "UPDATING DATABASE")
     perform_task_and_catch_errors(overwrite_our_feature, "OVERWRITING ARCGIS FEATURE")
+    perform_task_and_catch_errors(update_status_columns, "UPDATING STATUS COLUMNS")
 
 def implement_fixes_task():
     perform_task_and_catch_errors(send_fixes_to_postgres, "IMPLEMENTING FIXES")
