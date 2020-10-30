@@ -10,24 +10,14 @@ import smtplib, ssl
 from datetime import datetime
 from pytz import timezone
 from sqlalchemy import create_engine
-
-
-def get_secret_variables():
-    # LOCAL_DEV is an environment variable that I set to be "true" on my mac and "false" in the heroku config variables
-    if os.getenv("LOCAL_DEV") == "true":
-        import secret_variables
-        return secret_variables.DATABASE_URL, secret_variables.GEOCODIO_API_KEY, secret_variables.MOST_RECENT_RUN_URL, secret_variables.DATE_OF_RUN_URL, secret_variables.ERROR_EMAIL_ADDRESS, secret_variables.ERROR_EMAIL_ADDRESS_PASSWORD, secret_variables.ARCGIS_USERNAME, secret_variables.ARCGIS_PASSWORD
-    return os.getenv("DATABASE_URL"), os.getenv("GEOCODIO_API_KEY"), os.getenv("MOST_RECENT_RUN_URL"), os.getenv("DATE_OF_RUN_URL"), os.getenv("ERROR_EMAIL_ADDRESS"), os.getenv("ERROR_EMAIL_ADDRESS_PASSWORD"), os.getenv("ARCGIS_USERNAME"), os.getenv("ARCGIS_PASSWORD")
-geocodio_api_key = get_secret_variables()[1]
+from dotenv import load_dotenv
+load_dotenv()
+geocodio_api_key = os.getenv("GEOCODIO_API_KEY")
 client = GeocodioClient(geocodio_api_key)
 
-database_connection_string, _, _, _, _, _, _, _ = get_secret_variables()
-engine = create_engine(database_connection_string)
-
-# if running locally, don't do the state checking (to make it easier for tesing - tests don't pass otherwise)
-# state_checking = not (os.getenv("LOCAL_DEV") == "true")
 state_checking = True
 our_states = ["texas", "tx", "kentucky", "ky", "tennessee", "tn", "arkansas", "ar", "louisiana", "la", "mississippi", "ms", "alabama", "al"]
+
 
 def print_red(message):
     print(Fore.RED + message + Style.RESET_ALL)
@@ -46,7 +36,7 @@ def myprint(message, is_red="", email_also=""):
 def send_email(message):
     if os.getenv("LOCAL_DEV") == "true":
         return
-    email, password = get_secret_variables()[4], get_secret_variables()[5]
+    email, password = os.getenv("ERROR_EMAIL_ADDRESS"), os.getenv("ERROR_EMAIL_ADDRESS_PASSWORD")
     port, smtp_server, context  = 465, "smtp.gmail.com", ssl.create_default_context()
     with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
         server.login(email, password)
@@ -57,6 +47,15 @@ def print_red_and_email(message, subject):
     file_name_and_line_info = "(" + frameinfo.filename.split("/")[-1] + ", line " + str(frameinfo.lineno) + ")"
     myprint(message + "  " + file_name_and_line_info, is_red="red", email_also="yes")
     send_email("Subject: " + subject + "\n\n" + message + "\n" + file_name_and_line_info)
+
+def get_database_engine(force_cloud=False):
+    if force_cloud or (not (os.getenv("LOCAL_DEV") == "true")):
+        return create_engine(os.getenv("DATABASE_URL"))
+    else:
+        return create_engine(os.getenv("LOCAL_DATABASE_URL"))
+
+force_cloud = True
+engine = get_database_engine(force_cloud=force_cloud)
 
 bad_accuracy_types = ["place", "state", "street_center"]
 column_types = {
@@ -75,7 +74,7 @@ column_types = {
     "H-2A_LABOR_CONTRACTOR": sqlalchemy.types.Boolean, "HOUSING_COMPLIANCE_FEDERAL": sqlalchemy.types.Boolean, "HOUSING_COMPLIANCE_STATE": sqlalchemy.types.Boolean, "HOUSING_COMPLIANCE_LOCAL": sqlalchemy.types.Boolean,
     "HOUSING_TRANSPORTATION": sqlalchemy.types.Boolean, "JOINT_EMPLOYER_APPENDIX_A_ATTACHED": sqlalchemy.types.Boolean, "LIFTING_REQUIREMENTS": sqlalchemy.types.Boolean, "MEALS_PROVIDED": sqlalchemy.types.Boolean,
     "ON_CALL_REQUIREMENT": sqlalchemy.types.Boolean, "REPETITIVE_MOVEMENTS": sqlalchemy.types.Boolean, "SURETY_BOND_ATTACHED": sqlalchemy.types.Boolean, "WORK_CONTRACTS_ATTACHED": sqlalchemy.types.Boolean,
-    "CERTIFICATION_REQUIREMENTS": sqlalchemy.types.Boolean
+    "CERTIFICATION_REQUIREMENTS": sqlalchemy.types.Boolean, "DECISION_DATE": sqlalchemy.types.DateTime
 }
 housing_address_columns = ["HOUSING_ADDRESS_LOCATION", "HOUSING_CITY", "HOUSING_STATE", "HOUSING_POSTAL_CODE", "housing_lat", "housing_long", "housing accuracy", "housing accuracy type", "housing_fixed_by", "fixed"]
 worksite_address_columns = ["WORKSITE_ADDRESS", "WORKSITE_CITY", "WORKSITE_STATE", "WORKSITE_POSTAL_CODE", "worksite_lat", "worksite_long", "worksite accuracy", "worksite accuracy type", "worksite_fixed_by", "fixed"]
@@ -144,7 +143,10 @@ def geocode_and_split_by_accuracy(df, table=""):
         df = geocode_table(df, "housing addendum")
     else:
         df = geocode_table(df, "worksite")
-        df = geocode_table(df, "housing")
+        if "HOUSING_ADDRESS_LOCATION" in df.columns:
+            df = geocode_table(df, "housing")
+        else:
+            print_red_and_email("Not geocoding housing because HOUSING_ADDRESS_LOCATION is not present. This should be fine, and hopefully just means there were only H-2B jobs in today's run, but you may want to check.", "Not geocoding housing today")
 
     accurate = df.apply(lambda job: is_accurate(job), axis=1)
     accurate_jobs, inaccurate_jobs = df.copy()[accurate], df.copy()[~accurate]
@@ -166,8 +168,9 @@ def fix_zip_code_columns(df, columns):
         df[column] = df.apply(lambda job: fix_zip_code(job[column]), axis=1)
     return df
 
-def is_accurate(job):
-    if state_checking and (job["WORKSITE_STATE"].lower() not in our_states):
+def is_accurate(job, housing_addendum=False):
+    state_column = "PHYSICAL_LOCATION_STATE" if housing_addendum else "WORKSITE_STATE"
+    if state_checking and (job[state_column].lower() not in our_states):
         return True
     if job["table"] == "central":
         if job["Visa type"] == "H-2A":
@@ -230,10 +233,7 @@ def get_address_columns(worksite_or_housing):
     else:
         return housing_address_columns
 
-def remove_case_number_from_df(df, case_number):
-    return df[(df["CASE_NUMBER"] != case_number) | (df["table"] == "dol_h")]
-
-def handle_previously_fixed(new_job, old_job, worksite_or_housing):
+def handle_previously_fixed(new_job, old_job, worksite_or_housing, set_fixed_to_false=False):
     fixed_by = old_job[f"{worksite_or_housing}_fixed_by"]
     if fixed_by in ["coordinates", "address"]:
         if fixed_by == "address":
@@ -244,9 +244,13 @@ def handle_previously_fixed(new_job, old_job, worksite_or_housing):
         for column in address_columns:
             new_job[column] = old_job[column]
     else:
-        # if worksite_or_housing needs fixing in new df, mark notes column to not move to accuracies later - see lin 236
+        # if worksite_or_housing needs fixing in new df, mark as False
         if (pd.isna(new_job[f"{worksite_or_housing} accuracy type"])) or (new_job[f"{worksite_or_housing} accuracy"] < 0.8) or (new_job[f"{worksite_or_housing} accuracy type"] in bad_accuracy_types):
+            new_job["fixed"] = False
             return new_job, False
+
+    if set_fixed_to_false:
+        new_job["fixed"] = False
 
     return new_job, True
 
@@ -267,10 +271,10 @@ def get_columns(table_name):
     query_res = make_query(f"SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = '{table_name}'")
     return [column[0] for column in list(query_res)]
 
-def add_columns(table, columns):
+def add_columns(table, columns, column_types_dict):
     for column in columns:
-        myprint(f"Adding {column} as type VARCHAR...")
-        make_query(f'ALTER TABLE {table} ADD COLUMN "{column}" VARCHAR')
+        # myprint(f"Adding {column} as type {column_types_dict[column]} to {table}.")
+        make_query(f'ALTER TABLE {table} ADD COLUMN "{column}" {column_types_dict[column]}')
 
 def remove_case_num_from_table(case_number, table):
     if table == "job_central":
@@ -278,9 +282,24 @@ def remove_case_num_from_table(case_number, table):
     else:
         make_query(f"""DELETE FROM low_accuracies WHERE "CASE_NUMBER"='{case_number}' and "table" != 'dol_h'""")
 
-def add_job_to_postgres(job, table):
+def add_job_to_postgres(job, table, table_columns):
     job_df = pd.DataFrame(job.to_dict(), index=[0])
-    job_df.to_sql(table, engine, if_exists='append', index=False, dtype=column_types)
+    try:
+        job_df.to_sql(table, engine, if_exists='append', index=False, dtype=column_types)
+
+    except:
+        columns_in_job_but_not_table = set(job_df.columns) - table_columns
+        if columns_in_job_but_not_table:
+
+            opposite_table = "low_accuracies" if table == "job_central" else "job_central"
+            these_column_types = [make_query(f"SELECT data_type FROM information_schema.columns WHERE table_name = '{opposite_table}' AND column_name = '{column}'").fetchall()[0][0] for column in columns_in_job_but_not_table]
+            columns_and_types_dict = dict(zip(columns_in_job_but_not_table, these_column_types))
+
+            print_red_and_email(f"Adding columns to {table}. Here are the columns being added, with their corresponding types:\n{columns_and_types_dict}", "Adding columns!")
+            add_columns(table, columns_in_job_but_not_table, columns_and_types_dict)
+
+        job_df.to_sql(table, engine, if_exists='append', index=False, dtype=column_types)
+
 
 def sort_df_by_date(df):
     return df.sort_values(by=["RECEIVED_DATE"], ascending=True)
@@ -310,8 +329,10 @@ def merge_data(jobs, old_accurate_case_nums, old_inaccurate_case_nums, accurate=
     cols_not_in_accurate = jobs_columns - accurate_columns
     cols_not_in_inaccurate = jobs_columns - inaccurate_columns
 
-    add_columns("job_central", cols_not_in_accurate)
-    add_columns("low_accuracies", cols_not_in_inaccurate)
+    if cols_not_in_accurate or cols_not_in_inaccurate:
+        not_in_acc_str, not_in_inacc_str = ", ".join(cols_not_in_accurate), ", ".join(cols_not_in_inaccurate)
+        print_red_and_email(f"The following columns are in the new data but not in job_central: {not_in_acc_str}.\n\nThe following columns are in the new data but not in low_accuracies: {not_in_inacc_str}.", "Unidentified columns in new data!")
+        raise Exception("Unidentified columns in new data.")
 
     cols_in_accurate_and_new = accurate_columns.intersection(jobs_columns)
     cols_in_inaccurate_and_new = inaccurate_columns.intersection(jobs_columns)
@@ -331,7 +352,8 @@ def merge_data(jobs, old_accurate_case_nums, old_inaccurate_case_nums, accurate=
                 new_job, worksite_fixed = handle_previously_fixed(new_job, old_job, "worksite")
                 housing_fixed = True
                 if new_job["Visa type"] == "H-2A":
-                    new_job, housing_fixed = handle_previously_fixed(new_job, old_job, "housing")
+                    set_fixed_to_false = not worksite_fixed
+                    new_job, housing_fixed = handle_previously_fixed(new_job, old_job, "housing", set_fixed_to_false=set_fixed_to_false)
                 if worksite_fixed and housing_fixed:
                     table_to_put = "job_central"
 
@@ -347,7 +369,9 @@ def merge_data(jobs, old_accurate_case_nums, old_inaccurate_case_nums, accurate=
 
             remove_case_num_from_table(new_case_number, "low_accuracies")
 
-        add_job_to_postgres(new_job, table_to_put)
+
+        table_to_put_columns = accurate_columns if table_to_put == "job_central" else inaccurate_columns
+        add_job_to_postgres(new_job, table_to_put, table_to_put_columns)
 
 
 def merge_all_data(accurate_new_jobs, inaccurate_new_jobs):

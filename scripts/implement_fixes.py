@@ -1,10 +1,13 @@
+import os
 import helpers
-from helpers import myprint, print_red_and_email
+from helpers import myprint, print_red_and_email, make_query, get_database_engine
 import pandas as pd
 from sqlalchemy import create_engine
 from geocodio import GeocodioClient
-database_connection_string, geocodio_api_key, _, _, _, _, _, _ = helpers.get_secret_variables()
-engine, client = create_engine(database_connection_string), GeocodioClient(geocodio_api_key)
+from dotenv import load_dotenv
+load_dotenv()
+geocodio_api_key = os.getenv("GEOCODIO_API_KEY")
+engine, client = get_database_engine(), GeocodioClient(geocodio_api_key)
 
 def implement_fixes(fixed):
 
@@ -97,10 +100,10 @@ def implement_fixes(fixed):
     return central, housing, failures
 
 def send_fixes_to_postgres():
-    fixed = pd.read_sql_query('select * from "low_accuracies" where fixed=true', con=engine)
+    fixed = pd.read_sql_query('select * from low_accuracies where fixed=true', con=engine)
 
     if len(fixed) == 0:
-        helpers.myprint("No jobs have been fixed.")
+        myprint("No jobs have been fixed.")
         return
 
     central, housing, failures = implement_fixes(fixed)
@@ -110,8 +113,7 @@ def send_fixes_to_postgres():
     housing.to_sql('additional_housing', engine, if_exists='append', index=False, dtype=helpers.column_types)
     failures.to_sql('low_accuracies', engine, if_exists='append', index=False, dtype=helpers.column_types)
 
-    with engine.connect() as connection:
-        connection.execute("delete from low_accuracies where fixed=true")
+    make_query("delete from low_accuracies where fixed=true")
 
     myprint(f"Done implementing fixes. There were {len(failures)} failed fixes out of {len(fixed)} attempts.")
 

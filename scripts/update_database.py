@@ -1,24 +1,51 @@
+import os
 import requests
 import helpers
-from helpers import myprint
+from helpers import myprint, get_database_engine
 from column_name_mappings import column_name_mappings
 import pandas as pd
 import sqlalchemy
 from sqlalchemy import create_engine
 from sqlalchemy.sql import text
 from geocodio import GeocodioClient
-database_connection_string, geocodio_api_key, most_recent_run_url, date_of_run_url, _, _, _, _ = helpers.get_secret_variables()
-engine, client = create_engine(database_connection_string), GeocodioClient(geocodio_api_key)
-
+from dotenv import load_dotenv
+load_dotenv()
+geocodio_api_key, most_recent_run_url, date_of_run_url = os.getenv("GEOCODIO_API_KEY"), os.getenv("MOST_RECENT_RUN_URL"), os.getenv("DATE_OF_RUN_URL")
+engine, client = get_database_engine(force_cloud=True), GeocodioClient(geocodio_api_key)
 
 def update_database():
-    # latest_jobs = requests.get(most_recent_run_url).json()
-    latest_jobs = requests.get("https://api.apify.com/v2/datasets/4RcRFePf6vSGlsbUu/items?format=json&clean=1").json()
+    latest_jobs = requests.get(most_recent_run_url).json()
+
+    # use these two lines if you're updating using a local csv file, may not need encoding parameter
+    # latest_jobs = pd.read_csv("file_name", encoding='unicode_escape').drop(columns=['Unnamed: 0'])
+    # latest_jobs = latest_jobs.to_dict('records')
 
     if not latest_jobs:
         myprint("No new jobs.")
         return
     myprint(f"There are {len(latest_jobs)} new jobs.")
+
+    # # use this version of parse function if using a local csv file
+    # def parse(job):
+    #     column_mappings_dict = column_name_mappings
+    #     columns_names_dict = {"Section A": "Job Info", "Section C": "Place of Employment Info", "Section D":"Housing Info"}
+    #     parsed_job = {}
+    #     for key in job:
+    #         if "Section A" in key or "Section C" in key or "Section D" in key:
+    #             section = key.split("/")[0]
+    #             key_name = key.replace(section, columns_names_dict[section])
+    #             if key_name in column_mappings_dict:
+    #                 parsed_job[column_mappings_dict[key_name]] = job[key]
+    #             else:
+    #                 parsed_job[key_name] = job[key]
+    #         else:
+    #             if key in column_mappings_dict:
+    #                 parsed_job[column_mappings_dict[key]] = job[key]
+    #             else:
+    #                 parsed_job[key] = job[key]
+    #
+    #     return parsed_job
+
 
     def parse(job):
         column_mappings_dict = column_name_mappings
@@ -41,8 +68,7 @@ def update_database():
         return parsed_job
 
     # add necessary columns to job
-    # date_of_run = requests.get(date_of_run_url).json()["data"]["finishedAt"]
-    date_of_run = "2022/05/31"
+    date_of_run = requests.get(date_of_run_url).json()["data"]["finishedAt"]
 
     def add_necessary_columns(job):
         # add source and date of run column
@@ -86,9 +112,11 @@ def update_database():
 
     full_raw_jobs = full_jobs_df.drop(columns=["table"])
     full_raw_jobs.to_sql("raw_scraper_jobs", engine, if_exists="append", index=False, dtype=helpers.column_types)
+    myprint("Uploaded raw scraper jobs to PostgreSQL")
 
     # geocode, split by accuracy, get old data, merge old with new data, sort data
     new_accurate_jobs, new_inaccurate_jobs = helpers.geocode_and_split_by_accuracy(full_jobs_df)
+
     helpers.merge_all_data(new_accurate_jobs, new_inaccurate_jobs)
 
 

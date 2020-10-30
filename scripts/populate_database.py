@@ -3,8 +3,10 @@ import pandas as pd
 import sqlalchemy
 import helpers
 from sqlalchemy import create_engine
-database_connection_string = helpers.get_secret_variables()[0]
-engine = create_engine(database_connection_string)
+from dotenv import load_dotenv
+load_dotenv()
+geocodio_api_key = os.getenv("GEOCODIO_API_KEY")
+engine = helpers.get_database_engine()
 
 def geocode_manage_split(df):
     renaming_info_dict = {"Section A": "Job Info", "Section C": "Place of Employment Info", "Section D":"Housing Info"}

@@ -1,12 +1,14 @@
 import os
-from helpers import myprint
+from helpers import myprint, get_database_engine
 import helpers
 import pandas as pd
 from datetime import datetime
 from sqlalchemy import create_engine
 from geocodio import GeocodioClient
-database_connection_string, geocodio_api_key, _, _, _, _, _, _ = helpers.get_secret_variables()
-engine, client = create_engine(database_connection_string), GeocodioClient(geocodio_api_key)
+from dotenv import load_dotenv
+load_dotenv()
+geocodio_api_key = os.getenv("GEOCODIO_API_KEY")
+engine, client = get_database_engine(), GeocodioClient(geocodio_api_key)
 
 def geocode_manage_split_merge(dol_jobs, accurate_old_jobs, inaccurate_old_jobs):
     # get dol data and postgres data (accurate and inaccurate), perform necessary data management on dol data

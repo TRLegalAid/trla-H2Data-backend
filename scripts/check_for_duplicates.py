@@ -1,8 +1,7 @@
 import pandas as pd
-from helpers import print_red_and_email, get_secret_variables, column_types, myprint
+from helpers import print_red_and_email, column_types, myprint, get_database_engine
 from sqlalchemy import create_engine
-database_connection_string, _, _, _, _, _, _, _ = get_secret_variables()
-engine = create_engine(database_connection_string)
+engine = get_database_engine()
 
 def check_for_duplicates():
     table_names = ["job_central"]
