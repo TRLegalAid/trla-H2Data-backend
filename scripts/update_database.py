@@ -18,7 +18,7 @@ def update_database():
     latest_jobs = requests.get(most_recent_run_url).json()
 
     # use these two lines if you're updating using a local csv file
-    # latest_jobs = pd.read_csv("dataset_apify-dol-actor_2020-10-30_20-35-55-536.csv")
+    # latest_jobs = pd.read_csv("Since_10_23_to_10_29.csv", encoding='unicode_escape').drop(columns=["Unnamed: 0"])
     # latest_jobs = latest_jobs.to_dict('records')
 
     if not latest_jobs:
@@ -28,7 +28,7 @@ def update_database():
 
 
 
-    # # use this version of parse function if using a local csv file
+    # use this version of parse function if using a local csv file
     # def parse(job):
     #     column_mappings_dict = column_name_mappings
     #     columns_names_dict = {"Section A": "Job Info", "Section C": "Place of Employment Info", "Section D":"Housing Info"}

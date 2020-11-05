@@ -16,7 +16,7 @@ def overwrite_feature(username, password, new_df, old_feature_name):
     # print("Logged in as " + str(gis.properties.user.username))
 
     csv_file_name = f"{old_feature_name}.csv"
-    new_df.to_csv(csv_file_name)
+    new_df.to_csv(csv_file_name, index=False)
 
     old_jobs_item = gis.content.search(f"title: {old_feature_name}", 'Feature Layer')[0]
     old_feature_layer = FeatureLayerCollection.fromitem(old_jobs_item)
@@ -28,15 +28,13 @@ def overwrite_feature(username, password, new_df, old_feature_name):
     os.remove(csv_file_name)
 
 def overwrite_our_feature():
-    job_central_df = pd.read_sql('job_central', con=engine)
 
-    states_to_keep = ["TEXAS", "KENTUCKY", "TENNESSEE", "ARKANSAS", "LOUISIANA", "MISSISSIPPI", "ALABAMA"]
-    forestry_soc_codes = ["45-4011.00", "45-4011"]
-    is_h2a = job_central_df["Visa type"] == "H-2A"
-    is_forestry_h2b_in_our_states = (job_central_df["Visa type"] == "H-2B") & (job_central_df["SOC_CODE"].isin(forestry_soc_codes)) & job_central_df["WORKSITE_STATE"].isin(states_to_keep)
+    h2a_df = pd.read_sql("""SELECT * FROM job_central WHERE "Visa type" = 'H-2A' AND "WORKSITE_STATE" IN
+                        ('TEXAS', 'KENTUCKY', 'TENNESSEE', 'ARKANSAS', 'LOUISIANA', 'MISSISSIPPI', 'ALABAMA')""", con=engine)
 
-    h2a_df = job_central_df[is_h2a]
-    forestry_h2b_in_our_states_df = job_central_df.copy()[is_forestry_h2b_in_our_states]
+    forestry_h2b_in_our_states_df = pd.read_sql("""SELECT * FROM job_central WHERE "Visa type" = 'H-2B' AND "SOC_CODE" IN ('45-4011.00', '45-4011') AND
+                                                    "WORKSITE_STATE" IN ('TEXAS', 'KENTUCKY', 'TENNESSEE', 'ARKANSAS', 'LOUISIANA', 'MISSISSIPPI', 'ALABAMA')
+                                                    """, con=engine)
 
     myprint(f"There will be {len(h2a_df)} H2A jobs in the feature.")
     myprint(f"There will be {len(forestry_h2b_in_our_states_df)} forestry H2B jobs in the feature.")
@@ -51,14 +49,18 @@ def overwrite_our_feature():
     forestry_h2b_in_our_states_df["housing_long"] = forestry_h2b_in_our_states_df.apply(lambda job: get_worksite_long(job), axis=1)
     h2a_and_h2b_df = h2a_df.append(forestry_h2b_in_our_states_df)
 
-    additional_housing_df = pd.read_sql('additional_housing', con=engine)
+    additional_housing_df = pd.read_sql("""SELECT * FROM additional_housing WHERE "CASE_NUMBER" IN (select "CASE_NUMBER" FROM job_central WHERE
+                                        "Visa type" = 'H-2A' AND "WORKSITE_STATE" IN ('TEXAS', 'KENTUCKY', 'TENNESSEE', 'ARKANSAS', 'LOUISIANA', 'MISSISSIPPI', 'ALABAMA'))
+                                         """, con=engine)
+
     myprint(f"There will be {len(additional_housing_df)} additional housing rows in the feature.")
 
     h2a_columns = set(h2a_df.columns)
     additional_housing_columns = set(additional_housing_df.columns)
     cols_only_in_h2a = h2a_columns - additional_housing_columns
     address_columns_mappings = {"HOUSING_ADDRESS_LOCATION": "PHYSICAL_LOCATION_ADDRESS1", "HOUSING_CITY": "PHYSICAL_LOCATION_CITY",
-                                "HOUSING_STATE": "PHYSICAL_LOCATION_STATE", "HOUSING_POSTAL_CODE": "PHYSICAL_LOCATION_POSTAL_CODE"}
+                                "HOUSING_STATE": "PHYSICAL_LOCATION_STATE", "HOUSING_POSTAL_CODE": "PHYSICAL_LOCATION_POSTAL_CODE",
+                                "HOUSING_COUNTY": "PHYSICAL_LOCATION_COUNTY"}
 
     for column in cols_only_in_h2a:
         additional_housing_df[column] = None
@@ -66,6 +68,7 @@ def overwrite_our_feature():
     for i, row in additional_housing_df.iterrows():
         case_number = row["CASE_NUMBER"]
         job_in_h2a = h2a_df[h2a_df["CASE_NUMBER"] == case_number]
+
         if len(job_in_h2a) == 1:
             for column in cols_only_in_h2a:
                 additional_housing_df.at[i, column] = get_value(job_in_h2a, column)
@@ -78,8 +81,9 @@ def overwrite_our_feature():
     additional_housing_df = additional_housing_df.drop(columns=address_columns_mappings.values())
 
     full_layer = h2a_and_h2b_df.append(additional_housing_df)
+    # full_layer.to_csv("H2Data.csv")
 
-    overwrite_feature(ARCGIS_USERNAME, ARCGIS_PASSWORD, full_layer, 'h2a_h2b_jobs')
+    overwrite_feature(ARCGIS_USERNAME, ARCGIS_PASSWORD, full_layer, 'H2Data')
 
 if __name__ == "__main__":
    overwrite_our_feature()
