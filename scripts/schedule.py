@@ -24,6 +24,10 @@ def update_task():
 def implement_fixes_task():
     perform_task_and_catch_errors(send_fixes_to_postgres, "IMPLEMENTING FIXES")
 
+
+perform_task_and_catch_errors(overwrite_our_feature, "OVERWRITING ARCGIS FEATURE")
+print("DONE")
+
 # update database at 1:00 am EST every day, check for fixes every 6 hours
 sched = BlockingScheduler()
 sched.add_job(update_task, 'interval', days=1, start_date='2020-09-09 01:00:00', timezone='US/Eastern')
