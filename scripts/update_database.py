@@ -81,8 +81,9 @@ def update_database():
         if helpers.h2a_or_h2b(job) == "H-2A":
             job["Visa type"] = "H-2A"
             zip_code_columns = ["EMPLOYER_POSTAL_CODE", "WORKSITE_POSTAL_CODE",  "Place of Employment Info/Postal Code", "HOUSING_POSTAL_CODE"]
-            job["TOTAL_WORKERS_NEEDED"] = job["TOTAL_WORKERS_H-2A_REQUESTED"]
-            workers_needed, occupancy = job["TOTAL_WORKERS_NEEDED"], job["TOTAL_OCCUPANCY"]
+            if "TOTAL_WORKERS_H-2A_REQUESTED" in job:
+                job["TOTAL_WORKERS_NEEDED"] = job["TOTAL_WORKERS_H-2A_REQUESTED"]
+            workers_needed, occupancy = job["TOTAL_WORKERS_NEEDED"], job.get("TOTAL_OCCUPANCY", None)
             if workers_needed and occupancy:
                 if workers_needed > occupancy:
                     job["W to H Ratio"] = "W>H"
@@ -100,8 +101,9 @@ def update_database():
             job["Visa type"], zip_code_columns = "", []
         # fix zip code columns
         for column in zip_code_columns:
-            fixed_zip_code = helpers.fix_zip_code(job[column])
-            job[column] = fixed_zip_code
+            if column in job:
+                fixed_zip_code = helpers.fix_zip_code(job[column])
+                job[column] = fixed_zip_code
         return job
 
     # parse each job, add all columns to each job, append this to raw scraper data and push back to postgres
