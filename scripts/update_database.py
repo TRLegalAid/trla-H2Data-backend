@@ -124,7 +124,5 @@ def update_database():
 
     helpers.merge_all_data(new_accurate_jobs, new_inaccurate_jobs)
 
-
-
 if __name__ == "__main__":
    update_database()

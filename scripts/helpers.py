@@ -55,7 +55,7 @@ def get_database_engine(force_cloud=False):
     else:
         return create_engine(os.getenv("LOCAL_DATABASE_URL"))
 
-force_cloud = True
+force_cloud = False
 engine = get_database_engine(force_cloud=force_cloud)
 
 bad_accuracy_types = ["place", "state", "street_center"]
@@ -100,9 +100,6 @@ def geocode_table(df, worksite_or_housing):
     elif worksite_or_housing == "housing":
         geocoding_type = "housing"
         addresses = df.apply(lambda job: create_address_from(job["HOUSING_ADDRESS_LOCATION"], job["HOUSING_CITY"], job["HOUSING_STATE"], job["HOUSING_POSTAL_CODE"]), axis=1).tolist()
-    elif worksite_or_housing == "housing addendum":
-        geocoding_type = "housing"
-        addresses = df.apply(lambda job: create_address_from(job["PHYSICAL_LOCATION_ADDRESS1"], job["PHYSICAL_LOCATION_CITY"], job["PHYSICAL_LOCATION_STATE"], job["PHYSICAL_LOCATION_POSTAL_CODE"]), axis=1).tolist()
     else:
         print_red_and_email("`worksite_or_housing` parameter in geocode_table function must be either `worksite` or `housing` or `housing addendum`", "Invalid Function Parameter")
         return
@@ -141,7 +138,7 @@ def geocode_and_split_by_accuracy(df, table=""):
     if table == "dol_h2b":
         df = geocode_table(df, "worksite")
     elif table == "housing addendum":
-        df = geocode_table(df, "housing addendum")
+        df = geocode_table(df, "housing")
     else:
         df = geocode_table(df, "worksite")
         if "HOUSING_ADDRESS_LOCATION" in df.columns:
@@ -170,8 +167,8 @@ def fix_zip_code_columns(df, columns):
     return df
 
 def is_accurate(job, housing_addendum=False):
-    state_column = "PHYSICAL_LOCATION_STATE" if housing_addendum else "WORKSITE_STATE"
-    if state_checking and (job[state_column].lower() not in our_states):
+    state_columnS = ("HOUSING_STATE", "HOUSING_STATE") if housing_addendum else ("HOUSING_STATE", "WORKSITE_STATE")
+    if state_checking and (job[state_columns[0]].lower() not in our_states) and (job[state_columns[1]].lower() not in our_states):
         return True
     if job["table"] == "central":
         if job["Visa type"] == "H-2A":

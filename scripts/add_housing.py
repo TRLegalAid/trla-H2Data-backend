@@ -11,7 +11,7 @@ geocodio_api_key = os.getenv("GEOCODIO_API_KEY")
 engine, client = get_database_engine(), GeocodioClient(geocodio_api_key)
 
 def geocode_manage_split_housing(housing):
-    housing = helpers.fix_zip_code_columns(housing, ["PHYSICAL_LOCATION_POSTAL_CODE"])
+    housing = helpers.fix_zip_code_columns(housing, ["HOUSING_POSTAL_CODE"])
     housing["table"], housing["Source"], housing["fixed"], housing["housing_fixed_by"] = "dol_h", "DOL", None, None
     accurate_housing, inaccurate_housing = helpers.geocode_and_split_by_accuracy(housing, table="housing addendum")
     return accurate_housing, inaccurate_housing

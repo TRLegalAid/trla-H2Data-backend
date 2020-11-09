@@ -11,6 +11,12 @@ if os.getenv("LOCAL_DEV") == "true":
 ARCGIS_USERNAME, ARCGIS_PASSWORD = os.getenv("ARCGIS_USERNAME"), os.getenv("ARCGIS_PASSWORD")
 engine = get_database_engine(force_cloud=True)
 
+df = pd.read_sql("""select * from low_accuracies where "table" = 'dol_h'""", con=engine)
+print(len(df))
+df.to_excel("try again.xlsx")
+
+exit()
+
 def overwrite_feature(username, password, new_df, old_feature_name):
     gis = GIS(url='https://www.arcgis.com', username=username, password=password)
     # print("Logged in as " + str(gis.properties.user.username))
@@ -58,9 +64,6 @@ def overwrite_our_feature():
     h2a_columns = set(h2a_df.columns)
     additional_housing_columns = set(additional_housing_df.columns)
     cols_only_in_h2a = h2a_columns - additional_housing_columns
-    address_columns_mappings = {"HOUSING_ADDRESS_LOCATION": "PHYSICAL_LOCATION_ADDRESS1", "HOUSING_CITY": "PHYSICAL_LOCATION_CITY",
-                                "HOUSING_STATE": "PHYSICAL_LOCATION_STATE", "HOUSING_POSTAL_CODE": "PHYSICAL_LOCATION_POSTAL_CODE",
-                                "HOUSING_COUNTY": "PHYSICAL_LOCATION_COUNTY"}
 
     for column in cols_only_in_h2a:
         additional_housing_df[column] = None
@@ -75,13 +78,9 @@ def overwrite_our_feature():
         elif len(job_in_h2a) > 1:
             print_red_and_email(f"{case_number} is in additional_housing, so I looked for it in job_central, and found {len(job_in_h2a)} rows with that case number when I should have only found 1 such row!", "Found Duplicate Case Number in job_central while Overwriting ArcGIS Layer")
 
-        for h2a_address_column in address_columns_mappings:
-            additional_housing_df.at[i, h2a_address_column] = row[address_columns_mappings[h2a_address_column]]
-
-    additional_housing_df = additional_housing_df.drop(columns=address_columns_mappings.values())
-
     full_layer = h2a_and_h2b_df.append(additional_housing_df)
     # full_layer.to_csv("H2Data.csv")
+    # exit()
 
     overwrite_feature(ARCGIS_USERNAME, ARCGIS_PASSWORD, full_layer, 'H2Data')
 

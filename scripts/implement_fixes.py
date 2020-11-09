@@ -20,14 +20,7 @@ def implement_fixes(fixed):
         if worksite_or_housing == "worksite":
             full_address = helpers.create_address_from(row["WORKSITE_ADDRESS"], row["WORKSITE_CITY"], row["WORKSITE_STATE"], row["WORKSITE_POSTAL_CODE"])
         elif worksite_or_housing == "housing":
-            if row["table"] == "central":
-                full_address = helpers.create_address_from(row["HOUSING_ADDRESS_LOCATION"], row["HOUSING_CITY"], row["HOUSING_STATE"], row["HOUSING_POSTAL_CODE"])
-            elif row["table"] == "dol_h":
-                full_address = helpers.create_address_from(row["PHYSICAL_LOCATION_ADDRESS1"], row["PHYSICAL_LOCATION_CITY"], row["PHYSICAL_LOCATION_STATE"], row["PHYSICAL_LOCATION_POSTAL_CODE"])
-            else:
-                print_red_and_email(f"Table column for {job['CASE_NUMBER']} not specified - must be either `dol_h` or `central`", "Unspecified or Incorrect table Column Value")
-                mark_as_failed(i, worksite_or_housing, df)
-                return
+            full_address = helpers.create_address_from(row["HOUSING_ADDRESS_LOCATION"], row["HOUSING_CITY"], row["HOUSING_STATE"], row["HOUSING_POSTAL_CODE"])
         else:
             print_red_and_email(f"There was an error fixing the job with case number: {row['CASE_NUMBER']}. worksite_or_housing parameter in fix_by_address must be either `worksite` or `housing`", "Invalid Function Parameter")
             return
