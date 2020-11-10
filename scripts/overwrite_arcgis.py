@@ -11,12 +11,6 @@ if os.getenv("LOCAL_DEV") == "true":
 ARCGIS_USERNAME, ARCGIS_PASSWORD = os.getenv("ARCGIS_USERNAME"), os.getenv("ARCGIS_PASSWORD")
 engine = get_database_engine(force_cloud=True)
 
-df = pd.read_sql("""select * from low_accuracies where "table" = 'dol_h'""", con=engine)
-print(len(df))
-df.to_excel("try again.xlsx")
-
-exit()
-
 def overwrite_feature(username, password, new_df, old_feature_name):
     gis = GIS(url='https://www.arcgis.com', username=username, password=password)
     # print("Logged in as " + str(gis.properties.user.username))

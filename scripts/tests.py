@@ -45,7 +45,7 @@ def assert_accuracies_and_inaccuracies(accurates, inaccurates):
     else:
         h2b_inaccurates_inaccurate = True
     return worksites_accurate, housings_accurate, h2a_inaccurates_inaccurate, h2b_inaccurates_inaccurate
-# 
+#
 # myprint("Start of populate database test", is_red="red")
 # scraper_data = pd.read_excel(os.path.join(os.getcwd(), '..',  "excel_files/scraper_data.xlsx"))
 # accurates, inaccurates, raw_scrapers = geocode_manage_split(scraper_data)
@@ -596,10 +596,10 @@ class TestImplementFixes(unittest.TestCase):
     def test_works_for_dolH_row(self):
         job = housing_successes[housing_successes["CASE_NUMBER"] == "H-300-19296-103454"]
         self.assertEqual(get_value(job, "housing_fixed_by"), "address")
-        self.assertEqual(get_value(job, "PHYSICAL_LOCATION_ADDRESS1"), "124 Raymond Ave")
-        self.assertEqual(get_value(job, "PHYSICAL_LOCATION_CITY"), "Poughkeepsie")
-        self.assertEqual(get_value(job, "PHYSICAL_LOCATION_POSTAL_CODE"), 12604)
-        self.assertEqual(get_value(job, "PHYSICAL_LOCATION_STATE"), "NY")
+        self.assertEqual(get_value(job, "HOUSING_ADDRESS_LOCATION"), "124 Raymond Ave")
+        self.assertEqual(get_value(job, "HOUSING_CITY"), "Poughkeepsie")
+        self.assertEqual(get_value(job, "HOUSING_POSTAL_CODE"), 12604)
+        self.assertEqual(get_value(job, "HOUSING_STATE"), "NY")
         self.assertEqual(get_value(job, "housing accuracy"), 1)
         self.assertEqual(get_value(job, "housing accuracy type"), "rooftop")
         self.assertEqual(get_value(job, "housing_lat"), 41.686518)
@@ -643,15 +643,15 @@ class TestImplementFixes(unittest.TestCase):
 
     def test_columns(self):
         housing_columns, accurate_columns, inaccurate_columns = housing_successes.columns, successes.columns, failures.columns
-        self.assertTrue("PHYSICAL_LOCATION_ADDRESS1" in housing_columns)
+        print(housing_columns)
+        self.assertTrue("HOUSING_ADDRESS_LOCATION" in housing_columns)
         self.assertTrue("fixed" in housing_columns)
         self.assertTrue("housing_fixed_by" in housing_columns)
         self.assertFalse("WORKSITE_STATE" in housing_columns)
         self.assertFalse("worksite accuracy type" in housing_columns)
         self.assertTrue("HOUSING_POSTAL_CODE" in accurate_columns)
         self.assertTrue("worksite accuracy type" in accurate_columns)
-        self.assertFalse("PHYSICAL_LOCATION_ADDRESS1" in accurate_columns)
-        self.assertTrue("PHYSICAL_LOCATION_ADDRESS1" in inaccurate_columns)
+        self.assertTrue("HOUSING_ADDRESS_LOCATION" in inaccurate_columns)
         self.assertTrue("fixed" in inaccurate_columns)
         self.assertTrue("housing_fixed_by" in inaccurate_columns)
         self.assertTrue("WORKSITE_STATE" in inaccurate_columns)
@@ -660,4 +660,4 @@ class TestImplementFixes(unittest.TestCase):
         self.assertTrue("worksite accuracy type" in inaccurate_columns)
 
 unittest.main(verbosity=2)
-# # unittest.main()
+# unittest.main()

@@ -85,6 +85,7 @@ def implement_fixes(fixed):
         housing_or_central_columns = pd.read_sql_query(f'select * from {housing_or_central} limit 1', con=engine).columns
         columns_only_in_low_accuracies = [column for column in low_accuracies_columns if column not in housing_or_central_columns]
         return data.drop(columns_only_in_low_accuracies, axis=1)
+        
     central = remove_extra_columns(central, "job_central")
     central = helpers.sort_df_by_date(central)
     housing = remove_extra_columns(housing, "additional_housing")
@@ -100,15 +101,17 @@ def send_fixes_to_postgres():
         myprint("No jobs have been fixed.")
         return
 
+    myprint(f"{len(fixed)} jobs have been fixed.")
     central, housing, failures = implement_fixes(fixed)
     assert len(central) + len(housing) + len(failures) == len(fixed)
+    myprint(f"{len(central)} rows moving from low_accuracies to job_central.")
+    myprint(f"{len(housing)} rows moving from low_accuracies to additional housing.")
 
     central.to_sql('job_central', engine, if_exists='append', index=False, dtype=helpers.column_types)
     housing.to_sql('additional_housing', engine, if_exists='append', index=False, dtype=helpers.column_types)
     failures.to_sql('low_accuracies', engine, if_exists='append', index=False, dtype=helpers.column_types)
 
     make_query("delete from low_accuracies where fixed=true")
-
     myprint(f"Done implementing fixes. There were {len(failures)} failed fixes out of {len(fixed)} attempts.")
 
 if __name__ == "__main__":
