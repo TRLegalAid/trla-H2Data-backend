@@ -116,8 +116,8 @@ def update_database():
         full_jobs_df[column] = pd.to_datetime(full_jobs_df[column], errors='coerce')
 
     full_raw_jobs = full_jobs_df.drop(columns=["table"])
-    full_raw_jobs.to_sql("raw_scraper_jobs", engine, if_exists="append", index=False, dtype=helpers.column_types)
-    myprint("Uploaded raw scraper jobs to PostgreSQL")
+    # full_raw_jobs.to_sql("raw_scraper_jobs", engine, if_exists="append", index=False, dtype=helpers.column_types)
+    # myprint("Uploaded raw scraper jobs to PostgreSQL")
 
     # geocode, split by accuracy, get old data, merge old with new data, sort data
     new_accurate_jobs, new_inaccurate_jobs = helpers.geocode_and_split_by_accuracy(full_jobs_df)

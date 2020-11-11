@@ -167,8 +167,15 @@ def fix_zip_code_columns(df, columns):
     return df
 
 def is_accurate(job, housing_addendum=False):
-    state_columnS = ("HOUSING_STATE", "HOUSING_STATE") if housing_addendum else ("HOUSING_STATE", "WORKSITE_STATE")
-    if state_checking and (job[state_columns[0]].lower() not in our_states) and (job[state_columns[1]].lower() not in our_states):
+
+    if housing_addendum:
+        automatic_accurate_conditions = job["HOUSING_STATE"].lower() not in our_states
+    elif job["Visa type"] == "H-2B":
+        automatic_accurate_conditions = job["WORKSITE_STATE"].lower() not in our_states
+    else:
+        automatic_accurate_conditions = (job["WORKSITE_STATE"].lower() not in our_states) and job["HOUSING_STATE"].lower() not in our_states
+
+    if state_checking and automatic_accurate_conditions:
         return True
     if job["table"] == "central":
         if job["Visa type"] == "H-2A":
