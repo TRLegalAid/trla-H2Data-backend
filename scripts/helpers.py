@@ -179,7 +179,16 @@ def is_accurate(job, housing_addendum=False):
         return True
     if job["table"] == "central":
         if job["Visa type"] == "H-2A":
-            return not ((not job["worksite accuracy type"]) or (not job["housing accuracy type"]) or (job["worksite accuracy"] < 0.8) or (job["housing accuracy"] < 0.8) or (job["worksite accuracy type"] in bad_accuracy_types) or (job["housing accuracy type"] in bad_accuracy_types))
+
+            # check if this job is missing all its housing info
+            # housing accuracy type won't be in job if job is missing housing info and all the other jobs in this run were H-2b or also missing housing info
+            # otherwise need to check whether all the housing address columns are null - if so, this job is missing all housing info
+            if ("HOUSING_ADDRESS_LOCATION" not in job) or (pd.isna(job["HOUSING_ADDRESS_LOCATION"]) and pd.isna(job["HOUSING_CITY"]) and pd.isna(job["HOUSING_STATE"]) and pd.isna(job["HOUSING_POSTAL_CODE"])):
+                print_red_and_email(f"{job['CASE_NUMBER']} is H-2A but doesn't have housing info.", "H-2A Job With No Housing Info")
+                return not ((job["worksite accuracy"] == None) or (job["worksite accuracy"] < 0.8) or (job["worksite accuracy type"] in bad_accuracy_types))
+            # for an H2A row with housing info
+            else:
+                return not ((not job["worksite accuracy type"]) or (not job["housing accuracy type"]) or (job["worksite accuracy"] < 0.8) or (job["housing accuracy"] < 0.8) or (job["worksite accuracy type"] in bad_accuracy_types) or (job["housing accuracy type"] in bad_accuracy_types))
         elif job["Visa type"] == "H-2B":
             return not ((job["worksite accuracy"] == None) or (job["worksite accuracy"] < 0.8) or (job["worksite accuracy type"] in bad_accuracy_types))
         else:
@@ -277,7 +286,7 @@ def get_columns(table_name):
 
 def add_columns(table, columns, column_types_dict):
     for column in columns:
-        # myprint(f"Adding {column} as type {column_types_dict[column]} to {table}.")
+        myprint(f"Adding {column} as type {column_types_dict[column]} to {table}.")
         make_query(f'ALTER TABLE {table} ADD COLUMN "{column}" {column_types_dict[column]}')
 
 def remove_case_num_from_table(case_number, table):

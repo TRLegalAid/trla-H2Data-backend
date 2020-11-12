@@ -8,7 +8,7 @@ if os.getenv("LOCAL_DEV") == "true":
     from dotenv import load_dotenv
     load_dotenv()
 geocodio_api_key = os.getenv("GEOCODIO_API_KEY")
-engine, client = get_database_engine(), GeocodioClient(geocodio_api_key)
+engine, client = get_database_engine(force_cloud=True), GeocodioClient(geocodio_api_key)
 
 def implement_fixes(fixed):
 
@@ -49,6 +49,11 @@ def implement_fixes(fixed):
         elif (row["Visa type"] == "H-2B") and (worksite_or_housing == "housing"):
             pass
         else:
+            # if checking for housing and h-2a, let it through if all the housing columns are empty
+            if worksite_or_housing == "housing" and pd.isna(job["HOUSING_ADDRESS_LOCATION"]) and pd.isna(job["HOUSING_CITY"]) and pd.isna(job["HOUSING_STATE"]) and pd.isna(job["HOUSING_POSTAL_CODE"]):
+                print_red_and_email(f"{job['CASE_NUMBER']} is H-2A but all of its housing columns are blank. If its worksite was fixed properly, it will be allowed to pass to job central. This was found while implementing fixes.", "H-2A job Without Housing Data - Implement Fixes")
+                pass
+
             if (not row[f"{worksite_or_housing} accuracy type"]) or (row[f"{worksite_or_housing} accuracy"] < 0.8) or (row[f"{worksite_or_housing} accuracy type"] in helpers.bad_accuracy_types):
                 print_red_and_email(f"The {worksite_or_housing} data of {row['CASE_NUMBER']} requires fixing, but its {worksite_or_housing}_fixed_by column was not specified to either address, coordinates, inactive, or impossible.", "Address Needs Fixing but Not Fixed")
                 mark_as_failed(i, worksite_or_housing, df)
