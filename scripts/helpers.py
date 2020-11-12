@@ -55,7 +55,7 @@ def get_database_engine(force_cloud=False):
     else:
         return create_engine(os.getenv("LOCAL_DATABASE_URL"))
 
-force_cloud = False
+force_cloud = True
 engine = get_database_engine(force_cloud=force_cloud)
 
 bad_accuracy_types = ["place", "state", "street_center"]
@@ -173,7 +173,7 @@ def is_accurate(job, housing_addendum=False):
     elif job["Visa type"] == "H-2B":
         automatic_accurate_conditions = job["WORKSITE_STATE"].lower() not in our_states
     else:
-        automatic_accurate_conditions = (job["WORKSITE_STATE"].lower() not in our_states) and job["HOUSING_STATE"].lower() not in our_states
+        automatic_accurate_conditions = (job["WORKSITE_STATE"].lower() not in our_states) and (job["HOUSING_STATE"].lower() not in our_states)
 
     if state_checking and automatic_accurate_conditions:
         return True

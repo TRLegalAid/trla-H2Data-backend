@@ -50,7 +50,7 @@ def implement_fixes(fixed):
             pass
         else:
             if (not row[f"{worksite_or_housing} accuracy type"]) or (row[f"{worksite_or_housing} accuracy"] < 0.8) or (row[f"{worksite_or_housing} accuracy type"] in helpers.bad_accuracy_types):
-                print_red_and_email(f"The {worksite_or_housing} data of {row['CASE_NUMBER']} requires fixing, but its {worksite_or_housing}_fixed_by column was not specified to either address, coordinates, or impossible.", "Address Needs Fixing but Not Fixed")
+                print_red_and_email(f"The {worksite_or_housing} data of {row['CASE_NUMBER']} requires fixing, but its {worksite_or_housing}_fixed_by column was not specified to either address, coordinates, inactive, or impossible.", "Address Needs Fixing but Not Fixed")
                 mark_as_failed(i, worksite_or_housing, df)
 
     def fix_row(i, row, worksite_or_housing, df):
@@ -61,7 +61,7 @@ def implement_fixes(fixed):
             fix_by_coords(i, worksite_or_housing, df)
         elif method == "NA" or pd.isnull(method):
             assert_accuracy(i, row, worksite_or_housing, df)
-        elif method == "impossible":
+        elif method == "impossible" or method == "inactive":
             pass
         else:
             error_message = f"Cannot fix job with case number: {row['CASE_NUMBER']}. This is because {worksite_or_housing}_fixed_by column must be either `address`, `coordinates`, `impossible`, `NA`, or null - and it's case sensitive!"
@@ -85,7 +85,7 @@ def implement_fixes(fixed):
         housing_or_central_columns = pd.read_sql_query(f'select * from {housing_or_central} limit 1', con=engine).columns
         columns_only_in_low_accuracies = [column for column in low_accuracies_columns if column not in housing_or_central_columns]
         return data.drop(columns_only_in_low_accuracies, axis=1)
-        
+
     central = remove_extra_columns(central, "job_central")
     central = helpers.sort_df_by_date(central)
     housing = remove_extra_columns(housing, "additional_housing")

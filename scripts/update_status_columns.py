@@ -1,26 +1,31 @@
 from helpers import make_query
 
-def update_status_columns():
+def update_status_columns(table_name):
+
     make_query(
-             """UPDATE job_central
-                    SET status =
-                    CASE
-         			WHEN ("EMPLOYMENT_BEGIN_DATE" IS null) OR ("EMPLOYMENT_END_DATE" IS null) THEN null
-         			WHEN ("EMPLOYMENT_BEGIN_DATE" <= CURRENT_DATE) AND (CURRENT_DATE <= "EMPLOYMENT_END_DATE") THEN 'active'
-         			ELSE 'inactive'
-         			END"""
+             f"""UPDATE {table_name}
+                    SET "EMPLOYMENT_BEGIN_DATE" = "REQUESTED_BEGIN_DATE"
+                    WHERE "EMPLOYMENT_BEGIN_DATE" IS null"""
                 )
 
     make_query(
-             """UPDATE low_accuracies
+             f"""UPDATE {table_name}
+                    SET "EMPLOYMENT_END_DATE" = "REQUESTED_END_DATE"
+                    WHERE "EMPLOYMENT_END_DATE" IS null"""
+                )
+
+    make_query(
+             f"""UPDATE {table_name}
                     SET status =
                     CASE
          			WHEN ("EMPLOYMENT_BEGIN_DATE" IS null) OR ("EMPLOYMENT_END_DATE" IS null) THEN null
-         			WHEN ("EMPLOYMENT_BEGIN_DATE" <= CURRENT_DATE) AND (CURRENT_DATE <= "EMPLOYMENT_END_DATE") THEN 'active'
-         			ELSE 'inactive'
+         			WHEN ("EMPLOYMENT_BEGIN_DATE" <= CURRENT_DATE) AND (CURRENT_DATE <= "EMPLOYMENT_END_DATE") THEN 'currently active'
+                    WHEN ("EMPLOYMENT_BEGIN_DATE" > CURRENT_DATE) AND (CURRENT_DATE <= "EMPLOYMENT_END_DATE") THEN 'not yet active'
+         			ELSE 'no longer active'
          			END"""
                 )
 
 
 if __name__ == "__main__":
-    update_status_columns()
+    update_status_columns('job_central')
+    update_status_columns('low_accuracies')
