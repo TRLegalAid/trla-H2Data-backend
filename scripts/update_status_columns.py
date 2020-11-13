@@ -25,7 +25,9 @@ def update_status_columns(table_name):
          			END"""
                 )
 
-
-if __name__ == "__main__":
+def update_status_columns_both_tables():
     update_status_columns('job_central')
     update_status_columns('low_accuracies')
+
+if __name__ == "__main__":
+    update_status_columns_both_tables()

@@ -3,7 +3,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from update_database import update_database
 from implement_fixes import send_fixes_to_postgres
 from overwrite_arcgis import overwrite_our_feature
-from update_status_columns import update_status_columns
+from update_status_columns import update_status_columns_both_tables
 from mark_inactive_inaccurates_as_fixed import mark_all_inactive_low_accurates_as_fixed
 
 from helpers import print_red_and_email
@@ -21,7 +21,7 @@ def perform_task_and_catch_errors(task_function, task_name):
 def update_task():
     perform_task_and_catch_errors(update_database, "UPDATING DATABASE")
     perform_task_and_catch_errors(overwrite_our_feature, "OVERWRITING ARCGIS FEATURE")
-    perform_task_and_catch_errors(update_status_columns, "UPDATING STATUS COLUMNS")
+    perform_task_and_catch_errors(update_status_columns_both_tables, "UPDATING STATUS COLUMNS")
 
 def implement_fixes_task():
     perform_task_and_catch_errors(send_fixes_to_postgres, "IMPLEMENTING FIXES")
@@ -34,5 +34,5 @@ def mark_inactive_low_accurates_as_fixed_task():
 sched = BlockingScheduler()
 sched.add_job(update_task, 'interval', days=1, start_date='2020-09-09 01:00:00', timezone='US/Eastern')
 sched.add_job(implement_fixes_task, 'interval', hours=6, start_date='2020-09-10 18:00:00', timezone='US/Eastern')
-sched.add_job(mark_inactive_low_accurates_as_fixed_task, 'interval', weeks=1, start_date='2020-09-10 20:00:00', timezone='US/Eastern')
+sched.add_job(mark_inactive_low_accurates_as_fixed_task, 'interval', days=3, start_date='2020-09-10 20:00:00', timezone='US/Eastern')
 sched.start()
