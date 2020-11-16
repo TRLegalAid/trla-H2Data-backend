@@ -55,6 +55,7 @@ def get_database_engine(force_cloud=False):
     else:
         return create_engine(os.getenv("LOCAL_DATABASE_URL"))
 
+# set to True to run real tasks locally
 force_cloud = False
 engine = get_database_engine(force_cloud=force_cloud)
 
