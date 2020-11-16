@@ -55,7 +55,7 @@ def get_database_engine(force_cloud=False):
     else:
         return create_engine(os.getenv("LOCAL_DATABASE_URL"))
 
-force_cloud = True
+force_cloud = False
 engine = get_database_engine(force_cloud=force_cloud)
 
 bad_accuracy_types = ["place", "state", "street_center"]
@@ -79,6 +79,7 @@ column_types = {
 }
 housing_address_columns = ["HOUSING_ADDRESS_LOCATION", "HOUSING_CITY", "HOUSING_STATE", "HOUSING_POSTAL_CODE", "housing_lat", "housing_long", "housing accuracy", "housing accuracy type", "housing_fixed_by", "fixed"]
 worksite_address_columns = ["WORKSITE_ADDRESS", "WORKSITE_CITY", "WORKSITE_STATE", "WORKSITE_POSTAL_CODE", "worksite_lat", "worksite_long", "worksite accuracy", "worksite accuracy type", "worksite_fixed_by", "fixed"]
+h2as_without_housing = ["H-300-20306-894174", "H-300-20293-882133"]
 
 # function for printing dictionary
 def prettier(dictionary):
@@ -145,6 +146,7 @@ def geocode_and_split_by_accuracy(df, table=""):
             df = geocode_table(df, "housing")
         else:
             print_red_and_email("Not geocoding housing because HOUSING_ADDRESS_LOCATION is not present. This should be fine, and hopefully just means there were only H-2B jobs in today's run, but you may want to check.", "Not geocoding housing today")
+            # pass
 
     accurate = df.apply(lambda job: is_accurate(job), axis=1)
     accurate_jobs, inaccurate_jobs = df.copy()[accurate], df.copy()[~accurate]
@@ -184,7 +186,8 @@ def is_accurate(job, housing_addendum=False):
             # housing accuracy type won't be in job if job is missing housing info and all the other jobs in this run were H-2b or also missing housing info
             # otherwise need to check whether all the housing address columns are null - if so, this job is missing all housing info
             if ("HOUSING_ADDRESS_LOCATION" not in job) or (pd.isna(job["HOUSING_ADDRESS_LOCATION"]) and pd.isna(job["HOUSING_CITY"]) and pd.isna(job["HOUSING_STATE"]) and pd.isna(job["HOUSING_POSTAL_CODE"])):
-                print_red_and_email(f"{job['CASE_NUMBER']} is H-2A but doesn't have housing info.", "H-2A Job With No Housing Info")
+                if job['CASE_NUMBER'] not in h2as_without_housing:
+                    print_red_and_email(f"{job['CASE_NUMBER']} is H-2A but doesn't have housing info.", "H-2A Job With No Housing Info")
                 return not ((job["worksite accuracy"] == None) or (job["worksite accuracy"] < 0.8) or (job["worksite accuracy type"] in bad_accuracy_types))
             # for an H2A row with housing info
             else:

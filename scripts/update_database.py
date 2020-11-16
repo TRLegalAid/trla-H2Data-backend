@@ -27,25 +27,25 @@ def update_database():
     myprint(f"There are {len(latest_jobs)} new jobs.")
 
     # use this version of parse function if using a local csv file
-    def parse(job):
-        column_mappings_dict = column_name_mappings
-        columns_names_dict = {"Section A": "Job Info", "Section C": "Place of Employment Info", "Section D":"Housing Info"}
-        parsed_job = {}
-        for key in job:
-            if "Section A" in key or "Section C" in key or "Section D" in key:
-                section = key.split("/")[0]
-                key_name = key.replace(section, columns_names_dict[section])
-                if key_name in column_mappings_dict:
-                    parsed_job[column_mappings_dict[key_name]] = job[key]
-                else:
-                    parsed_job[key_name] = job[key]
-            else:
-                if key in column_mappings_dict:
-                    parsed_job[column_mappings_dict[key]] = job[key]
-                else:
-                    parsed_job[key] = job[key]
-
-        return parsed_job
+    # def parse(job):
+    #     column_mappings_dict = column_name_mappings
+    #     columns_names_dict = {"Section A": "Job Info", "Section C": "Place of Employment Info", "Section D":"Housing Info"}
+    #     parsed_job = {}
+    #     for key in job:
+    #         if "Section A" in key or "Section C" in key or "Section D" in key:
+    #             section = key.split("/")[0]
+    #             key_name = key.replace(section, columns_names_dict[section])
+    #             if key_name in column_mappings_dict:
+    #                 parsed_job[column_mappings_dict[key_name]] = job[key]
+    #             else:
+    #                 parsed_job[key_name] = job[key]
+    #         else:
+    #             if key in column_mappings_dict:
+    #                 parsed_job[column_mappings_dict[key]] = job[key]
+    #             else:
+    #                 parsed_job[key] = job[key]
+    #
+    #     return parsed_job
 
 
     def parse(job):
