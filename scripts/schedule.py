@@ -25,12 +25,12 @@ def update_task():
     perform_task_and_catch_errors(mark_inactive_low_accurates_as_fixed_task, "MARKING INACTIVE INACCURATES AS FIXED")
     perform_task_and_catch_errors(send_fixes_to_postgres, "IMPLEMENTING FIXES")
 
-def implement_fixes_task():
-    perform_task_and_catch_errors(send_fixes_to_postgres, "IMPLEMENTING FIXES")
-
+update_task()
+print("done with update task")
+while True:
+    pass
 
 # update database at 1:00 am EST every day, check for fixes every 6 hours
 sched = BlockingScheduler()
 sched.add_job(update_task, 'interval', days=1, start_date='2020-09-09 01:00:00', timezone='US/Eastern')
-sched.add_job(implement_fixes_task, 'interval', hours=6, start_date='2020-09-10 18:00:00', timezone='US/Eastern')
 sched.start()

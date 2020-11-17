@@ -5,7 +5,6 @@ psycopg2
 geocodio==1.0.0
 requests
 pygeocodio
-client
 datetime
 xlrd
 colorama
