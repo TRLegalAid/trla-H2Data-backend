@@ -4,8 +4,8 @@ sqlalchemy
 psycopg2
 geocodio==1.0.0
 requests
-client
 pygeocodio
+client
 datetime
 xlrd
 colorama
