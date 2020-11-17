@@ -10,3 +10,5 @@ datetime
 xlrd
 colorama
 arcgis
+gspread
+oauth2client
