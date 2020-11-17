@@ -56,7 +56,7 @@ def get_database_engine(force_cloud=False):
         return create_engine(os.getenv("LOCAL_DATABASE_URL"))
 
 # set to True to run real tasks locally
-force_cloud = False
+force_cloud = True
 engine = get_database_engine(force_cloud=force_cloud)
 
 bad_accuracy_types = ["place", "state", "street_center"]
@@ -189,19 +189,19 @@ def is_accurate(job, housing_addendum=False):
             if ("HOUSING_ADDRESS_LOCATION" not in job) or (pd.isna(job["HOUSING_ADDRESS_LOCATION"]) and pd.isna(job["HOUSING_CITY"]) and pd.isna(job["HOUSING_STATE"]) and pd.isna(job["HOUSING_POSTAL_CODE"])):
                 if job['CASE_NUMBER'] not in h2as_without_housing:
                     print_red_and_email(f"{job['CASE_NUMBER']} is H-2A but doesn't have housing info.", "H-2A Job With No Housing Info")
-                return not ((job["worksite accuracy"] == None) or (job["worksite accuracy"] < 0.8) or (job["worksite accuracy type"] in bad_accuracy_types))
+                return not ((job["worksite accuracy"] == None) or (job["worksite accuracy"] < 0.7) or (job["worksite accuracy type"] in bad_accuracy_types))
             # for an H2A row with housing info
             else:
-                return not ((not job["worksite accuracy type"]) or (not job["housing accuracy type"]) or (job["worksite accuracy"] < 0.8) or (job["housing accuracy"] < 0.8) or (job["worksite accuracy type"] in bad_accuracy_types) or (job["housing accuracy type"] in bad_accuracy_types))
+                return not ((not job["worksite accuracy type"]) or (not job["housing accuracy type"]) or (job["worksite accuracy"] < 0.7) or (job["housing accuracy"] < 0.7) or (job["worksite accuracy type"] in bad_accuracy_types) or (job["housing accuracy type"] in bad_accuracy_types))
         elif job["Visa type"] == "H-2B":
-            return not ((job["worksite accuracy"] == None) or (job["worksite accuracy"] < 0.8) or (job["worksite accuracy type"] in bad_accuracy_types))
+            return not ((job["worksite accuracy"] == None) or (job["worksite accuracy"] < 0.7) or (job["worksite accuracy type"] in bad_accuracy_types))
         else:
             error_message = f"The `Visa type` column of this job -case number {job['CASE_NUMBER']}- was neither `H-2A` nor `H-2B`, marking as inaccurate."
             print_red_and_email(error_message, "Bad Visa Type")
             return False
 
     elif job["table"] == "dol_h":
-        return not ((job["housing accuracy"] == None) or (job["housing accuracy"] < 0.8) or (job["housing accuracy type"] in bad_accuracy_types))
+        return not ((job["housing accuracy"] == None) or (job["housing accuracy"] < 0.7) or (job["housing accuracy type"] in bad_accuracy_types))
 
     else:
         error_message = f"The `table` column of this job -case number {job['CASE_NUMBER']}- was neither `dol_h` nor `central`"
@@ -263,7 +263,7 @@ def handle_previously_fixed(new_job, old_job, worksite_or_housing, set_fixed_to_
             new_job[column] = old_job[column]
     else:
         # if worksite_or_housing needs fixing in new df, mark as False
-        if (pd.isna(new_job[f"{worksite_or_housing} accuracy type"])) or (new_job[f"{worksite_or_housing} accuracy"] < 0.8) or (new_job[f"{worksite_or_housing} accuracy type"] in bad_accuracy_types):
+        if (pd.isna(new_job[f"{worksite_or_housing} accuracy type"])) or (new_job[f"{worksite_or_housing} accuracy"] < 0.7) or (new_job[f"{worksite_or_housing} accuracy type"] in bad_accuracy_types):
             new_job["fixed"] = False
             return new_job, False
 

@@ -42,8 +42,8 @@ def mark_inactive_dolH_as_fixed():
                                 WHERE "id" = {job_id}""")
                 num_fixed += 1
 
-    myprint(f"There are {len(case_nums_with_no_matches)} additional housing rows in low_accuracies without a matching central case number.")
-    myprint(f"There are {len(set(case_nums_with_no_matches))} additional housing unique case numbers in low_accuracies without a matching central case number.")
+    # myprint(f"There are {len(case_nums_with_no_matches)} additional housing rows in low_accuracies without a matching central case number.")
+    # myprint(f"There are {len(set(case_nums_with_no_matches))} additional housing unique case numbers in low_accuracies without a matching central case number.")
     myprint(f"{num_fixed} additional housing rows in low accuracies were fixed.")
 
 def mark_all_inactive_low_accurates_as_fixed():

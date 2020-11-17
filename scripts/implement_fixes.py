@@ -10,7 +10,7 @@ if os.getenv("LOCAL_DEV") == "true":
 geocodio_api_key = os.getenv("GEOCODIO_API_KEY")
 engine, client = get_database_engine(force_cloud=True), GeocodioClient(geocodio_api_key)
 
-def implement_fixes(fixed):
+def implement_fixes(fixed, fix_worksites=False):
 
     def mark_as_failed(i, worksite_or_housing, df):
         df.at[i, f"{worksite_or_housing}_fixed_by"] = "failed"
@@ -31,8 +31,8 @@ def implement_fixes(fixed):
             df.at[i, f"{worksite_or_housing}_lat"] = results['location']['lat']
             df.at[i, f"{worksite_or_housing} accuracy"] = results['accuracy']
             df.at[i, f"{worksite_or_housing} accuracy type"] = results['accuracy_type']
-            if (results['accuracy'] < 0.8) or (results['accuracy_type'] in helpers.bad_accuracy_types):
-                print_red_and_email(f"Geocoding the address `{full_address}` (case number {row['CASE_NUMBER']}) resulted in either an accuracy below 0.8 or a bad accuracy type. ", "Fixing Failed")
+            if (results['accuracy'] < 0.7) or (results['accuracy_type'] in helpers.bad_accuracy_types):
+                print_red_and_email(f"Geocoding the address `{full_address}` (case number {row['CASE_NUMBER']}) resulted in either an accuracy below 0.7 or a bad accuracy type. ", "Fixing Failed")
                 mark_as_failed(i, worksite_or_housing, df)
         except Exception as error:
             print_red_and_email(f"Failed to geocode ~{row['CASE_NUMBER']}~ here's the error message:\n{str(error)}", "Geocoding Failure in Implement Fixes")
@@ -50,11 +50,11 @@ def implement_fixes(fixed):
             pass
         else:
             # if checking for housing and h-2a, let it through if all the housing columns are empty
-            if worksite_or_housing == "housing" and pd.isna(job["HOUSING_ADDRESS_LOCATION"]) and pd.isna(job["HOUSING_CITY"]) and pd.isna(job["HOUSING_STATE"]) and pd.isna(job["HOUSING_POSTAL_CODE"]):
-                print_red_and_email(f"{job['CASE_NUMBER']} is H-2A but all of its housing columns are blank. If its worksite was fixed properly, it will be allowed to pass to job central. This was found while implementing fixes.", "H-2A job Without Housing Data - Implement Fixes")
+            if worksite_or_housing == "housing" and pd.isna(row["HOUSING_ADDRESS_LOCATION"]) and pd.isna(row["HOUSING_CITY"]) and pd.isna(row["HOUSING_STATE"]) and pd.isna(row["HOUSING_POSTAL_CODE"]):
+                print_red_and_email(f"{row['CASE_NUMBER']} is H-2A but all of its housing columns are blank. If its worksite was fixed properly, it will be allowed to pass to job central. This was found while implementing fixes.", "H-2A job Without Housing Data - Implement Fixes")
                 pass
 
-            if (not row[f"{worksite_or_housing} accuracy type"]) or (row[f"{worksite_or_housing} accuracy"] < 0.8) or (row[f"{worksite_or_housing} accuracy type"] in helpers.bad_accuracy_types):
+            if (not row[f"{worksite_or_housing} accuracy type"]) or (row[f"{worksite_or_housing} accuracy"] < 0.7) or (row[f"{worksite_or_housing} accuracy type"] in helpers.bad_accuracy_types):
                 print_red_and_email(f"The {worksite_or_housing} data of {row['CASE_NUMBER']} requires fixing, but its {worksite_or_housing}_fixed_by column was not specified to either address, coordinates, inactive, or impossible.", "Address Needs Fixing but Not Fixed")
                 mark_as_failed(i, worksite_or_housing, df)
 
@@ -77,7 +77,8 @@ def implement_fixes(fixed):
     def fix_rows(df):
         for i, row in df.iterrows():
             fix_row(i, row, "housing", df)
-            fix_row(i, row, "worksite", df)
+            if fix_worksites:
+                fix_row(i, row, "worksite", df)
     fix_rows(fixed)
     # get successfully fixed rows and add them to the big table
     success_conditions = (fixed["worksite_fixed_by"] != "failed") & (fixed["housing_fixed_by"] != "failed")
@@ -114,6 +115,7 @@ def send_fixes_to_postgres():
 
     central.to_sql('job_central', engine, if_exists='append', index=False, dtype=helpers.column_types)
     housing.to_sql('additional_housing', engine, if_exists='append', index=False, dtype=helpers.column_types)
+    make_query("delete from low_accuracies where fixed=true")
     failures.to_sql('low_accuracies', engine, if_exists='append', index=False, dtype=helpers.column_types)
 
     make_query("delete from low_accuracies where fixed=true")

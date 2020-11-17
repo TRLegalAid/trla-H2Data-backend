@@ -32,15 +32,15 @@ def has_no_dups(accurates, inaccurates):
     return accs_no_dups, inaccs_no_dups, no_dups_anywhere
 
 def assert_accuracies_and_inaccuracies(accurates, inaccurates):
-    worksites_accurate = ((accurates["worksite accuracy"] >= 0.8) & (~accurates["worksite accuracy type"].isin(bad_accuracy_types))).all()
+    worksites_accurate = ((accurates["worksite accuracy"] >= 0.7) & (~accurates["worksite accuracy type"].isin(bad_accuracy_types))).all()
     accurates_h2a = accurates[accurates["Visa type"] == "H-2A"]
-    housings_accurate = ((accurates_h2a["housing accuracy"] >= 0.8) & (~accurates_h2a["housing accuracy type"].isin(bad_accuracy_types))).all()
+    housings_accurate = ((accurates_h2a["housing accuracy"] >= 0.7) & (~accurates_h2a["housing accuracy type"].isin(bad_accuracy_types))).all()
     inaccurates_h2a = inaccurates[inaccurates["Visa type"] == "H-2A"]
-    inaccurate_conditions_h2a = ((inaccurates_h2a["housing accuracy"].isnull()) | (inaccurates_h2a["worksite accuracy"].isnull()) | (inaccurates_h2a["housing accuracy"] < 0.8) | (inaccurates_h2a["worksite accuracy"] < 0.8) | (inaccurates_h2a["housing accuracy type"].isin(bad_accuracy_types)) | (inaccurates_h2a["worksite accuracy type"].isin(bad_accuracy_types)))
+    inaccurate_conditions_h2a = ((inaccurates_h2a["housing accuracy"].isnull()) | (inaccurates_h2a["worksite accuracy"].isnull()) | (inaccurates_h2a["housing accuracy"] < 0.7) | (inaccurates_h2a["worksite accuracy"] < 0.7) | (inaccurates_h2a["housing accuracy type"].isin(bad_accuracy_types)) | (inaccurates_h2a["worksite accuracy type"].isin(bad_accuracy_types)))
     h2a_inaccurates_inaccurate = inaccurate_conditions_h2a.all()
     inaccurates_h2b = inaccurates[inaccurates["Visa type"] == "H-2B"]
     if len(inaccurates_h2b) != 0:
-        inaccurate_conditions_h2b = ((inaccurates["worksite accuracy"].isnull()) | (inaccurates_h2b["worksite accuracy"] < 0.8) | (inaccurates_h2b["worksite accuracy type"].isin(bad_accuracy_types)))
+        inaccurate_conditions_h2b = ((inaccurates["worksite accuracy"].isnull()) | (inaccurates_h2b["worksite accuracy"] < 0.7) | (inaccurates_h2b["worksite accuracy type"].isin(bad_accuracy_types)))
         h2b_inaccurates_inaccurate = inaccurate_conditions_h2b.all()
     else:
         h2b_inaccurates_inaccurate = True
@@ -71,9 +71,9 @@ def assert_accuracies_and_inaccuracies(accurates, inaccurates):
 #         self.assertEqual(len(inaccurate_housing), 1)
 #         self.assertTrue((accurate_housing["table"] == "dol_h").all() and (inaccurate_housing["table"] == "dol_h").all())
 #     def test_accuracies(self):
-#         accurates_are_accurate = ((accurate_housing["housing accuracy"] >= 0.8) & (~(accurate_housing["housing accuracy type"].isin(bad_accuracy_types)))).all()
+#         accurates_are_accurate = ((accurate_housing["housing accuracy"] >= 0.7) & (~(accurate_housing["housing accuracy type"].isin(bad_accuracy_types)))).all()
 #         self.assertTrue(accurates_are_accurate)
-#         inaccurates_are_inaccurate = ((inaccurate_housing["housing accuracy"].isnull()) | (inaccurate_housing["housing accuracy"] < 0.8) | (inaccurate_housing["housing accuracy type"].isin(bad_accuracy_types))).all()
+#         inaccurates_are_inaccurate = ((inaccurate_housing["housing accuracy"].isnull()) | (inaccurate_housing["housing accuracy"] < 0.7) | (inaccurate_housing["housing accuracy type"].isin(bad_accuracy_types))).all()
 #         self.assertTrue(inaccurates_are_inaccurate)
 
 # myprint("Start of merge dol test", is_red="red")
@@ -229,7 +229,7 @@ job_in_acc_pos = len(accs_old6i) - 3
 accs_old6i.at[job_in_acc_pos, "fixed"] = True
 accs_old6i.at[job_in_acc_pos, "housing_fixed_by"] = "address"
 accs_old6i.at[job_in_acc_pos, "worksite_fixed_by"] = "address"
-accs_old6i.at[job_in_acc_pos, "worksite accuracy"] = 0.8
+accs_old6i.at[job_in_acc_pos, "worksite accuracy"] = 0.7
 myprint("Start of test case 6I", is_red="red")
 set_test_database_state(accs_old6i, inaccurate_old_jobs)
 all_accs6i, all_inaccs6i = merge_all_and_get_new_state(accurate_new_jobs, inaccs_new6i)
@@ -259,7 +259,7 @@ class TestCaseSixI(unittest.TestCase):
         self.assertEqual(get_value(dup_job, "worksite accuracy type"), "range_interpolation")
         self.assertEqual(get_value(dup_job, "housing accuracy type"), "rooftop")
         self.assertEqual(get_value(dup_job, "housing accuracy"), 1)
-        self.assertEqual(get_value(dup_job, "worksite accuracy"), 0.8)
+        self.assertEqual(get_value(dup_job, "worksite accuracy"), 0.7)
         self.assertEqual(get_value(dup_job, "housing_long"), -76.305982)
         self.assertEqual(get_value(dup_job, "housing_lat"), 39.925263)
         self.assertEqual(get_value(dup_job, "worksite_long"), -76.306133)
@@ -486,7 +486,7 @@ class TestKeepsDOL_Hs(unittest.TestCase):
 # Vassar college: 124 Raymond Ave, Poughkeepsie NY 12604  -  41.686518, -73.897729, 1, rooftop
 inaccurates_if_test = pd.read_excel(os.path.join(os.getcwd(), '..',  "excel_files/implement_fixes_tester.xlsx"))
 myprint("Start of implement fixes test", is_red="red")
-successes, housing_successes, failures = implement_fixes(inaccurates_if_test)
+successes, housing_successes, failures = implement_fixes(inaccurates_if_test, fix_worksites=True)
 class TestImplementFixes(unittest.TestCase):
     def test_both_fixed_by_address(self):
         job = successes[successes["CASE_NUMBER"] == "H-300-20227-769297"]
