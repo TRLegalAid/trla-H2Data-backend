@@ -93,6 +93,11 @@ def create_address_from(address, city, state, zip):
     except:
         return ""
 
+def convert_date_to_string(datetime):
+    if pd.isna(datetime):
+        return ""
+    return datetime.strftime("%m/%d/%Y, %H:%M:%S")
+
 def geocode_table(df, worksite_or_housing):
     myprint(f"Geocoding {worksite_or_housing}...")
 
