@@ -22,7 +22,7 @@ def update_task():
     perform_task_and_catch_errors(update_database, "UPDATING DATABASE")
     perform_task_and_catch_errors(overwrite_our_feature, "OVERWRITING ARCGIS FEATURE")
     perform_task_and_catch_errors(update_status_columns_both_tables, "UPDATING STATUS COLUMNS")
-    perform_task_and_catch_errors(mark_inactive_low_accurates_as_fixed_task, "MARKING INACTIVE INACCURATES AS FIXED")
+    perform_task_and_catch_errors(mark_all_inactive_low_accurates_as_fixed, "MARKING INACTIVE INACCURATES AS FIXED")
     perform_task_and_catch_errors(send_fixes_to_postgres, "IMPLEMENTING FIXES")
 
 

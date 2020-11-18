@@ -80,7 +80,7 @@ column_types = {
 }
 housing_address_columns = ["HOUSING_ADDRESS_LOCATION", "HOUSING_CITY", "HOUSING_STATE", "HOUSING_POSTAL_CODE", "housing_lat", "housing_long", "housing accuracy", "housing accuracy type", "housing_fixed_by", "fixed"]
 worksite_address_columns = ["WORKSITE_ADDRESS", "WORKSITE_CITY", "WORKSITE_STATE", "WORKSITE_POSTAL_CODE", "worksite_lat", "worksite_long", "worksite accuracy", "worksite accuracy type", "worksite_fixed_by", "fixed"]
-h2as_without_housing = ["H-300-20306-894174", "H-300-20293-882133"]
+h2as_without_housing = ["H-300-20306-894174", "H-300-20293-882133", "H-300-20288-878041"]
 
 # function for printing dictionary
 def prettier(dictionary):
