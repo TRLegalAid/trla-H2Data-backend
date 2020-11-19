@@ -19,7 +19,7 @@ def perform_task_and_catch_errors(task_function, task_name):
     print(Fore.GREEN + f"Finished {task_name} in {time.time() - before} seconds." + "\n" + Style.RESET_ALL)
 
 
-def update_task():
+def all_tasks():
     perform_task_and_catch_errors(update_database, "UPDATING DATABASE")
     perform_task_and_catch_errors(update_status_columns_both_tables, "UPDATING STATUS COLUMNS")
     perform_task_and_catch_errors(mark_all_inactive_low_accurates_as_fixed, "MARKING INACTIVE INACCURATES AS FIXED")
@@ -28,11 +28,14 @@ def update_task():
     perform_task_and_catch_errors(replace_our_google_sheet_with_low_accuracies_table, "REPLACING OUR GOOGLE SHEET WITH LOW ACCURACIES TABLE")
     perform_task_and_catch_errors(overwrite_our_feature, "OVERWRITING ARCGIS FEATURE")
 
-update_task()
+def perform_all_tasks():
+    perform_task_and_catch_errors(all_tasks, "STARTING DAILY TASKS")
+
+perform_all_tasks()
 while True:
     pass
-    
+
 # update database at 1:00 am EST every day, check for fixes every 6 hours
 sched = BlockingScheduler()
-sched.add_job(update_task, 'interval', days=1, start_date='2020-09-09 01:00:00', timezone='US/Eastern')
+sched.add_job(perform_all_tasks, 'interval', days=1, start_date='2020-09-09 01:00:00', timezone='US/Eastern')
 sched.start()
