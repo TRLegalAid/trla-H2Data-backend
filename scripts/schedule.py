@@ -28,7 +28,10 @@ def update_task():
     perform_task_and_catch_errors(replace_our_google_sheet_with_low_accuracies_table, "REPLACING OUR GOOGLE SHEET WITH LOW ACCURACIES TABLE")
     perform_task_and_catch_errors(overwrite_our_feature, "OVERWRITING ARCGIS FEATURE")
 
-
+update_task()
+while True:
+    pass
+    
 # update database at 1:00 am EST every day, check for fixes every 6 hours
 sched = BlockingScheduler()
 sched.add_job(update_task, 'interval', days=1, start_date='2020-09-09 01:00:00', timezone='US/Eastern')

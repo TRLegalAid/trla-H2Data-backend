@@ -11,3 +11,4 @@ colorama
 arcgis
 gspread
 oauth2client
+simplejson
