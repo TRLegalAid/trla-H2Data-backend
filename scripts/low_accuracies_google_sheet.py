@@ -3,11 +3,10 @@ import simplejson as json
 import gspread
 import pandas as pd
 from oauth2client.service_account import ServiceAccountCredentials
-from dotenv import load_dotenv
 import pandas as pd
 from helpers import get_database_engine, myprint, make_query, convert_date_to_string
+
 engine = get_database_engine(force_cloud=True)
-load_dotenv()
 
 
 sql_sheet_column_names_map = {"Done?": "fixed", "Company name": "EMPLOYER_NAME", "ETA case number": "CASE_NUMBER",
@@ -95,4 +94,4 @@ def send_fixes_in_our_google_sheet_to_low_accuracies():
     send_sheet_fixes_to_postgres(our_sheet)
 
 if __name__ == "__main__":
-    pass
+    replace_our_google_sheet_with_low_accuracies_table()

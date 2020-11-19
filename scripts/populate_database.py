@@ -3,9 +3,6 @@ import pandas as pd
 import sqlalchemy
 import helpers
 from sqlalchemy import create_engine
-if os.getenv("LOCAL_DEV") == "true":
-    from dotenv import load_dotenv
-    load_dotenv()
 geocodio_api_key = os.getenv("GEOCODIO_API_KEY")
 engine = helpers.get_database_engine()
 

@@ -10,9 +10,6 @@ import smtplib, ssl
 from datetime import datetime
 from pytz import timezone
 from sqlalchemy import create_engine
-if os.getenv("LOCAL_DEV") == "true":
-    from dotenv import load_dotenv
-    load_dotenv()
 geocodio_api_key = os.getenv("GEOCODIO_API_KEY")
 client = GeocodioClient(geocodio_api_key)
 

@@ -5,9 +5,6 @@ from helpers import myprint, get_database_engine, get_value, print_red_and_email
 import os
 import pandas as pd
 from sqlalchemy import create_engine
-if os.getenv("LOCAL_DEV") == "true":
-    from dotenv import load_dotenv
-    load_dotenv()
 ARCGIS_USERNAME, ARCGIS_PASSWORD = os.getenv("ARCGIS_USERNAME"), os.getenv("ARCGIS_PASSWORD")
 engine = get_database_engine(force_cloud=True)
 
