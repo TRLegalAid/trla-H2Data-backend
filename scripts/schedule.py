@@ -15,7 +15,7 @@ def perform_task_and_catch_errors(task_function, task_name):
     try:
         task_function()
     except Exception as error:
-        print_red_and_email(str(error), f"Unanticipated Error {task_name.lower()}!!")
+        print_red_and_email("Error: " + str(error), f"Unanticipated Error {task_name.lower()}!!")
     print(Fore.GREEN + f"Finished {task_name} in {time.time() - before} seconds." + "\n" + Style.RESET_ALL)
 
 
@@ -29,11 +29,7 @@ def all_tasks():
     perform_task_and_catch_errors(overwrite_our_feature, "OVERWRITING ARCGIS FEATURE")
 
 def perform_all_tasks():
-    perform_task_and_catch_errors(all_tasks, "STARTING DAILY TASKS")
-
-perform_all_tasks()
-while True:
-    pass
+    perform_task_and_catch_errors(all_tasks, "PERFORMING DAILY TASKS")
 
 # update database at 1:00 am EST every day, check for fixes every 6 hours
 sched = BlockingScheduler()

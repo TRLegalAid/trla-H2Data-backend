@@ -18,7 +18,7 @@ def mark_inactive_dolH_as_fixed():
     all_case_nums_statuses_df = acc_case_nums_statuses_df.append(inacc_case_nums_statuses_df)
 
     inaccurate_additional_housings = pd.read_sql("""select "id", "CASE_NUMBER" from low_accuracies where "table" = 'dol_h'""", con=engine)
-    myprint(f"There are {len(inaccurate_additional_housings)} inaccurate additional housing rows")
+    myprint(f"There are {len(inaccurate_additional_housings)} inaccurate additional housing rows.")
 
     case_nums_with_no_matches = []
     num_fixed = 0
@@ -44,7 +44,7 @@ def mark_inactive_dolH_as_fixed():
 
     # myprint(f"There are {len(case_nums_with_no_matches)} additional housing rows in low_accuracies without a matching central case number.")
     # myprint(f"There are {len(set(case_nums_with_no_matches))} additional housing unique case numbers in low_accuracies without a matching central case number.")
-    myprint(f"{num_fixed} additional housing rows in low accuracies were fixed.")
+    myprint(f"{num_fixed} additional housing rows in low accuracies were marked as fixed.")
 
 def mark_all_inactive_low_accurates_as_fixed():
     mark_inactive_central_as_fixed()
