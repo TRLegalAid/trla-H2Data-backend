@@ -5,6 +5,9 @@ import pandas as pd
 from datetime import datetime
 from sqlalchemy import create_engine
 from geocodio import GeocodioClient
+from dotenv import load_dotenv
+load_dotenv()
+
 geocodio_api_key = os.getenv("GEOCODIO_API_KEY")
 engine, client = get_database_engine(), GeocodioClient(geocodio_api_key)
 

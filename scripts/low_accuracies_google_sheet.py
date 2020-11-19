@@ -5,10 +5,10 @@ import pandas as pd
 from oauth2client.service_account import ServiceAccountCredentials
 import pandas as pd
 from helpers import get_database_engine, myprint, make_query, convert_date_to_string
+from dotenv import load_dotenv
+load_dotenv()
 
 engine = get_database_engine(force_cloud=True)
-
-
 sql_sheet_column_names_map = {"Done?": "fixed", "Company name": "EMPLOYER_NAME", "ETA case number": "CASE_NUMBER",
                               "housing latitude": "housing_lat", "housing longitude": "housing_long",
                               "Housing Address": "HOUSING_ADDRESS_LOCATION", "Housing City": "HOUSING_CITY",
