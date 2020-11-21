@@ -66,6 +66,7 @@ def assert_accuracies_and_inaccuracies(accurates, inaccurates):
 myprint("Start of add housing test", is_red="red")
 housing = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/housing_addendum.xlsx'))
 accurate_housing, inaccurate_housing = geocode_manage_split_housing(housing, 2020, 3)
+accurate_housing.to_excel("acc.xlsx")
 class TestAddHousing(unittest.TestCase):
     def test_length_and_table_column(self):
         self.assertEqual(len(accurate_housing), 9)

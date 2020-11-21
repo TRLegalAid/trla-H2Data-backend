@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 geocodio_api_key, most_recent_run_url, date_of_run_url = os.getenv("GEOCODIO_API_KEY"), os.getenv("MOST_RECENT_RUN_URL"), os.getenv("DATE_OF_RUN_URL")
-engine, client = get_database_engine(force_cloud=True), GeocodioClient(geocodio_api_key)
+engine, client = get_database_engine(force_cloud=False), GeocodioClient(geocodio_api_key)
 
 def update_database():
     latest_jobs = requests.get(most_recent_run_url).json()
