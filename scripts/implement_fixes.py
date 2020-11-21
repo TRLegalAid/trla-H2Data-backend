@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 geocodio_api_key = os.getenv("GEOCODIO_API_KEY")
-engine, client = get_database_engine(force_cloud=True), GeocodioClient(geocodio_api_key)
+engine, client = get_database_engine(force_cloud=False), GeocodioClient(geocodio_api_key)
 
 def implement_fixes(fixed, fix_worksites=False):
 
@@ -120,6 +120,22 @@ def send_fixes_to_postgres():
 
     make_query("delete from low_accuracies where fixed=true")
     myprint(f"Done implementing fixes. There were {len(failures)} failed fixes out of {len(fixed)} attempts.")
+
+    # saving appropriate fixes to previously_fixed table
+    prev_fixed_columns = ["HOUSING_ADDRESS_LOCATION", "HOUSING_CITY", "HOUSING_POSTAL_CODE", "HOUSING_STATE", "fixed",
+                          "housing accuracy", "housing accuracy type", "housing_fixed_by", "housing_lat",
+                          "housing_long", "notes"]
+    fixed_by_vals_to_save_fixes_for = ["coordinates", "address", "impossible"]
+
+    central_for_prev_fixed_table = central[central["housing_fixed_by"].isin(fixed_by_vals_to_save_fixes_for)][prev_fixed_columns]
+    housing_for_prev_fixed_table = housing[housing["housing_fixed_by"].isin(fixed_by_vals_to_save_fixes_for)][prev_fixed_columns]
+    for_prev_fixed_table = central_for_prev_fixed_table.append(housing_for_prev_fixed_table)
+
+    for_prev_fixed_table["initial_address"] = for_prev_fixed_table.apply(lambda job: job["HOUSING_ADDRESS_LOCATION"] + job["HOUSING_CITY"] + job["HOUSING_STATE"] + job["HOUSING_POSTAL_CODE"], axis=1)
+
+    for_prev_fixed_table = for_prev_fixed_table.drop_duplicates(subset='initial_address', keep="last")
+    for_prev_fixed_table.to_sql("previously_fixed", engine, if_exists='append', index=False)
+    myprint(f"{len(for_prev_fixed_table)} rows were successfully added to the previously_fixed table.")
 
 if __name__ == "__main__":
    send_fixes_to_postgres()

@@ -1,9 +1,9 @@
 import unittest
 from populate_database import geocode_manage_split
 from add_housing import geocode_manage_split_housing
-from merge_dol_h2a import geocode_manage_split_merge
+from merge_dol import geocode_manage_split_merge
 from implement_fixes import implement_fixes
-from helpers import merge_all_data, get_value, myprint
+from helpers import merge_all_data, get_value, myprint, make_query
 from colorama import Fore, Style
 import os
 import pandas as pd
@@ -12,9 +12,10 @@ bad_accuracy_types = helpers.bad_accuracy_types
 engine = helpers.get_database_engine()
 
 def set_test_database_state(accurates, inaccurates):
-    accurates.to_sql("job_central", engine, if_exists='replace', index=False, dtype=helpers.column_types)
-    inaccurates.to_sql("low_accuracies", engine, if_exists='replace', index=False, dtype=helpers.column_types)
-    helpers.make_query("""ALTER TABLE job_central ADD CONSTRAINT case_num_unique UNIQUE ("CASE_NUMBER")""")
+    make_query("DELETE FROM job_central")
+    make_query("DELETE FROM low_accuracies")
+    accurates.to_sql("job_central", engine, if_exists='append', index=False, dtype=helpers.column_types)
+    inaccurates.to_sql("low_accuracies", engine, if_exists='append', index=False, dtype=helpers.column_types)
 
 def merge_all_and_get_new_state(accurate_new_jobs, inaccurate_new_jobs):
     merge_all_data(accurate_new_jobs, inaccurate_new_jobs)
@@ -45,7 +46,7 @@ def assert_accuracies_and_inaccuracies(accurates, inaccurates):
     else:
         h2b_inaccurates_inaccurate = True
     return worksites_accurate, housings_accurate, h2a_inaccurates_inaccurate, h2b_inaccurates_inaccurate
-#
+
 # myprint("Start of populate database test", is_red="red")
 # scraper_data = pd.read_excel(os.path.join(os.getcwd(), '..',  "excel_files/scraper_data.xlsx"))
 # accurates, inaccurates, raw_scrapers = geocode_manage_split(scraper_data)
@@ -62,19 +63,24 @@ def assert_accuracies_and_inaccuracies(accurates, inaccurates):
 #         self.assertTrue(h2a_inaccurates_inaccurate)
 #         self.assertTrue(h2b_inaccurates_inaccurate)
 
-# myprint("Start of add housing test", is_red="red")
-# housing = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/housing_addendum.xlsx'))
-# accurate_housing, inaccurate_housing = geocode_manage_split_housing(housing)
-# class TestAddHousing(unittest.TestCase):
-#     def test_length_and_table_column(self):
-#         self.assertEqual(len(accurate_housing), 9)
-#         self.assertEqual(len(inaccurate_housing), 1)
-#         self.assertTrue((accurate_housing["table"] == "dol_h").all() and (inaccurate_housing["table"] == "dol_h").all())
-#     def test_accuracies(self):
-#         accurates_are_accurate = ((accurate_housing["housing accuracy"] >= 0.7) & (~(accurate_housing["housing accuracy type"].isin(bad_accuracy_types)))).all()
-#         self.assertTrue(accurates_are_accurate)
-#         inaccurates_are_inaccurate = ((inaccurate_housing["housing accuracy"].isnull()) | (inaccurate_housing["housing accuracy"] < 0.7) | (inaccurate_housing["housing accuracy type"].isin(bad_accuracy_types))).all()
-#         self.assertTrue(inaccurates_are_inaccurate)
+myprint("Start of add housing test", is_red="red")
+housing = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/housing_addendum.xlsx'))
+accurate_housing, inaccurate_housing = geocode_manage_split_housing(housing, 2020, 3)
+class TestAddHousing(unittest.TestCase):
+    def test_length_and_table_column(self):
+        self.assertEqual(len(accurate_housing), 9)
+        self.assertEqual(len(inaccurate_housing), 1)
+        self.assertTrue((accurate_housing["table"] == "dol_h").all() and (inaccurate_housing["table"] == "dol_h").all())
+    def test_accuracies(self):
+        accurates_are_accurate = ((accurate_housing["housing accuracy"] >= 0.7) & (~(accurate_housing["housing accuracy type"].isin(bad_accuracy_types)))).all()
+        self.assertTrue(accurates_are_accurate)
+        inaccurates_are_inaccurate = ((inaccurate_housing["housing accuracy"].isnull()) | (inaccurate_housing["housing accuracy"] < 0.7) | (inaccurate_housing["housing accuracy type"].isin(bad_accuracy_types))).all()
+        self.assertTrue(inaccurates_are_inaccurate)
+    def test_fy_column(self):
+        self.assertTrue(all(accurate_housing["fy"] == "2020Q3"))
+        self.assertTrue(all(inaccurate_housing["fy"] == "2020Q3"))
+
+
 
 # myprint("Start of merge dol test", is_red="red")
 # old_accurates = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/accurates_geocoded.xlsx'))
@@ -91,7 +97,7 @@ def assert_accuracies_and_inaccuracies(accurates, inaccurates):
 #         self.assertTrue(housings_accurate)
 #         self.assertTrue(h2a_inaccurates_inaccurate)
 #         self.assertTrue(h2b_inaccurates_inaccurate)
-#
+
 # TESTING MERGE ALL DATA FUNCTION - see project documentation to see what is meant by case_1 through case_8
 type_conversions = {'fixed': bool, 'housing_fixed_by': str, 'worksite_fixed_by': str, "HOUSING_POSTAL_CODE": str, "WORKSITE_POSTAL_CODE": str}
 accurate_new_jobs = pd.read_excel(os.path.join(os.getcwd(), '..',  "excel_files/accurate_dol_geocoded.xlsx"), converters=type_conversions)
@@ -350,7 +356,8 @@ class TestCaseSixIIIa(unittest.TestCase):
         self.assertEqual(get_value(dup_job, "worksite_long"), -89.027124)
         self.assertEqual(get_value(dup_job, "worksite_lat"), 43.915726)
 
-#case where housing_fixed_by is impossible/na and housing doesn't need fixing in new data
+
+# case where housing_fixed_by is impossible/na and housing doesn't need fixing in new data
 inaccs_new6iiiB = inaccurate_new_jobs.copy()
 inaccs_new6iiiB.at[len(inaccs_new6iiiB) - 3, "CASE_NUMBER"] = "H-300-20121-530549"
 accs_old6iiiB = accurate_old_jobs.copy()
@@ -392,6 +399,7 @@ class TestCaseSixIIIb(unittest.TestCase):
         self.assertEqual(get_value(dup_job, "worksite_long"), -76.306133)
         self.assertEqual(get_value(dup_job, "worksite_lat"), 39.935672)
 
+
 inaccs_new7 = inaccurate_new_jobs.copy()
 inaccs_new7.at[len(inaccs_new7) - 1, "CASE_NUMBER"] = "H-300-20114-511870"
 myprint("Start of test case 7", is_red="red")
@@ -411,6 +419,7 @@ class TestCaseSeven(unittest.TestCase):
         self.assertEqual(get_value(dup_job, "Source"), "DOL")
         self.assertEqual(get_value(dup_job, "HOUSING_CITY"), "Chester")
         self.assertEqual(get_value(dup_job, "W to H Ratio"), "W=H")
+
 
 inaccs_new8 = inaccurate_new_jobs.copy()
 len_inaccs_new8 = len(inaccs_new8)
@@ -460,11 +469,12 @@ class TestCaseEight(unittest.TestCase):
         self.assertTrue(pd.isnull(get_value(dup_job, "worksite_lat")))
         self.assertEqual(get_value(dup_job, "fixed"), True)
 
+
 inaccs_old_w_dolH = inaccurate_old_jobs.copy()
 last_row = inaccs_old_w_dolH[inaccs_old_w_dolH["CASE_NUMBER"] == "H-300-20108-494660"]
 inaccs_old_w_dolH = inaccs_old_w_dolH.append(last_row)
 inaccs_old_w_dolH = inaccs_old_w_dolH.append(last_row)
-inaccs_old_w_dolH = inaccs_old_w_dolH.reset_index()
+inaccs_old_w_dolH = inaccs_old_w_dolH.reset_index().drop(columns=["index"])
 len_inaccs_old = len(inaccs_old_w_dolH)
 inaccs_old_w_dolH.at[len_inaccs_old - 1, "table"] = "dol_h"
 inaccs_old_w_dolH.at[len_inaccs_old - 2, "table"] = "dol_h"
@@ -481,6 +491,7 @@ class TestKeepsDOL_Hs(unittest.TestCase):
         self.assertTrue(accs_no_dups)
         self.assertEqual(inaccs_no_dups, False)
         self.assertEqual(no_dups_anywhere, False)
+
 
 # Hamilton college: 198 College Hill Rd, Clinton, NY 13323  -  43.051469, -75.402153, 1, rooftop
 # Vassar college: 124 Raymond Ave, Poughkeepsie NY 12604  -  41.686518, -73.897729, 1, rooftop
@@ -643,7 +654,6 @@ class TestImplementFixes(unittest.TestCase):
 
     def test_columns(self):
         housing_columns, accurate_columns, inaccurate_columns = housing_successes.columns, successes.columns, failures.columns
-        print(housing_columns)
         self.assertTrue("HOUSING_ADDRESS_LOCATION" in housing_columns)
         self.assertTrue("fixed" in housing_columns)
         self.assertTrue("housing_fixed_by" in housing_columns)
