@@ -29,23 +29,6 @@ def add_housing_to_postgres():
 
     accurate_housing, inaccurate_housing = geocode_manage_split_housing(housing, year, quarter)
     accurate_housing.to_sql("additional_housing", engine, if_exists='append', index=False, dtype=helpers.column_types)
-
-    # there really shouldn't be a need to add any columns to low_accuracies, but this handles it if there is (although any new columns are added as text)
-    # low_accuracies_columns = make_query("SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'low_accuracies'")
-    # low_accuracies_columns = [column[0] for column in list(low_accuracies_columns)]
-    # columns_only_in_addendum = [column for column in housing.columns if column not in low_accuracies_columns]
-    # query_to_add_columns = ""
-    # columns_added = 0
-    # for column in columns_only_in_addendum:
-    #     if columns_added == 0:
-    #         query_to_add_columns += f'ALTER TABLE low_accuracies ADD COLUMN "{column}" text'
-    #     else:
-    #         query_to_add_columns += f', ADD COLUMN "{column}" text'
-    #     columns_added += 1
-    # # it'll be an empty string if there are no columns in the housing addendum that aren't in postgres yet
-    # if query_to_add_columns != "":
-    #         make_query(query_to_add_columns)
-
     inaccurate_housing.to_sql("low_accuracies", engine, if_exists='append', index=False, dtype=helpers.column_types)
 
     if quarter != 1:

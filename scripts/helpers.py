@@ -118,13 +118,14 @@ def geocode_table(df, worksite_or_housing, check_previously_geocoded=False):
     myprint(f"Geocoding {worksite_or_housing}...")
 
     if check_previously_geocoded:
+        make_query("REFRESH MATERIALIZED VIEW previously_geocoded")
+        print("checking previously fixed")
         if worksite_or_housing == "worksite":
-            df["address_id"] = df.apply(lambda job: handle_null(job["WORKSITE_ADDRESS"]) + handle_null(job["WORKSITE_CITY"]) +
-                                                    handle_null(job["WORKSITE_STATE"]) + handle_null(job["WORKSITE_POSTAL_CODE"]), axis=1)
+            df["address_id"] = df.apply(lambda job: (handle_null(job["WORKSITE_ADDRESS"]) + handle_null(job["WORKSITE_CITY"]) +
+                                                     handle_null(job["WORKSITE_STATE"]) + handle_null(job["WORKSITE_POSTAL_CODE"])).lower(), axis=1)
         else:
-            df["address_id"] = df.apply(lambda job: handle_null(job["HOUSING_ADDRESS_LOCATION"]) + handle_null(job["HOUSING_CITY"]) +
-                                                    handle_null(job["HOUSING_STATE"]) + handle_null(job["HOUSING_POSTAL_CODE"]), axis=1)
-
+            df["address_id"] = df.apply(lambda job: (handle_null(job["HOUSING_ADDRESS_LOCATION"]) + handle_null(job["HOUSING_CITY"]) +
+                                                     handle_null(job["HOUSING_STATE"]) + handle_null(job["HOUSING_POSTAL_CODE"])).lower(), axis=1)
         df["previously_geocoded"] = False
         df[f"{worksite_or_housing}_lat"] = None
         df[f"{worksite_or_housing}_long"] = None
@@ -147,8 +148,7 @@ def geocode_table(df, worksite_or_housing, check_previously_geocoded=False):
         previously_geocoded = df[df["previously_geocoded"]]
         df = df[~(df["previously_geocoded"])]
 
-        myprint(f"{len(previously_geocoded)} rows have already been geocded.")
-        myprint(f"{len(df)} rows still need to be geocoded.")
+        myprint(f"{len(previously_geocoded)} rows have already been geocded and {len(df)} rows still need to be geocoded.")
 
         df = df.drop(columns=["previously_geocoded"])
         previously_geocoded.drop(columns=["previously_geocoded"], inplace=True)
@@ -205,7 +205,7 @@ def geocode_and_split_by_accuracy(df, table=""):
         df = geocode_table(df, "worksite", check_previously_geocoded=True)
     elif table == "housing addendum":
         df = geocode_table(df, "housing", check_previously_geocoded=True)
-    elif table == "hol_h2a":
+    elif table == "dol_h2a":
         df = geocode_table(df, "worksite", check_previously_geocoded=True)
         df = geocode_table(df, "housing", check_previously_geocoded=True)
     else:

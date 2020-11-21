@@ -12,7 +12,9 @@ geocodio_api_key = os.getenv("GEOCODIO_API_KEY")
 engine, client = get_database_engine(), GeocodioClient(geocodio_api_key)
 
 def geocode_manage_split_merge(dol_jobs, accurate_old_jobs, inaccurate_old_jobs, h2a=True):
-    # get dol data and postgres data (accurate and inaccurate), perform necessary data management on dol data
+    h2a_or_h2b = "H2A" if h2a else "H2B"
+    myprint(f"Merging {h2a_or_h2b} DOL data.")
+
     dol_jobs = dol_jobs.drop_duplicates(subset='CASE_NUMBER', keep="last")
 
     if h2a:
@@ -70,11 +72,7 @@ def geocode_manage_split_merge(dol_jobs, accurate_old_jobs, inaccurate_old_jobs,
 
     # geocode dol data and split by accuracy
     accurate_dol_jobs, inaccurate_dol_jobs = helpers.geocode_and_split_by_accuracy(dol_jobs, table=table)
-    # merge all old and new data together
-    accurate_jobs, inaccurate_jobs = helpers.merge_all_data(accurate_dol_jobs, inaccurate_dol_jobs, accurate_old_jobs, inaccurate_old_jobs)
-    # sort data
-    accurate_jobs, inaccurate_jobs = helpers.sort_df_by_date(accurate_jobs), helpers.sort_df_by_date(inaccurate_jobs)
-    return accurate_jobs, inaccurate_jobs
+    helpers.merge_all_data(accurate_dol_jobs, inaccurate_dol_jobs)
 
 def push_merged_to_sql():
     dol_file_name = ""
@@ -82,14 +80,9 @@ def push_merged_to_sql():
     dol_jobs = pd.read_excel(os.path.join(os.getcwd(), '..', dol_file_name), converters={'ATTORNEY_AGENT_PHONE':str,'ATTORNEY_AGENT_PHONE_EXT':str, 'PHONE_TO_APPLY':str,
                                                                                         'SOC_CODE': str, 'NAICS_CODE': str, 'EMPLOYER_POC_PHONE': str, 'EMPLOYER_PHONE': str,
                                                                                         'EMPLOYER_POC_PHONE_EXT': str, 'EMPLOYER_PHONE_EXT': str})
-    accurate_old_jobs = pd.read_sql("job_central", con=engine)
-    inaccurate_old_jobs = pd.read_sql("low_accuracies", con=engine)
-    accurate_jobs, inaccurate_jobs = geocode_manage_split_merge(dol_jobs, accurate_old_jobs, inaccurate_old_jobs)
-    accurate_jobs.to_excel("accurate_backup.xlsx")
-    inaccurate_jobs.to_excel("inaccurate_backup.xlsx")
-
-    accurate_jobs.to_sql("job_central", engine, if_exists='replace', index=False, dtype=helpers.column_types)
-    inaccurate_jobs.to_sql("low_accuracies", engine, if_exists='replace', index=False, dtype=helpers.column_types)
+    h2a_response = input("Is this for H2A? Enter Y or N: ")
+    is_h2a = h2a_response.lower() in ["y", "yes"]
+    geocode_manage_split_merge(dol_jobs, accurate_old_jobs, inaccurate_old_jobs, h2a=is_h2a)
 
 if __name__ == "__main__":
    push_merged_to_sql()
