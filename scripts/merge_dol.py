@@ -52,9 +52,9 @@ def geocode_manage_split_merge(dol_jobs, h2a=True):
         if pd.isnull(yes_no):
             return False
         stripped_val = yes_no.strip()
-        if stripped_val in ["Y", "Yes", "YES"]:
+        if stripped_val in ["Y", "Yes", "YES", "yes"]:
             return True
-        elif stripped_val in ["N", "No", "NO", "N/A"]:
+        elif stripped_val in ["N", "No", "NO", "no", "N/A"]:
             return False
         else:
             helpers.print_red_and_email(f"There was an error converting {stripped_val} to boolean.", "Error Converting to Boolean")

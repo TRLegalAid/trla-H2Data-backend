@@ -108,13 +108,7 @@ def handle_null(object):
         return object
 
 def create_address_from(address, city, state, zip):
-    # don't think this should ever throw an error anymore, and if it does I want to know
     return handle_null(address) + ", " + handle_null(city) + " " + handle_null(state) + " " + handle_null(str(zip))
-
-    # try:
-    #     return handle_null(address) + ", " + handle_null(city) + " " + handle_null(state) + " " + handle_null(str(zip))
-    # except:
-    #     return ""
 
 
 def geocode_table(df, worksite_or_housing, check_previously_geocoded=False):
@@ -179,6 +173,13 @@ def geocode_table(df, worksite_or_housing, check_previously_geocoded=False):
     else:
         geocoding_results = client.geocode(addresses)
 
+
+    # to split into n parts at index n - because batch geocoding will fail for a list of size greater than 10000
+    # this should probably just be handled automatically recursively
+    # n = 7000
+    # geocoding_results1 = client.geocode(addresses[:n])
+    # geocoding_results2 = client.geocode(addresses[n:])
+    # geocoding_results = geocoding_results1 + geocoding_results2
 
 
     latitudes, longitudes, accuracies, accuracy_types, i = [], [], [], [], 0
