@@ -4,7 +4,7 @@ import pandas as pd
 from dotenv import load_dotenv
 load_dotenv()
 
-engine = get_database_engine(force_cloud=False)
+engine = get_database_engine(force_cloud=True)
 
 def manage_worksites(worksites, year, quarter):
 
