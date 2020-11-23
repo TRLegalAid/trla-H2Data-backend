@@ -68,6 +68,7 @@ def assert_accuracies_and_inaccuracies(accurates, inaccurates):
 #         self.assertTrue(housings_accurate)
 #         self.assertTrue(h2a_inaccurates_inaccurate)
 #         self.assertTrue(h2b_inaccurates_inaccurate)
+
 type_conversions = {'fixed': bool, 'housing_fixed_by': str, 'worksite_fixed_by': str, "HOUSING_POSTAL_CODE": str, "WORKSITE_POSTAL_CODE": str}
 accurate_new_jobs = pd.read_excel(os.path.join(os.getcwd(), '..',  "excel_files/accurate_dol_geocoded.xlsx"), converters=type_conversions)
 inaccurate_new_jobs = pd.read_excel(os.path.join(os.getcwd(), '..',  "excel_files/inaccurate_dol_geocoded.xlsx"),  converters=type_conversions)
@@ -126,6 +127,9 @@ class TestPreviouslyGeocoded(unittest.TestCase):
 #         self.assertTrue(housings_accurate)
 #         self.assertTrue(h2a_inaccurates_inaccurate)
 #         self.assertTrue(h2b_inaccurates_inaccurate)
+#
+
+
 
 # TESTING MERGE ALL DATA FUNCTION - see project documentation to see what is meant by case_1 through case_8
 myprint("Start of test case 0", is_red="red")
