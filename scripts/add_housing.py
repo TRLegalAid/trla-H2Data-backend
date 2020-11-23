@@ -5,7 +5,7 @@ import pandas as pd
 from dotenv import load_dotenv
 load_dotenv()
 
-engine = get_database_engine(force_cloud=True)
+engine = get_database_engine(force_cloud=False)
 
 
 def geocode_manage_split_housing(housing, year, quarter):

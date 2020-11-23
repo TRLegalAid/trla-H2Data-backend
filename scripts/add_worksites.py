@@ -4,7 +4,7 @@ import pandas as pd
 from dotenv import load_dotenv
 load_dotenv()
 
-engine = get_database_engine(force_cloud=True)
+engine = get_database_engine(force_cloud=False)
 
 def manage_worksites(worksites, year, quarter):
 
@@ -25,13 +25,6 @@ def add_worksites_to_postgres():
 
     worksites = manage_worksites(worksites, year, quarter)
     myprint(f"Adding {len(worksites)} rows to additional_worksites table.")
-
-    # for i, job in worksites.iterrows():
-    #     job_df = pd.DataFrame(job.to_dict(), index=[0])
-    #     job_df.to_sql("additional_worksites", engine, if_exists='append', index=False)
-    #     if i % 100 == 0:
-    #         print(f"added {i} rows so far")
-
 
     worksites.to_sql("additional_worksites", engine, if_exists='append', index=False)
 
