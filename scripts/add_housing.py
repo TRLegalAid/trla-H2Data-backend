@@ -30,9 +30,8 @@ def add_housing_to_postgres():
     accurate_housing.to_sql("additional_housing", engine, if_exists='append', index=False)
     inaccurate_housing.to_sql("low_accuracies", engine, if_exists='append', index=False)
 
-
     if quarter != 1:
-        response = input("enter yes or y if you're ready to run the delete queries")
+        response = input(f"Enter 'yes' or 'y' if you're ready to run the queries to delete the additional_housing rows from the previous quarter ({year}Q{quarter - 1}). You may want to check that adding the current quarter ({year}Q{quarter}) went well first.")
         if response in ["y", "yes"]:
             make_query(f"""DELETE FROM additional_housing WHERE fy = '{year}Q{quarter - 1}'""")
             make_query(f"""DELETE FROM low_accuracies WHERE fy = '{year}Q{quarter - 1}' and "table" = 'dol_h'""")
