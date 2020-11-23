@@ -4,7 +4,6 @@ from colorama import Fore, Style
 from helpers import myprint, get_database_engine, get_value, print_red_and_email
 import os
 import pandas as pd
-from sqlalchemy import create_engine
 from dotenv import load_dotenv
 load_dotenv()
 

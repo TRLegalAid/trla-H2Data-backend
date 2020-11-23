@@ -2,13 +2,11 @@ import os
 import helpers
 from helpers import make_query, get_database_engine
 import pandas as pd
-from sqlalchemy import create_engine
-from geocodio import GeocodioClient
 from dotenv import load_dotenv
 load_dotenv()
 
-geocodio_api_key = os.getenv("GEOCODIO_API_KEY")
-engine, client = get_database_engine(), GeocodioClient(geocodio_api_key)
+engine = get_database_engine(force_cloud=True)
+
 
 def geocode_manage_split_housing(housing, year, quarter):
 
@@ -24,12 +22,12 @@ def geocode_manage_split_housing(housing, year, quarter):
     return accurate_housing, inaccurate_housing
 
 def add_housing_to_postgres():
-    file_name, year, quarter = "", 2020, 4
-    housing = pd.read_excel(os.path.join(os.getcwd(), '..', file_name))
+    file_path, year, quarter = "dol_data/H-2A_AddendumB_Housing_FY2020.xlsx", 2020, 4
+    housing = pd.read_excel(file_path).head(15)
 
     accurate_housing, inaccurate_housing = geocode_manage_split_housing(housing, year, quarter)
-    accurate_housing.to_sql("additional_housing", engine, if_exists='append', index=False, dtype=helpers.column_types)
-    inaccurate_housing.to_sql("low_accuracies", engine, if_exists='append', index=False, dtype=helpers.column_types)
+    accurate_housing.to_sql("additional_housing", engine, if_exists='append', index=False)
+    inaccurate_housing.to_sql("low_accuracies", engine, if_exists='append', index=False)
 
     if quarter != 1:
         make_query(f"""DELETE FROM additional_housing WHERE fy = '{year}Q{quarter - 1}'""")

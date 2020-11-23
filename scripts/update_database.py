@@ -4,9 +4,6 @@ import helpers
 from helpers import myprint, get_database_engine
 from column_name_mappings import column_name_mappings
 import pandas as pd
-import sqlalchemy
-from sqlalchemy import create_engine
-from sqlalchemy.sql import text
 from geocodio import GeocodioClient
 from dotenv import load_dotenv
 load_dotenv()

@@ -1,23 +1,17 @@
 import os
-from helpers import myprint, get_database_engine
+from helpers import myprint
 import helpers
 import pandas as pd
 from datetime import datetime
-from sqlalchemy import create_engine
-from geocodio import GeocodioClient
 from dotenv import load_dotenv
 load_dotenv()
 
-geocodio_api_key = os.getenv("GEOCODIO_API_KEY")
-engine, client = get_database_engine(), GeocodioClient(geocodio_api_key)
-
-def geocode_manage_split_merge(dol_jobs, accurate_old_jobs, inaccurate_old_jobs, h2a=True):
-    h2a_or_h2b = "H2A" if h2a else "H2B"
-    myprint(f"Merging {h2a_or_h2b} DOL data.")
+def geocode_manage_split_merge(dol_jobs, h2a=True):
 
     dol_jobs = dol_jobs.drop_duplicates(subset='CASE_NUMBER', keep="last")
 
     if h2a:
+        myprint(f"Merging H-2A DOL data.")
         table = "dol_h2a"
         dol_jobs = dol_jobs.rename(columns={"FREQUENCY_OF_PAY": "Additional Wage Information", "H2A_LABOR_CONTRACTOR": "H-2A_LABOR_CONTRACTOR",
                                             "HOURLY_WORK_SCHEDULE_START": "HOURLY_SCHEDULE_BEGIN", "HOURLY_WORK_SCHEDULE_END": "HOURLY_SCHEDULE_END",
@@ -34,6 +28,7 @@ def geocode_manage_split_merge(dol_jobs, accurate_old_jobs, inaccurate_old_jobs,
                                         "SUPERVISE_OTHER_EMP", "SURETY_BOND_ATTACHED", "WORK_CONTRACTS_ATTACHED", "ADDENDUM_B_WORKSITE_ATTACHED"]
 
     else:
+        myprint(f"Merging H-2B DOL data.")
         table = "dol_h2b"
         dol_jobs = dol_jobs.rename(columns={"TOTAL_WORKERS_REQUESTED": "TOTAL_WORKERS_NEEDED", "WORKSITE_ADDRESS1": "WORKSITE_ADDRESS",
                                             "SPECIAL_REQUIREMENTS": "ADDITIONAL_JOB_REQUIREMENTS", "ADDITIONAL_WAGE_CONDITIONS": "Additional Wage Information",
@@ -45,8 +40,6 @@ def geocode_manage_split_merge(dol_jobs, accurate_old_jobs, inaccurate_old_jobs,
                                         "SUPERVISE_OTHER_EMP", "OVERTIME_AVAILABLE", "ON_THE_JOB_TRAINING_AVAILABLE",
                                         "EMP_PROVIDED_TOOLS_EQUIPMENT", "BOARD_LODGING_OTHER_FACILITIES", "APPENDIX_D_COMPLETED",
                                         "FOREIGN_LABOR_RECRUITER", "EMPLOYER_APPENDIX_B_ATTACHED", "EMP_CLIENT_APPENDIX_B_ATTACHED"]
-
-
 
 
     dol_jobs["Source"], dol_jobs["table"] = "DOL", "central"
@@ -71,18 +64,18 @@ def geocode_manage_split_merge(dol_jobs, accurate_old_jobs, inaccurate_old_jobs,
         dol_jobs[column] = dol_jobs.apply(lambda job: yes_no_to_boolean(job[column]), axis=1)
 
     # geocode dol data and split by accuracy
+    myprint(f"There are {len(dol_jobs)} DOL jobs to merge.")
     accurate_dol_jobs, inaccurate_dol_jobs = helpers.geocode_and_split_by_accuracy(dol_jobs, table=table)
     helpers.merge_all_data(accurate_dol_jobs, inaccurate_dol_jobs)
 
 def push_merged_to_sql():
-    dol_file_name = ""
-    # may have to use this for converters param if h2a: {'ATTORNEY_AGENT_PHONE':str,'PHONE_TO_APPLY':str, 'SOC_CODE': str, 'NAICS_CODE': str}
-    dol_jobs = pd.read_excel(os.path.join(os.getcwd(), '..', dol_file_name), converters={'ATTORNEY_AGENT_PHONE':str,'ATTORNEY_AGENT_PHONE_EXT':str, 'PHONE_TO_APPLY':str,
+    dol_file_path = "H2B_Disclosure_Data_FY2020.xlsx"
+    dol_jobs = pd.read_excel(dol_file_path, converters={'ATTORNEY_AGENT_PHONE':str,'ATTORNEY_AGENT_PHONE_EXT':str, 'PHONE_TO_APPLY':str,
                                                                                         'SOC_CODE': str, 'NAICS_CODE': str, 'EMPLOYER_POC_PHONE': str, 'EMPLOYER_PHONE': str,
                                                                                         'EMPLOYER_POC_PHONE_EXT': str, 'EMPLOYER_PHONE_EXT': str})
     h2a_response = input("Is this for H2A? Enter Y or N: ")
     is_h2a = h2a_response.lower() in ["y", "yes"]
-    geocode_manage_split_merge(dol_jobs, accurate_old_jobs, inaccurate_old_jobs, h2a=is_h2a)
+    geocode_manage_split_merge(dol_jobs, h2a=is_h2a)
 
 if __name__ == "__main__":
    push_merged_to_sql()
