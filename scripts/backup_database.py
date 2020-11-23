@@ -1,7 +1,6 @@
 import pandas as pd
 from helpers import make_query, get_database_engine
 import os
-from sqlalchemy import create_engine
 from datetime import datetime
 from pytz import timezone
 engine = get_database_engine(force_cloud=True)

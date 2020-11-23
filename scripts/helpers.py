@@ -56,7 +56,7 @@ def get_database_engine(force_cloud=False):
         return create_engine(os.getenv("LOCAL_DATABASE_URL"))
 
 # set to True to run real tasks locally
-force_cloud = False
+force_cloud = True
 engine = get_database_engine(force_cloud=force_cloud)
 
 bad_accuracy_types = ["place", "state", "street_center"]
@@ -117,41 +117,48 @@ def create_address_from(address, city, state, zip):
 def geocode_table(df, worksite_or_housing, check_previously_geocoded=False):
     myprint(f"Geocoding {worksite_or_housing}...")
 
-    if check_previously_geocoded:
-        make_query("REFRESH MATERIALIZED VIEW previously_geocoded")
-        print("checking previously fixed")
-        if worksite_or_housing == "worksite":
-            df["address_id"] = df.apply(lambda job: (handle_null(job["WORKSITE_ADDRESS"]) + handle_null(job["WORKSITE_CITY"]) +
-                                                     handle_null(job["WORKSITE_STATE"]) + handle_null(job["WORKSITE_POSTAL_CODE"])).lower(), axis=1)
-        else:
-            df["address_id"] = df.apply(lambda job: (handle_null(job["HOUSING_ADDRESS_LOCATION"]) + handle_null(job["HOUSING_CITY"]) +
-                                                     handle_null(job["HOUSING_STATE"]) + handle_null(job["HOUSING_POSTAL_CODE"])).lower(), axis=1)
-        df["previously_geocoded"] = False
-        df[f"{worksite_or_housing}_lat"] = None
-        df[f"{worksite_or_housing}_long"] = None
-        df[f"{worksite_or_housing} accuracy"] = None
-        df[f"{worksite_or_housing} accuracy type"] = ""
-
-        for i, job in df.iterrows():
-            make_query("REFRESH MATERIALIZED VIEW previously_geocoded")
-            previous_geocode = pd.read_sql(f"""SELECT * FROM previously_geocoded WHERE full_address = '{job["address_id"]}'""", con=engine)
-            if not previous_geocode.empty:
-                assert len(previous_geocode) == 1
-                df.at[i, f"{worksite_or_housing}_lat"] = get_value(previous_geocode, "latitude")
-                df.at[i, f"{worksite_or_housing}_long"] = get_value(previous_geocode, "longitude")
-                df.at[i, f"{worksite_or_housing} accuracy"] = get_value(previous_geocode, "accuracy")
-                df.at[i, f"{worksite_or_housing} accuracy type"] = get_value(previous_geocode, "accuracy_type")
-                df.at[i, "previously_geocoded"] = True
-
-        df = df.drop(columns=["address_id"])
-
-        previously_geocoded = df[df["previously_geocoded"]]
-        df = df[~(df["previously_geocoded"])]
-
-        myprint(f"{len(previously_geocoded)} rows have already been geocded and {len(df)} rows still need to be geocoded.")
-
-        df = df.drop(columns=["previously_geocoded"])
-        previously_geocoded.drop(columns=["previously_geocoded"], inplace=True)
+    # if check_previously_geocoded:
+        # make_query("REFRESH MATERIALIZED VIEW previously_geocoded")
+        # if worksite_or_housing == "worksite":
+        #     df["address_id"] = df.apply(lambda job: (handle_null(job["WORKSITE_ADDRESS"]) + handle_null(job["WORKSITE_CITY"]) +
+        #                                              handle_null(job["WORKSITE_STATE"]) + handle_null(job["WORKSITE_POSTAL_CODE"])).lower(), axis=1)
+        # else:
+        #     df["address_id"] = df.apply(lambda job: (handle_null(job["HOUSING_ADDRESS_LOCATION"]) + handle_null(job["HOUSING_CITY"]) +
+        #                                              handle_null(job["HOUSING_STATE"]) + handle_null(job["HOUSING_POSTAL_CODE"])).lower(), axis=1)
+        # df["previously_geocoded"] = False
+        # df[f"{worksite_or_housing}_lat"] = None
+        # df[f"{worksite_or_housing}_long"] = None
+        # df[f"{worksite_or_housing} accuracy"] = None
+        # df[f"{worksite_or_housing} accuracy type"] = ""
+        # make_query("REFRESH MATERIALIZED VIEW previously_geocoded")
+        #
+        # errors = 0
+        # for i, job in df.iterrows():
+        #     try:
+        #         previous_geocode = pd.read_sql(f"""SELECT * FROM previously_geocoded WHERE full_address = '{job["address_id"]}'""", con=engine)
+        #     except:
+        #         previous_geocode = pd.DataFrame()
+        #         myprint(f"""Failed to query previously_geocoded for address '{job["address_id"]}', the {i}th row.""")
+        #         errors += 1
+        #     if not previous_geocode.empty:
+        #         myprint(f"""'{job["address_id"]}' - the {i}th row - is previously geocoded.""")
+        #         assert len(previous_geocode) == 1
+        #         df.at[i, f"{worksite_or_housing}_lat"] = get_value(previous_geocode, "latitude")
+        #         df.at[i, f"{worksite_or_housing}_long"] = get_value(previous_geocode, "longitude")
+        #         df.at[i, f"{worksite_or_housing} accuracy"] = get_value(previous_geocode, "accuracy")
+        #         df.at[i, f"{worksite_or_housing} accuracy type"] = get_value(previous_geocode, "accuracy_type")
+        #         df.at[i, "previously_geocoded"] = True
+        #
+        # myprint(f"There were {errors} errors checking for previous geocoding.")
+        # df = df.drop(columns=["address_id"])
+        #
+        # previously_geocoded = df[df["previously_geocoded"]]
+        # df = df[~(df["previously_geocoded"])]
+        #
+        # myprint(f"{len(previously_geocoded)} rows have already been geocded and {len(df)} rows still need to be geocoded.")
+        #
+        # df = df.drop(columns=["previously_geocoded"])
+        # previously_geocoded.drop(columns=["previously_geocoded"], inplace=True)
 
 
     if worksite_or_housing == "worksite":
@@ -163,6 +170,10 @@ def geocode_table(df, worksite_or_housing, check_previously_geocoded=False):
         return
 
     geocoding_results = client.geocode(addresses)
+
+    # geocoding_results1 = client.geocode(addresses[:7000])
+    # geocoding_results2 = client.geocode(addresses[7000:])
+    # geocoding_results = geocoding_results1 + geocoding_results2
 
     latitudes, longitudes, accuracies, accuracy_types, i = [], [], [], [], 0
     for result in geocoding_results:
@@ -186,17 +197,12 @@ def geocode_table(df, worksite_or_housing, check_previously_geocoded=False):
     df[f"{worksite_or_housing} accuracy type"] = accuracy_types
     myprint(f"Finished geocoding {worksite_or_housing}.")
 
-    # df.insert(i, f"{worksite_or_housing}_lat", latitudes)
-    # df.insert(i, f"{worksite_or_housing}_long", longitudes)
-    # df.insert(i, f"{worksite_or_housing} accuracy", accuracies)
-    # df.insert(i, f"{worksite_or_housing} accuracy type", accuracy_types)
+    # if check_previously_geocoded:
+    #     df = df.append(previously_geocoded)
 
-    if check_previously_geocoded:
-        df = df.append(previously_geocoded)
-
-    # now = datetime.now(tz=timezone('US/Eastern')).strftime("%I.%M%.%S_%p_%B_%d_%Y")
-    # df.to_excel(f"../geocoding_backups/{now}.xlsx")
-    # myprint("Backed up geocoding results")
+    now = datetime.now(tz=timezone('US/Eastern')).strftime("%I.%M%.%S_%p_%B_%d_%Y")
+    df.to_excel(f"h2b_geocoding_backup_{now}.xlsx")
+    myprint("Backed up geocoding results")
 
     return df
 
@@ -240,6 +246,7 @@ def fix_zip_code_columns(df, columns):
 def is_accurate(job, housing_addendum=False):
 
     if housing_addendum:
+        myprint("Checking accuracies for housing addendum.")
         automatic_accurate_conditions = job["HOUSING_STATE"].lower() not in our_states
     elif job["Visa type"] == "H-2B":
         automatic_accurate_conditions = job["WORKSITE_STATE"].lower() not in our_states

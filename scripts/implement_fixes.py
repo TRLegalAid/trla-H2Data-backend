@@ -2,7 +2,6 @@ import os
 import helpers
 from helpers import myprint, print_red_and_email, make_query, get_database_engine
 import pandas as pd
-from sqlalchemy import create_engine
 from geocodio import GeocodioClient
 from dotenv import load_dotenv
 load_dotenv()

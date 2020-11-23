@@ -1,3 +1,9 @@
+import helpers
+
+if helpers.force_cloud:
+    print("Refusing to run tests. Never run tests on the actual database!!! You are seeing this alert because the force_cloud variable is set to True in helpers.py. Set it to False to run tests on the local database.")
+    exit()
+
 import unittest
 from populate_database import geocode_manage_split
 from add_housing import geocode_manage_split_housing
@@ -7,7 +13,6 @@ from helpers import merge_all_data, get_value, myprint, make_query, geocode_tabl
 from colorama import Fore, Style
 import os
 import pandas as pd
-import helpers
 bad_accuracy_types = helpers.bad_accuracy_types
 engine = helpers.get_database_engine()
 
@@ -92,7 +97,6 @@ inaccurates = pd.read_excel(os.path.join(os.getcwd(), '..',  "excel_files/inaccu
 set_test_database_state(accurates, inaccurates)
 news = pd.read_excel(os.path.join(os.getcwd(), '..',  "excel_files/new_jobs_prev_fixed_test.xlsx"),  converters=type_conversions)
 geocoded = geocode_table(news, "housing", check_previously_geocoded=True).reset_index()
-geocoded.to_excel("ggg.xlsx")
 class TestPreviouslyGeocoded(unittest.TestCase):
     def test_values(self):
         self.assertEqual(geocoded.at[1, "housing_lat"], 22)
@@ -157,7 +161,7 @@ class TestCaseOne(unittest.TestCase):
         self.assertEqual(get_value(dup_job, "WORKSITE_CITY"), "Williams")
         # testing columns from scraper
         self.assertEqual(get_value(dup_job, "Number of Pages"), 15)
-        # making sure it worked on orher duplicate job
+        # making sure it worked on other duplicate job
         self.assertEqual(get_value(all_accs1[all_accs1["CASE_NUMBER"] == "H-300-20119-524313"], "WORKSITE_CITY"), "Riceville")
 
 accs_old2 = accurate_old_jobs.copy()

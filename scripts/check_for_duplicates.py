@@ -1,6 +1,5 @@
 import pandas as pd
 from helpers import print_red_and_email, column_types, myprint, get_database_engine
-from sqlalchemy import create_engine
 engine = get_database_engine()
 
 def check_for_duplicates():
