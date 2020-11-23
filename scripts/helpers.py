@@ -226,7 +226,6 @@ def geocode_and_split_by_accuracy(df, table=""):
             df = geocode_table(df, "housing")
         else:
             print_red_and_email("Not geocoding housing because HOUSING_ADDRESS_LOCATION is not present. This should be fine, and hopefully just means there were only H-2B jobs in today's run, but you may want to check.", "Not geocoding housing today")
-            # pass
 
     housing_addendum = (table == "housing addendum")
     accurate = df.apply(lambda job: is_accurate(job, housing_addendum=housing_addendum), axis=1)
@@ -257,7 +256,12 @@ def is_accurate(job, housing_addendum=False):
 
     if housing_addendum:
         myprint("Checking accuracies for housing addendum.")
-        automatic_accurate_conditions = job["HOUSING_STATE"].lower() not in our_states
+        if job["HOUSING_STATE"]:
+            automatic_accurate_conditions = job["HOUSING_STATE"].lower() not in our_states
+        else:
+            myprint(f"""No housing state column in {job["CASE_NUMBER"]}""", is_red="red")
+            automatic_accurate_conditions = False
+            
     elif job["Visa type"] == "H-2B":
         automatic_accurate_conditions = job["WORKSITE_STATE"].lower() not in our_states
     else:
