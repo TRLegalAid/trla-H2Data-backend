@@ -23,15 +23,19 @@ def geocode_manage_split_housing(housing, year, quarter):
 
 def add_housing_to_postgres():
     file_path, year, quarter = "dol_data/H-2A_AddendumB_Housing_FY2020.xlsx", 2020, 4
-    housing = pd.read_excel(file_path).head(15)
+    housing = pd.read_excel(file_path)
 
     accurate_housing, inaccurate_housing = geocode_manage_split_housing(housing, year, quarter)
+
     accurate_housing.to_sql("additional_housing", engine, if_exists='append', index=False)
     inaccurate_housing.to_sql("low_accuracies", engine, if_exists='append', index=False)
 
+
     if quarter != 1:
-        make_query(f"""DELETE FROM additional_housing WHERE fy = '{year}Q{quarter - 1}'""")
-        make_query(f"""DELETE FROM low_accuracies WHERE fy = '{year}Q{quarter - 1}' and "table" = 'dol_h'""")
+        response = input("enter yes or y if you're ready to run the delete queries")
+        if response in ["y", "yes"]:
+            make_query(f"""DELETE FROM additional_housing WHERE fy = '{year}Q{quarter - 1}'""")
+            make_query(f"""DELETE FROM low_accuracies WHERE fy = '{year}Q{quarter - 1}' and "table" = 'dol_h'""")
 
 if __name__ == "__main__":
    add_housing_to_postgres()
