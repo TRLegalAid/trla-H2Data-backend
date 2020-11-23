@@ -24,15 +24,18 @@ def print_red(message):
     print(Fore.RED + message + Style.RESET_ALL)
 
 def myprint(message, is_red="", email_also=""):
-    if email_also != "yes":
-        frameinfo = getframeinfo((stack()[1][0]))
-        file_and_line_info = Fore.LIGHTBLUE_EX + "  (" + frameinfo.filename.split("/")[-1] + ", line " + str(frameinfo.lineno) + ")" + Style.RESET_ALL
-    else:
-        file_and_line_info = ""
-    if is_red == "red":
-        print_red(message + file_and_line_info)
-    else:
-        print(message + file_and_line_info)
+    try:
+        if email_also != "yes":
+            frameinfo = getframeinfo((stack()[1][0]))
+            file_and_line_info = Fore.LIGHTBLUE_EX + "  (" + frameinfo.filename.split("/")[-1] + ", line " + str(frameinfo.lineno) + ")" + Style.RESET_ALL
+        else:
+            file_and_line_info = ""
+        if is_red == "red":
+            print_red(message + file_and_line_info)
+        else:
+            print(message + file_and_line_info)
+    except:
+        print(message + "(there was an error with `myprint`)")
 
 def send_email(message):
     if os.getenv("LOCAL_DEV") == "true":
