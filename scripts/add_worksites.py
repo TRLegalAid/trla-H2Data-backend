@@ -20,7 +20,11 @@ def manage_worksites(worksites, year, quarter):
     return worksites
 
 def add_worksites_to_postgres():
-    file_path, year, quarter = "dol_data/H-2A_AddendumB_Employment_FY2020.xlsx", 2020, 4
+    file_path = "dol_data/" + input("Put the additional worksites file in a folder named `dol_data` in the `scripts` folder. Now enter the name of the file (this is case sensitive).\n").strip()
+    year = input("What year is it? (eg: 2020)\n").strip()
+    quarter = input("What quarter it is? (enter 1, 2, 3, or 4)\n").strip()
+    input(f"Ok, adding worksites from {file_path} for fiscal year {year}Q{quarter}. If this is correct press any key, othewise press control + c to start over.")
+
     worksites = pd.read_excel(file_path)
 
     worksites = manage_worksites(worksites, year, quarter)

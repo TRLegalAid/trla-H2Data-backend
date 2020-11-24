@@ -28,17 +28,22 @@ def overwrite_feature(username, password, new_df, old_feature_name):
 
 def overwrite_our_feature():
 
-    h2a_df = pd.read_sql("""SELECT * FROM job_central WHERE "Visa type" = 'H-2A' AND "WORKSITE_STATE" IN
-                        ('TEXAS', 'KENTUCKY', 'TENNESSEE', 'ARKANSAS', 'LOUISIANA', 'MISSISSIPPI', 'ALABAMA')
+    h2a_df = pd.read_sql("""SELECT * FROM job_central WHERE "Visa type" = 'H-2A' AND LOWER("WORKSITE_STATE") IN
+                        ('texas', 'tx', 'kentucky', 'ky', 'tennessee', 'tn', 'arkansas', 'ar', 'louisiana', 'la', 'mississippi', 'ms', 'alabama', 'al')
                         AND housing_lat IS NOT NUll AND housing_long IS NOT NULL""", con=engine)
 
+    h2a_df["TOTAL_OCCUPANCY"].fillna(600, inplace=True)
+
     forestry_h2b_in_our_states_df = pd.read_sql("""SELECT * FROM job_central WHERE "Visa type" = 'H-2B' AND "SOC_CODE" IN ('45-4011.00', '45-4011') AND
-                                                    "WORKSITE_STATE" IN ('TEXAS', 'KENTUCKY', 'TENNESSEE', 'ARKANSAS', 'LOUISIANA', 'MISSISSIPPI', 'ALABAMA')
+                                                    LOWER("WORKSITE_STATE") IN ('texas', 'tx', 'kentucky', 'ky', 'tennessee', 'tn', 'arkansas', 'ar', 'louisiana', 'la', 'mississippi', 'ms', 'alabama', 'al')
                                                     """, con=engine)
 
-    h2a_no_housing_df = pd.read_sql("""SELECT * FROM job_central WHERE "Visa type" = 'H-2A' AND "WORKSITE_STATE" IN
-                        ('TEXAS', 'KENTUCKY', 'TENNESSEE', 'ARKANSAS', 'LOUISIANA', 'MISSISSIPPI', 'ALABAMA')
+    h2a_no_housing_df = pd.read_sql("""SELECT * FROM job_central WHERE "Visa type" = 'H-2A' AND LOWER("WORKSITE_STATE") IN
+                        ('texas', 'tx', 'kentucky', 'ky', 'tennessee', 'tn', 'arkansas', 'ar', 'louisiana', 'la', 'mississippi', 'ms', 'alabama', 'al')
                         AND (housing_lat IS NUll OR housing_long IS NULL)""", con=engine)
+
+    h2a_no_housing_df["TOTAL_OCCUPANCY"].fillna(600, inplace=True)
+
 
     myprint(f"There will be {len(h2a_df)} normal H2A jobs in the feature.")
     myprint(f"There will be {len(h2a_no_housing_df)} H2A jobs mapped using their worksites in the feature.")
@@ -59,7 +64,8 @@ def overwrite_our_feature():
     h2a_housing_and_no_housing_and_h2b_df = h2a_and_h2b_df.append(h2a_no_housing_df)
 
     additional_housing_df = pd.read_sql("""SELECT * FROM additional_housing WHERE "CASE_NUMBER" IN (select "CASE_NUMBER" FROM job_central WHERE
-                                        "Visa type" = 'H-2A' AND "WORKSITE_STATE" IN ('TEXAS', 'KENTUCKY', 'TENNESSEE', 'ARKANSAS', 'LOUISIANA', 'MISSISSIPPI', 'ALABAMA'))
+                                        "Visa type" = 'H-2A' AND LOWER("WORKSITE_STATE") IN
+                                        ('texas', 'tx', 'kentucky', 'ky', 'tennessee', 'tn', 'arkansas', 'ar', 'louisiana', 'la', 'mississippi', 'ms', 'alabama', 'al'))
                                          """, con=engine)
 
     myprint(f"There will be {len(additional_housing_df)} additional housing rows in the feature.")

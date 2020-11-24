@@ -69,12 +69,26 @@ def geocode_manage_split_merge(dol_jobs, h2a=True):
     helpers.merge_all_data(accurate_dol_jobs, inaccurate_dol_jobs)
 
 def push_merged_to_sql():
-    dol_file_path = "dol_data/H2B_Disclosure_Data_FY2020.xlsx"
+    h2a_response = input("Are you merging DOL data for H-2A or H-2B? Enter `A` for H2A, `B` for H2B.\n ").strip().lower()
+    if h2a_response == "a":
+        is_h2a = True
+        h2a_or_h2b = "H-2A"
+    elif h2a_reponse == "b":
+        is_h2a = False
+        h2a_or_h2b = "H-2B"
+
+    else:
+        raise ValueError("The answer to the last question must be either A or B, nothing else!")
+
+
+    file_path = "dol_data/" + input(f"Put the {h2a_or_h2b} DOL file in a folder named `dol_data` in the `scripts` folder. Now enter the name of the file (this is case sensitive).\n").strip()
+    year = input("What year is it? (eg: 2020)\n").strip()
+    quarter = input("What quarter it is? (enter 1, 2, 3, or 4)\n").strip()
+    input(f"Ok, merging {h2a_or_h2b} DOL data from {file_path} for fiscal year {year}Q{quarter}. If this is correct press any key, othewise press control + c to start over.")
+
     dol_jobs = pd.read_excel(dol_file_path, converters={'ATTORNEY_AGENT_PHONE':str,'ATTORNEY_AGENT_PHONE_EXT':str, 'PHONE_TO_APPLY':str,
                                                                                         'SOC_CODE': str, 'NAICS_CODE': str, 'EMPLOYER_POC_PHONE': str, 'EMPLOYER_PHONE': str,
                                                                                         'EMPLOYER_POC_PHONE_EXT': str, 'EMPLOYER_PHONE_EXT': str})
-    h2a_response = input("Is this for H2A? Enter Y or N: ")
-    is_h2a = h2a_response.lower() in ["y", "yes"]
     geocode_manage_split_merge(dol_jobs, h2a=is_h2a)
 
 if __name__ == "__main__":

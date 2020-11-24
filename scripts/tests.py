@@ -129,8 +129,6 @@ class TestPreviouslyGeocoded(unittest.TestCase):
 #         self.assertTrue(h2b_inaccurates_inaccurate)
 #
 
-
-
 # TESTING MERGE ALL DATA FUNCTION - see project documentation to see what is meant by case_1 through case_8
 myprint("Start of test case 0", is_red="red")
 set_test_database_state(accurate_old_jobs, inaccurate_old_jobs)
@@ -163,6 +161,8 @@ class TestCaseOne(unittest.TestCase):
         self.assertEqual(get_value(dup_job, "housing_lat"), 48.866801)
         self.assertEqual(get_value(dup_job, "Source"), "DOL")
         self.assertEqual(get_value(dup_job, "WORKSITE_CITY"), "Williams")
+        self.assertEqual(get_value(dup_job, "WORKSITE_POSTAL_CODE"), "42743")
+
         # testing columns from scraper
         self.assertEqual(get_value(dup_job, "Number of Pages"), 15)
         # making sure it worked on other duplicate job
