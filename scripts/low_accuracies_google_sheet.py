@@ -6,6 +6,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 import pandas as pd
 from helpers import get_database_engine, myprint, make_query, convert_date_to_string
 from dotenv import load_dotenv
+from sqlalchemy.sql import text
 load_dotenv()
 
 engine = get_database_engine(force_cloud=True)
@@ -75,14 +76,20 @@ def send_sheet_fixes_to_postgres(sheet):
     sheet_df["fixed"] = sheet_df["fixed"].astype('bool')
 
     for i, job in sheet_df.iterrows():
-        make_query(f"""UPDATE low_accuracies SET
+        query = text(
+                """UPDATE low_accuracies SET
                     (fixed, housing_lat, housing_long, "HOUSING_ADDRESS_LOCATION", "HOUSING_CITY",
                     "HOUSING_STATE", "HOUSING_POSTAL_CODE", notes, housing_fixed_by)
                      =
-                     ({job["fixed"]}, {job["housing_lat"]}, {job["housing_long"]}, '{job["HOUSING_ADDRESS_LOCATION"]}',
-                     '{job["HOUSING_CITY"]}', '{job["HOUSING_STATE"]}', '{job["HOUSING_POSTAL_CODE"]}', '{job["notes"]}', '{job["housing_fixed_by"]}')
-                     WHERE id = {job["id"]}""")
+                     (:fixed, :lat, :long, :address, :city, :state, :zip, :notes, :fixed_by)
+                     WHERE id = :id""")
 
+        with engine.connect() as connection:
+            connection.execute(query, fixed=job["fixed"], lat=job["housing_lat"], long=job["housing_long"],
+                               address=job["HOUSING_ADDRESS_LOCATION"], city=job["HOUSING_CITY"],
+                               state=job["HOUSING_STATE"], zip=job["HOUSING_POSTAL_CODE"],
+                               notes=job["notes"], fixed_by=job["housing_fixed_by"], id=job["id"])
+                               
 
 def replace_our_google_sheet_with_low_accuracies_table():
     our_sheet = open_sheet(init_sheets(), file_name="Addresses to Correct", sheet_name="Inbox")
@@ -94,5 +101,5 @@ def send_fixes_in_our_google_sheet_to_low_accuracies():
     send_sheet_fixes_to_postgres(our_sheet)
 
 if __name__ == "__main__":
-    replace_our_google_sheet_with_low_accuracies_table()
-    # send_fixes_in_our_google_sheet_to_low_accuracies()
+    # replace_our_google_sheet_with_low_accuracies_table()
+    send_fixes_in_our_google_sheet_to_low_accuracies()

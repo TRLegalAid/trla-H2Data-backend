@@ -1,5 +1,6 @@
 import pandas as pd
 from helpers import myprint, make_query, get_database_engine
+from sqlalchemy.sql import text
 engine = get_database_engine(force_cloud=True)
 
 def fix_previously_fixed():
@@ -18,22 +19,28 @@ def fix_previously_fixed():
     myprint(f"There are {len(previously_fixed_df)} rows in low_accuracies whose exact housing address column has been fixed before.")
 
     for fixed in previously_fixed_df.iterrows():
-        update_query = f"""
+        update_query = text("""
                         UPDATE low_accuracies SET
-                        "HOUSING_ADDRESS_LOCATION" = {fixed["HOUSING_ADDRESS_LOCATION"]},
-                        "HOUSING_CITY" = {fixed["HOUSING_CITY"]},
-                        "HOUSING_POSTAL_CODE" = {fixed["HOUSING_POSTAL_CODE"]},
-                        "HOUSING_STATE" = {fixed["HOUSING_STATE"]},
-                        "fixed" = {fixed["fixed"]},
-                        "housing accuracy" = {fixed["housing accuracy"]},
-                        "housing accuracy type" = {fixed["housing accuracy type"]},
-                        "housing_fixed_by" = {fixed["housing_fixed_by"]},
-                        "housing_lat" = {fixed["housing_lat"]},
-                        "housing_long" = {fixed["housing_long"]},
-                        "notes" = {fixed["notes"]}
-                        WHERE "id" = {fixed["low_acc_id"]}
-                        """
-        make_query(update_query)
+                        "HOUSING_ADDRESS_LOCATION" = :address,
+                        "HOUSING_CITY" = :city,
+                        "HOUSING_POSTAL_CODE" = :zip,
+                        "HOUSING_STATE" = :state,
+                        "fixed" = :fixed,
+                        "housing accuracy" = :accuracy,
+                        "housing accuracy type" = :accuracy_type,
+                        "housing_fixed_by" = :fixed_by,
+                        "housing_lat" = :lat,
+                        "housing_long" = :long,
+                        "notes" = :notes
+                        WHERE "id" = :id
+                        """)
+
+        with engine.connect() as connection:
+            connection.execute(update_query, address=fixed["HOUSING_ADDRESS_LOCATION"], city=fixed["HOUSING_CITY"],
+                              zip=fixed["HOUSING_POSTAL_CODE"], state=fixed["HOUSING_STATE"], fixed=fixed["fixed"],
+                              accuracy=fixed["housing accuracy"], accuracy_type=fixed["housing accuracy type"],
+                              fixed_by=fixed["housing_fixed_by"], lat=fixed["housing_lat"], long=fixed["housing_long"],
+                              notes=fixed["notes"], id=fixed["id"])
 
     myprint("Successfully fixed all previously fixed rows in low accuracies.")
 

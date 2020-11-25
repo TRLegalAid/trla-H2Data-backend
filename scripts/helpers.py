@@ -59,7 +59,13 @@ def get_database_engine(force_cloud=False):
         return create_engine(os.getenv("LOCAL_DATABASE_URL"))
 
 # set to True to run real tasks locally
-force_cloud = True
+force_cloud_input = input("Run on real datase? If doing this, be careful! Enter y for yes, n for no. ").lower().strip()
+force_cloud = force_cloud_input in ["y", "yes"]
+if force_cloud:
+    myprint("Ok, running on real database.")
+else:
+    myprint("Ok, running on local database.")
+    
 engine = get_database_engine(force_cloud=force_cloud)
 
 bad_accuracy_types = ["place", "state", "street_center"]
