@@ -3,11 +3,12 @@ import helpers
 from helpers import make_query, get_database_engine
 import pandas as pd
 from dotenv import load_dotenv
-load_dotenv()
 
+load_dotenv()
 engine = get_database_engine(force_cloud=False)
 
-
+# geocodes, splits by accuracy, renames columns, and adds necessary columns for the DataFrame 'housing'.
+# year, quarter should be strings - ex: 2020, 4
 def geocode_manage_split_housing(housing, year, quarter):
 
     housing = housing.rename(columns={"PHYSICAL_LOCATION_ADDRESS_2": "HOUSING_ADDRESS2", "JOB_ORDER_NUMBER": "JO_ORDER_NUMBER",
@@ -21,6 +22,9 @@ def geocode_manage_split_housing(housing, year, quarter):
     accurate_housing, inaccurate_housing = helpers.geocode_and_split_by_accuracy(housing, table="housing addendum")
     return accurate_housing, inaccurate_housing
 
+# adds housing data from user-inputted excel file
+# removes all rows in low_accuracies and additional_housing tables whose table column is dol_h and fy column is the previous quarter,
+ # unless the currently inputted quarter is 1
 def add_housing_to_postgres():
 
     file_path = "dol_data/" + input("Put the additional housing file in a folder named `dol_data` in the `scripts` folder. Now enter the name of the file (this is case sensitive).\n").strip()

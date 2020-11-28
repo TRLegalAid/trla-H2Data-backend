@@ -2,10 +2,12 @@ import helpers
 from helpers import make_query, get_database_engine, myprint
 import pandas as pd
 from dotenv import load_dotenv
-load_dotenv()
 
+load_dotenv()
 engine = get_database_engine(force_cloud=False)
 
+# worksites is a DataFrame
+# year, quarter should be strings - ex: 2020, 4
 def manage_worksites(worksites, year, quarter):
 
     worksites = worksites.rename(columns={"PLACE_OF_EMPLOYMENT_ADDRESS1": "WORKSITE_ADDRESS",

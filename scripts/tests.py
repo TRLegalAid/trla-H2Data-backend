@@ -53,22 +53,6 @@ def assert_accuracies_and_inaccuracies(accurates, inaccurates):
         h2b_inaccurates_inaccurate = True
     return worksites_accurate, housings_accurate, h2a_inaccurates_inaccurate, h2b_inaccurates_inaccurate
 
-# myprint("Start of populate database test", is_red="red")
-# scraper_data = pd.read_excel(os.path.join(os.getcwd(), '..',  "excel_files/scraper_data.xlsx"))
-# accurates, inaccurates, raw_scrapers = geocode_manage_split(scraper_data)
-# class TestPopulateDatabase(unittest.TestCase):
-#     def test_length_and_table_column(self):
-#         self.assertEqual(len(accurates), 12)
-#         self.assertEqual(len(inaccurates), 2)
-#         self.assertEqual(len(raw_scrapers), 15)
-#         self.assertTrue((accurates["table"] == "central").all() and (inaccurates["table"] == "central").all())
-#     def test_accuracies(self):
-#         worksites_accurate, housings_accurate, h2a_inaccurates_inaccurate, h2b_inaccurates_inaccurate = assert_accuracies_and_inaccuracies(accurates, inaccurates)
-#         self.assertTrue(worksites_accurate)
-#         self.assertTrue(housings_accurate)
-#         self.assertTrue(h2a_inaccurates_inaccurate)
-#         self.assertTrue(h2b_inaccurates_inaccurate)
-
 type_conversions = {'fixed': bool, 'housing_fixed_by': str, 'worksite_fixed_by': str, "HOUSING_POSTAL_CODE": str, "WORKSITE_POSTAL_CODE": str}
 accurate_new_jobs = pd.read_excel(os.path.join(os.getcwd(), '..',  "excel_files/accurate_dol_geocoded.xlsx"), converters=type_conversions)
 inaccurate_new_jobs = pd.read_excel(os.path.join(os.getcwd(), '..',  "excel_files/inaccurate_dol_geocoded.xlsx"),  converters=type_conversions)
@@ -108,26 +92,6 @@ class TestPreviouslyGeocoded(unittest.TestCase):
         self.assertEqual(geocoded.at[2, "housing_long"], 133)
         self.assertEqual(geocoded.at[2, "housing accuracy"], 100)
         self.assertEqual(geocoded.at[2, "housing accuracy type"], "aaa")
-
-
-# myprint("Start of merge dol h2a test", is_red="red")
-# old_accurates = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/accurates_geocoded.xlsx'))
-# old_inaccurates = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/inaccurates_geocoded.xlsx'))
-# dol_jobs = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/dol_data.xlsx'))
-# helpers.state_checking = False
-# accurate_jobs_merged, inaccurate_jobs_merged = geocode_manage_split_merge(dol_jobs, old_accurates, old_inaccurates)
-# helpers.state_checking = True
-# class TestMergeDolH2A(unittest.TestCase):
-#     def test_length_and_source_column(self):
-#         self.assertEqual(len(accurate_jobs_merged), 18)
-#         self.assertEqual(len(inaccurate_jobs_merged), 9)
-#     def test_accuracies(self):
-#         worksites_accurate, housings_accurate, h2a_inaccurates_inaccurate, h2b_inaccurates_inaccurate = assert_accuracies_and_inaccuracies(accurate_jobs_merged, inaccurate_jobs_merged)
-#         self.assertTrue(worksites_accurate)
-#         self.assertTrue(housings_accurate)
-#         self.assertTrue(h2a_inaccurates_inaccurate)
-#         self.assertTrue(h2b_inaccurates_inaccurate)
-#
 
 # TESTING MERGE ALL DATA FUNCTION - see project documentation to see what is meant by case_1 through case_8
 myprint("Start of test case 0", is_red="red")

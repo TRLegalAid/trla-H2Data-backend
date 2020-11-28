@@ -1,7 +1,3 @@
-# this script reports any columns in the H2A additional_worksites, H2B additional_housings, H2A disclosure, and
-# H2B disclosure files that are not in these files' corresponding tables in Postgres. Edit `table_file_names_map`
-# accordingly based on file names. Assumes all files are located in a folder named dol_data which is in this directory.
-
 import pandas as pd
 from helpers import get_database_engine
 engine = get_database_engine(force_cloud=True)
@@ -17,6 +13,10 @@ def check_for_new_columns(file_name, table_name):
     return columns_in_file_but_not_postgres
 
 
+
+# reports any columns in the H2A additional_worksites, H2B additional_housings, H2A disclosure, and
+# H2B disclosure files that are not in these files' corresponding tables in Postgres. Edit `table_file_names_map`
+# accordingly based on file names. Assumes all files are located in a folder named dol_data which is in this directory.
 if __name__ == "__main__":
 
     files_table_map = {"H-2A_Disclosure_Data_FY2020.xlsx": "job_central",

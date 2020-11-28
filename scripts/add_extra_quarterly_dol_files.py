@@ -3,11 +3,11 @@ import pandas as pd
 from helpers import myprint, get_database_engine, make_query
 from check_new_dol_columns import check_for_new_columns
 
-
 engine = get_database_engine(force_cloud=True)
 all_table_names = pd.read_sql("""SELECT "tablename" FROM pg_catalog.pg_tables WHERE schemaname != 'pg_catalog' AND schemaname != 'information_schema'""", engine)["tablename"].tolist()
 
 # appends file_name to table_name, adds fy column, removes rows from postgres where fy = "{year}{quarter - 1}" unless quarter = 1
+# year, quarter should be strings - ex: 2020, 4
 def append_excel_to_table(file_name, table_name, year, quarter):
     if table_name in all_table_names:
         if check_for_new_columns(file_name, table_name):
@@ -27,6 +27,7 @@ def append_excel_to_table(file_name, table_name, year, quarter):
         make_query(f"""DELETE FROM {table_name} WHERE fy = '{year}Q{int(quarter) - 1}'""")
 
 
+# appends each file in excel_files/dol_table_file_mappings.xlsx to its specified table
 def append_excels_to_their_tables():
     year = input("What year is it? (eg: 2020)\n").strip()
     quarter = input("What quarter is it? (enter 1, 2, 3, or 4)\n").strip()

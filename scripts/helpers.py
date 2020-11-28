@@ -1,3 +1,5 @@
+"""This file contains various functions that are used thorughout the application."""
+
 from math import isnan
 import os
 import pandas as pd
@@ -16,13 +18,17 @@ load_dotenv()
 geocodio_api_key = os.getenv("GEOCODIO_API_KEY")
 client = GeocodioClient(geocodio_api_key)
 
+# when this is True we will only check for accuracy jobs located in `our_states`
 state_checking = True
 our_states = ["texas", "tx", "kentucky", "ky", "tennessee", "tn", "arkansas", "ar", "louisiana", "la", "mississippi", "ms", "alabama", "al"]
 
-
+# prints `message` in red
 def print_red(message):
     print(Fore.RED + message + Style.RESET_ALL)
 
+# prints `message` along with the file and line info where from which the print function was called
+# if is_red=="red", the message will be printed in red
+# if emai_also=="yes", an email will be sent as well
 def myprint(message, is_red="", email_also=""):
     try:
         if email_also != "yes":
@@ -37,6 +43,7 @@ def myprint(message, is_red="", email_also=""):
     except:
         print(message + "(there was an error with `myprint`)")
 
+# sends `message` to the email account speciifed in the environment variables, unless the local_dev env variable is true
 def send_email(message):
     if os.getenv("LOCAL_DEV") == "true":
         return
@@ -46,18 +53,23 @@ def send_email(message):
         server.login(email, password)
         server.sendmail(email, email, message)
 
+# prints `message` in red and sends email with subject `subject` and body `message`
 def print_red_and_email(message, subject):
     frameinfo = getframeinfo((stack()[1][0]))
     file_name_and_line_info = "(" + frameinfo.filename.split("/")[-1] + ", line " + str(frameinfo.lineno) + ")"
     myprint(message + "  " + file_name_and_line_info, is_red="red", email_also="yes")
     send_email("Subject: " + subject + "\n\n" + message + "\n" + file_name_and_line_info)
 
+# return an engine for the local postgres database if local_dev, else for the heroku-hosted database
+# if force_cloud is True it return the engine for the heroku database regardless of local_dev
 def get_database_engine(force_cloud=False):
     if force_cloud or (not (os.getenv("LOCAL_DEV") == "true")):
         return create_engine(os.getenv("DATABASE_URL"))
     else:
         return create_engine(os.getenv("LOCAL_DATABASE_URL"))
 
+# asks user whether they want database engine to be for local database or heroku database
+# if running a real task locally, respond yes
 if os.getenv("LOCAL_DEV") == "true":
     force_cloud_input = input("Run on real datase? If doing this, be careful! Enter y for yes, n for no. ").lower().strip()
     force_cloud = force_cloud_input in ["y", "yes"]
@@ -70,7 +82,10 @@ else:
 
 engine = get_database_engine(force_cloud=force_cloud)
 
+# geocoding accuracy types that will be marked as inaccurate
 bad_accuracy_types = ["place", "state", "street_center"]
+
+# column type specifications to be used if replacing a database table or creating a new one
 column_types = {
     "fixed": sqlalchemy.types.Boolean, "Experience Required": sqlalchemy.types.Boolean, "Multiple Worksites": sqlalchemy.types.Boolean,
     "Date of run": sqlalchemy.types.DateTime, "RECEIVED_DATE": sqlalchemy.types.DateTime, "EMPLOYMENT_BEGIN_DATE": sqlalchemy.types.DateTime,
@@ -89,26 +104,25 @@ column_types = {
     "ON_CALL_REQUIREMENT": sqlalchemy.types.Boolean, "REPETITIVE_MOVEMENTS": sqlalchemy.types.Boolean, "SURETY_BOND_ATTACHED": sqlalchemy.types.Boolean, "WORK_CONTRACTS_ATTACHED": sqlalchemy.types.Boolean,
     "CERTIFICATION_REQUIREMENTS": sqlalchemy.types.Boolean, "DECISION_DATE": sqlalchemy.types.DateTime
 }
+
+# columns to do with housing / worksite addresses
 housing_address_columns = ["HOUSING_ADDRESS_LOCATION", "HOUSING_CITY", "HOUSING_STATE", "HOUSING_POSTAL_CODE", "housing_lat", "housing_long", "housing accuracy", "housing accuracy type", "housing_fixed_by", "fixed"]
 worksite_address_columns = ["WORKSITE_ADDRESS", "WORKSITE_CITY", "WORKSITE_STATE", "WORKSITE_POSTAL_CODE", "worksite_lat", "worksite_long", "worksite accuracy", "worksite accuracy type", "worksite_fixed_by", "fixed"]
+
+# h2a jobs that we've found without housing info - here because we email ourselves when we find one that hasn't been found yet (when we find one we add it to this list so we don't get emailed about it again and again)
 h2as_without_housing = ["H-300-20306-894174", "H-300-20293-882133", "H-300-20288-878041"]
 
-# function for printing dictionary
+# function for printing dictionary with each key, value pair on its own line
 def prettier(dictionary):
     for key in dictionary:
         print(key, ": ", dictionary[key])
-
-def create_address_from(address, city, state, zip):
-    try:
-        return address + ", " + city + " " + state + " " + str(zip)
-    except:
-        return ""
 
 def convert_date_to_string(datetime):
     if pd.isna(datetime):
         return ""
     return datetime.strftime("%m/%d/%Y, %H:%M:%S")
 
+# returns empty string is `object` is null, otherwise just `object`
 def handle_null(object):
     if pd.isnull(object):
         return ""
@@ -118,7 +132,11 @@ def handle_null(object):
 def create_address_from(address, city, state, zip):
     return handle_null(address) + ", " + handle_null(city) + " " + handle_null(state) + " " + handle_null(str(zip))
 
-
+# geocodes a DataFrame `df`, adding columns fo0r latitude, longitude, accuracy, and accuracy type
+# worksite_or_housing is either "worksite" or "housing" and specifies whether to geocode housing or worksite columns
+# if `check_previously_geocoded, uses the materialized postgres view `previously_geocoded` to geocode addresses that
+# we've already geocoded without using Geocodio so as to save credits
+# return the DataFrame with geocoding results columns added
 def geocode_table(df, worksite_or_housing, check_previously_geocoded=False):
     myprint(f"Geocoding {worksite_or_housing}...")
 
@@ -139,6 +157,7 @@ def geocode_table(df, worksite_or_housing, check_previously_geocoded=False):
 
         errors = 0
         for i, job in df.iterrows():
+            # won't work if the full address has certain special characters. should probably fix this but it's rather rare
             try:
                 previous_geocode = pd.read_sql(f"""SELECT * FROM previously_geocoded WHERE full_address = '{job["address_id"]}'""", con=engine)
             except:
@@ -174,7 +193,7 @@ def geocode_table(df, worksite_or_housing, check_previously_geocoded=False):
         print_red_and_email("`worksite_or_housing` parameter in geocode_table function must be either `worksite` or `housing` or `housing addendum`", "Invalid Function Parameter")
         return
 
-    # handles case of more than 10000 addresses - but won't work if there's 20000 - this should probably be handled recursively
+    # handles case of more than 10000 addresses - but won't work if there's 20000 - this should really be handled recursively
     if len(addresses) > 9999:
         geocoding_results1 = client.geocode(addresses[:9998])
         geocoding_results2 = client.geocode(addresses[9998:])
@@ -207,12 +226,14 @@ def geocode_table(df, worksite_or_housing, check_previously_geocoded=False):
     if check_previously_geocoded:
         df = df.append(previously_geocoded)
 
+    # # uncomment to save excel file with geocoding results
     # now = datetime.now(tz=timezone('US/Eastern')).strftime("%I.%M%.%S_%p_%B_%d_%Y")
     # df.to_excel(f"geocoded_{now}.xlsx")
     # myprint("Backed up geocoding results")
 
     return df
 
+# geocodes `df` and returns two dataframes - one with accuratly geocoded rows and one with inaccurate rows
 def geocode_and_split_by_accuracy(df, table=""):
     if table == "dol_h2b":
         df = geocode_table(df, "worksite", check_previously_geocoded=True)
@@ -234,11 +255,10 @@ def geocode_and_split_by_accuracy(df, table=""):
     inaccurate_jobs["fixed"] = False
 
     myprint(f"There were {len(accurate_jobs)} accurate jobs.\nThere were {len(inaccurate_jobs)} inaccurate jobs.")
-    # accurate_jobs.to_excel("accurate.xlsx")
-    # inaccurate_jobs.to_excel("inaccurate.xlsx")
 
     return accurate_jobs, inaccurate_jobs
 
+# appends zeros to front of zip_code so it has length 5
 def fix_zip_code(zip_code):
     if isinstance(zip_code, str):
         return ("0" * (5 - len(zip_code))) + zip_code
@@ -253,11 +273,12 @@ def fix_zip_code_columns(df, columns):
         df[column] = df.apply(lambda job: fix_zip_code(job[column]), axis=1)
     return df
 
+# determines whether `job` is accurate based on its housing address geocoding results
+# inaccurate iff (accuracy < 0.7 or accuracy type in bad_accuracy_types) and (state in our_states)
 def is_accurate(job, housing_addendum=False):
 
     if housing_addendum:
         automatic_accurate_conditions = handle_null(job["HOUSING_STATE"]).lower() not in our_states
-
     elif job["Visa type"] == "H-2B":
         automatic_accurate_conditions = handle_null(job["WORKSITE_STATE"]).lower() not in our_states
     else:
@@ -270,22 +291,21 @@ def is_accurate(job, housing_addendum=False):
 
             # check if this job is missing all its housing info
             # housing accuracy type won't be in job if job is missing housing info and all the other jobs in this run were H-2b or also missing housing info
-            # otherwise need to check whether all the housing address columns are null - if so, this job is missing all housing info
+            # otherwise (if there are jobs with housing info in the run) need to check whether all the housing address columns are null - if so, this job is missing all housing info
             if ("HOUSING_ADDRESS_LOCATION" not in job) or (pd.isna(job["HOUSING_ADDRESS_LOCATION"]) and pd.isna(job["HOUSING_CITY"]) and pd.isna(job["HOUSING_STATE"]) and pd.isna(job["HOUSING_POSTAL_CODE"])):
                 if job['CASE_NUMBER'] not in h2as_without_housing:
                     print_red_and_email(f"{job['CASE_NUMBER']} is H-2A but doesn't have housing info.", "H-2A Job With No Housing Info")
                 # return not ((job["worksite accuracy"] == None) or (job["worksite accuracy"] < 0.7) or (job["worksite accuracy type"] in bad_accuracy_types))
-                # currently we don't want to correct worksites
+                # currently we don't want to correct worksites, so return true because there's nothing to fix
                 return True
             # for an H2A row with housing info
             else:
                 # return not ((not job["worksite accuracy type"]) or (not job["housing accuracy type"]) or (job["worksite accuracy"] < 0.7) or (job["housing accuracy"] < 0.7) or (job["worksite accuracy type"] in bad_accuracy_types) or (job["housing accuracy type"] in bad_accuracy_types))
-                # currently we don't want to correct worksites
                 return not ( (not job["housing accuracy type"]) or (job["housing accuracy"] < 0.7) or (job["housing accuracy type"] in bad_accuracy_types) )
 
         elif job["Visa type"] == "H-2B":
             # return not ((job["worksite accuracy"] == None) or (job["worksite accuracy"] < 0.7) or (job["worksite accuracy type"] in bad_accuracy_types))
-            # currently we don't want to correct worksites
+            # automatically true because h-2b jobs don't have housing addresses
             return True
         else:
             error_message = f"The `Visa type` column of this job -case number {job['CASE_NUMBER']}- was neither `H-2A` nor `H-2B`, marking as inaccurate."
@@ -300,31 +320,6 @@ def is_accurate(job, housing_addendum=False):
         print_red_and_email(error_message, "Bad Table Column Value")
         return False
 
-def get_column_mappings_dictionary():
-        # get column mappings dataframe
-        column_mappings = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/column_name_mappings.xlsx'))
-
-        # get lists of column names
-        mapped_old_cols = column_mappings["Scraper column name"].tolist()
-        mapped_dol_cols = column_mappings["DOL column name"].tolist()
-
-        # remove trailing white space from column names
-        mapped_old_cols = [col.strip() for col in mapped_old_cols]
-        mapped_dol_cols = [col.strip() for col in mapped_dol_cols]
-
-        # get dictionary of column mappings
-        column_mappings_dict = {}
-        for i in range(len(mapped_old_cols)):
-            column_mappings_dict[mapped_old_cols[i]] = mapped_dol_cols[i]
-
-        return column_mappings_dict
-
-# renames columns in df appropriately based on our excel file with column name mappings
-def rename_columns(df):
-    column_mappings_dict = get_column_mappings_dictionary()
-    # rename columns in df using the dictionary and return the new df which results
-    return df.rename(columns=column_mappings_dict)
-
 def h2a_or_h2b(job):
     if (job["CASE_NUMBER"][2] == "3") or (job["CASE_NUMBER"][0] == "3"):
         return "H-2A"
@@ -334,7 +329,7 @@ def h2a_or_h2b(job):
         print_red_and_email(f"Case number: {job['CASE_NUMBER']}", "Case Number Malformed")
         return ""
 
-# gets first value in column named column of dataframe job - normally job will be length 1
+# gets first value in column named column of dataframe `job` - normally `job` only have on row
 def get_value(job, column):
     return job[column].tolist()[0]
 
@@ -344,6 +339,7 @@ def get_address_columns(worksite_or_housing):
     else:
         return housing_address_columns
 
+# handles case of `new_job` being previously fixed, where `old_job` the row in the database with the same case number as `new_job`
 def handle_previously_fixed(new_job, old_job, worksite_or_housing, set_fixed_to_false=False):
     fixed_by = old_job[f"{worksite_or_housing}_fixed_by"]
     if fixed_by in ["coordinates", "address"]:
@@ -352,10 +348,11 @@ def handle_previously_fixed(new_job, old_job, worksite_or_housing, set_fixed_to_
         else:
             address_columns = [f"{worksite_or_housing}_lat", f"{worksite_or_housing}_long", f"{worksite_or_housing} accuracy", f"{worksite_or_housing} accuracy type", f"{worksite_or_housing}_fixed_by", "fixed"]
 
+        # overwrite all address column values in `new_job` with those in `old_job`
         for column in address_columns:
             new_job[column] = old_job[column]
     else:
-        # if worksite_or_housing needs fixing in new df, mark as False
+        # if worksite_or_housing needs fixing in new_job and old_job wasn't fixed (since fixed_by wasn't coordinates or address), mark fixed as False
         if (pd.isna(new_job[f"{worksite_or_housing} accuracy type"])) or (new_job[f"{worksite_or_housing} accuracy"] < 0.7) or (new_job[f"{worksite_or_housing} accuracy type"] in bad_accuracy_types):
             new_job["fixed"] = False
             return new_job, False
@@ -370,6 +367,7 @@ def make_query(query):
         result = connection.execute(query)
     return result
 
+# returns list of all case nums from job_central if accurate, else from low_accuracies
 def get_case_nums(accurate=None):
     if accurate:
         query_res = make_query('SELECT "CASE_NUMBER" FROM job_central')
@@ -377,26 +375,33 @@ def get_case_nums(accurate=None):
         query_res = make_query("""SELECT "CASE_NUMBER" FROM low_accuracies WHERE "table" != 'dol_h'""")
     return [tup[0] for tup in list(query_res)]
 
+# returns list of all column names from table_name
 def get_columns(table_name):
     query_res = make_query(f"SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = '{table_name}'")
     return [column[0] for column in list(query_res)]
 
+# adds columns in list `columns` to `table` with datatypes according to `column_types_dict`
 def add_columns(table, columns, column_types_dict):
     for column in columns:
         myprint(f"Adding {column} as type {column_types_dict[column]} to {table}.")
         make_query(f'ALTER TABLE {table} ADD COLUMN "{column}" {column_types_dict[column]}')
 
+# removes rows from `table` with case_num `case_number` and "table" column != dol_h (not additional housing rows)
 def remove_case_num_from_table(case_number, table):
     if table == "job_central":
         make_query(f"""DELETE FROM job_central WHERE "CASE_NUMBER"='{case_number}'""")
     else:
         make_query(f"""DELETE FROM low_accuracies WHERE "CASE_NUMBER"='{case_number}' and "table" != 'dol_h'""")
 
-def add_job_to_postgres(job, table, table_columns):
+# adds `job` to `table`
+def add_job_to_postgres(job, table):
     job_df = pd.DataFrame(job.to_dict(), index=[0])
 
     job_columns = job_df.columns
     columns_to_drop = []
+
+    # drop all columns that are in additional housing but not job_central
+    # this is fine because this function is only ever called on non-additional_housing jobs
     if 'fy' in job_columns:
         columns_to_drop = list(set(get_columns("additional_housing")) - set(get_columns("job_central")))
 
@@ -424,24 +429,30 @@ def add_job_to_postgres(job, table, table_columns):
     #
     #     job_df.to_sql(table, engine, if_exists='append', index=False, dtype=column_types)
 
-
-def sort_df_by_date(df):
-    return df.sort_values(by=["RECEIVED_DATE"], ascending=True)
-
+# adds data from the old_job (the job with `new_case_number` that already exists in postgres) to new_job
+# returns updated new_job
 def get_old_job_and_add_missing_columns(new_job, new_case_number, cols_in_both, cols_only_in_old, table):
     old_job_df = pd.read_sql(f"""SELECT * FROM {table} where "CASE_NUMBER"='{new_case_number}' and "table" != 'dol_h'""", con=engine)
     assert len(old_job_df) == 1
 
     old_job = old_job_df.iloc[0]
+    # for each column that is in both new and old_job, if that column's value is null in new_job, give it the column's value in old_job
     for column in cols_in_both:
-        if pd.isna(new_job[column]):
+        if pd.isnull(new_job[column]):
             new_job[column] = old_job[column]
+
+    # for each column that's only in the old job, add that column to new_job with the value from old_job
     for column in cols_only_in_old:
         new_job[column] = old_job[column]
 
     return old_job, new_job
 
+# merges all data from the dataframe `jobs` into PostgreSQL
+# `accurate` = True means `jobs` contains accurately geocoded jobs, False means inaccurate
+# `old_accurate_case_nums` are all the case numbers in job_central
+# `old_inaccurate_case_nums` are all the non additional_housing case numbers in low_accuracies
 def merge_data(jobs, old_accurate_case_nums, old_inaccurate_case_nums, accurate=None):
+    # should be no overlap between job_central and  (non additional_housing) low_accuracies case numbers
     assert not set(old_accurate_case_nums).intersection(old_inaccurate_case_nums)
 
     accurate_or_inaccurate = "accurate" if accurate else "inaccurate"
@@ -466,18 +477,22 @@ def merge_data(jobs, old_accurate_case_nums, old_inaccurate_case_nums, accurate=
 
     for i, new_job in jobs.iterrows():
 
+        # database table in which new_job will end up
         table_to_put = "job_central" if accurate else "low_accuracies"
         new_case_number = new_job["CASE_NUMBER"]
         if new_case_number in old_accurate_case_nums:
             myprint(f"DUPLICATE CASE NUMBER: {new_case_number} is in both the ({accurate_or_inaccurate}) new dataset and the accurates table in postgres.")
             old_job, new_job = get_old_job_and_add_missing_columns(new_job, new_case_number, cols_in_accurate_and_new, cols_only_in_accurate, "job_central")
 
+            # if job with same case_number as new_jobs is in job_central but new_job is not accurate, make sure the old job was actually fixed, otherwise send new_job to low_accuracies
             if not accurate:
                 new_job, worksite_fixed = handle_previously_fixed(new_job, old_job, "worksite")
                 housing_fixed = True
                 if new_job["Visa type"] == "H-2A":
+                    # if worksite wasn't actually fixed and needed to be, keep fixed column value as False regardless of whether housing was
                     set_fixed_to_false = not worksite_fixed
                     new_job, housing_fixed = handle_previously_fixed(new_job, old_job, "housing", set_fixed_to_false=set_fixed_to_false)
+                # new_job can go to job_central if both worskite and housing were either previously fixed or didn't need to be fixed
                 if worksite_fixed and housing_fixed:
                     table_to_put = "job_central"
 
@@ -487,6 +502,8 @@ def merge_data(jobs, old_accurate_case_nums, old_inaccurate_case_nums, accurate=
             myprint(f"DUPLICATE CASE NUMBER: {new_case_number} is in both the ({accurate_or_inaccurate}) new dataset and the inaccurates table in postgres.")
             old_job, new_job = get_old_job_and_add_missing_columns(new_job, new_case_number, cols_in_inaccurate_and_new, cols_only_in_inaccurate, "low_accuracies")
 
+            # if new_job is inaccurate and the old_job in low_accuracies has been fixed - but this should very rarely happen
+            # to make it happen less run implement_fixes task before merging DOL data
             if (not accurate) and (old_job["fixed"]):
                 new_job, worksite_fixed = handle_previously_fixed(new_job, old_job, "worksite")
                 new_job, housing_fixed = handle_previously_fixed(new_job, old_job, "housing")
@@ -497,7 +514,7 @@ def merge_data(jobs, old_accurate_case_nums, old_inaccurate_case_nums, accurate=
         table_to_put_columns = accurate_columns if table_to_put == "job_central" else inaccurate_columns
         add_job_to_postgres(new_job, table_to_put, table_to_put_columns)
 
-
+# merges data from the DataFrames `accurate_new_jobs` and `inaccurate_new_jobs` into our database
 def merge_all_data(accurate_new_jobs, inaccurate_new_jobs):
     old_accurate_case_nums = get_case_nums(accurate=True)
     old_inaccurate_case_nums = get_case_nums(accurate=False)

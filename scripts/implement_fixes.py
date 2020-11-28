@@ -92,7 +92,6 @@ def implement_fixes(fixed, fix_worksites=False):
         return data.drop(columns_only_in_low_accuracies, axis=1)
 
     central = remove_extra_columns(central, "job_central")
-    central = helpers.sort_df_by_date(central)
     housing = remove_extra_columns(housing, "additional_housing")
     # get failed fixes dataframe and not yet fixed dataframe, put them both into low_accuracies table
     failure_conditions = (fixed["worksite_fixed_by"] == "failed") | (fixed["housing_fixed_by"] == "failed")

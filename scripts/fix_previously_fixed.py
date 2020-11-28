@@ -3,6 +3,8 @@ from helpers import myprint, make_query, get_database_engine
 from sqlalchemy.sql import text
 engine = get_database_engine(force_cloud=True)
 
+# Using the previously_fixed table in Postgres, fixes all rows in low_accuracies whose
+# addresses have already been fixed
 def fix_previously_fixed():
     previously_fixed_query = """
                             SELECT * FROM (
