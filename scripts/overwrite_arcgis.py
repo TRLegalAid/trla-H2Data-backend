@@ -88,20 +88,8 @@ def overwrite_our_feature():
             print_red_and_email(f"{case_number} is in additional_housing, so I looked for it in job_central, and found {len(job_in_h2a)} rows with that case number when I should have only found 1 such row!", "Found Duplicate Case Number in job_central while Overwriting ArcGIS Layer")
 
     full_layer = h2a_housing_and_no_housing_and_h2b_df.append(additional_housing_df)
-    # full_layer.to_csv("H2Data.csv")
-    # exit()
-
+    
     overwrite_feature(ARCGIS_USERNAME, ARCGIS_PASSWORD, full_layer, 'H2Data')
 
 if __name__ == "__main__":
    overwrite_our_feature()
-
-# code to create a new layer
-# gis = GIS(url='https://www.arcgis.com', username=ARCGIS_USERNAME, password=ARCGIS_PASSWORD)
-# job_central_df = pd.read_sql('job_central', con=engine).head(10)
-# file_name = "h2a_h2b_job_postings.csv"
-# job_central_df.to_csv(file_name)
-# properties = {'title': 'H-2A and H-2B Job Postings', 'description': 'Datatset of H-2A and H-2B job postings. Updated daily','tags': 'data', 'type': 'CSV'}
-# to_publish = gis.content.add(properties, data=file_name)
-# item = to_publish.publish()
-# print("layer published.")
