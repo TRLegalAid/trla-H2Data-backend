@@ -43,7 +43,8 @@ def all_tasks():
 def perform_all_tasks():
     perform_task_and_catch_errors(all_tasks, "PERFORMING DAILY TASKS")
 
-# update database at 1:00 am EST every day, check for fixes every 6 hours
+
+# performs all tasks at 1:00 am EST every day
 sched = BlockingScheduler()
 sched.add_job(perform_all_tasks, 'interval', days=1, start_date='2020-09-09 01:00:00', timezone='US/Eastern')
 sched.start()

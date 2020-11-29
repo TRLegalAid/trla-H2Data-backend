@@ -4,7 +4,7 @@ from helpers import make_query
 
 # converts all abbreviations in the WORKSITE_STATE column of job_central to full state names
 def expand_abbreviations():
-    states_with_abbreviations = pd.read_excel(os.path.join(os.getcwd(), '..',  "excel_files/state_abbreviations.xlsx"))
+    states_with_abbreviations = pd.read_excel("../excel_files/state_abbreviations.xlsx")
 
     for i, row in states_with_abbreviations.iterrows():
         state, abbreviation = row["State"], row["Abbreviation"]
