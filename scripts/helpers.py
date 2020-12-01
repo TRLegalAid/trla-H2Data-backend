@@ -110,7 +110,7 @@ housing_address_columns = ["HOUSING_ADDRESS_LOCATION", "HOUSING_CITY", "HOUSING_
 worksite_address_columns = ["WORKSITE_ADDRESS", "WORKSITE_CITY", "WORKSITE_STATE", "WORKSITE_POSTAL_CODE", "worksite_lat", "worksite_long", "worksite accuracy", "worksite accuracy type", "worksite_fixed_by", "fixed"]
 
 # h2a jobs that we've found without housing info - here because we email ourselves when we find one that hasn't been found yet (when we find one we add it to this list so we don't get emailed about it again and again)
-h2as_without_housing = ["H-300-20306-894174", "H-300-20293-882133", "H-300-20288-878041"]
+h2as_without_housing = ["H-300-20306-894174", "H-300-20293-882133", "H-300-20288-878041", "H-300-20314-904174"]
 
 # function for printing dictionary with each key, value pair on its own line
 def prettier(dictionary):
