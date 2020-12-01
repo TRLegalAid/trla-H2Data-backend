@@ -8,7 +8,7 @@ CREATE MATERIALIZED VIEW previously_geocoded AS (
     	FROM job_central
         UNION
         SELECT
-    	LOWER(COALESCE("HOUSING_ADDRESS_LOCATION", '') || COALESCE("WORKSITE_CITY", '') || COALESCE("WORKSITE_STATE", '') || COALESCE("WORKSITE_POSTAL_CODE", '')) AS full_address,
+    	LOWER(COALESCE("WORKSITE_ADDRESS", '') || COALESCE("WORKSITE_CITY", '') || COALESCE("WORKSITE_STATE", '') || COALESCE("WORKSITE_POSTAL_CODE", '')) AS full_address,
         "worksite accuracy" AS accuracy, "worksite accuracy type" AS accuracy_type, "worksite_lat" AS latitude, "worksite_long" AS longitude
     	FROM job_central
         UNION
@@ -23,7 +23,7 @@ CREATE MATERIALIZED VIEW previously_geocoded AS (
     	FROM low_accuracies
         UNION
         SELECT
-    	LOWER(COALESCE("HOUSING_ADDRESS_LOCATION", '') || COALESCE("WORKSITE_CITY", '') || COALESCE("WORKSITE_STATE", '') || COALESCE("WORKSITE_POSTAL_CODE", '')) AS full_address,
+    	LOWER(COALESCE("WORKSITE_ADDRESS", '') || COALESCE("WORKSITE_CITY", '') || COALESCE("WORKSITE_STATE", '') || COALESCE("WORKSITE_POSTAL_CODE", '')) AS full_address,
         "worksite accuracy" AS accuracy, "worksite accuracy type" AS accuracy_type, "worksite_lat" AS latitude, "worksite_long" AS longitude
         FROM low_accuracies
     	) AS addresses_view
