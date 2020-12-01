@@ -43,6 +43,10 @@ def all_tasks():
 def perform_all_tasks():
     perform_task_and_catch_errors(all_tasks, "PERFORMING DAILY TASKS")
 
+perform_task_and_catch_errors(expand_abbreviations, "EXPANDING STATE ABBREVIATIONS")
+while True:
+    pass
+
 
 # performs all tasks at 1:00 am EST every day
 sched = BlockingScheduler()
