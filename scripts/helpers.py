@@ -511,8 +511,12 @@ def merge_data(jobs, old_accurate_case_nums, old_inaccurate_case_nums, accurate=
             remove_case_num_from_table(new_case_number, "low_accuracies")
 
 
-        table_to_put_columns = accurate_columns if table_to_put == "job_central" else inaccurate_columns
-        add_job_to_postgres(new_job, table_to_put, table_to_put_columns)
+        # uncomment if you want to use the part of add_job_to_postgres which will automatically add missing columns
+        # table_to_put_columns = accurate_columns if table_to_put == "job_central" else inaccurate_columns
+        # add_job_to_postgres(new_job, table_to_put, table_to_put_columns)
+
+        add_job_to_postgres(new_job, table_to_put)
+
 
 # merges data from the DataFrames `accurate_new_jobs` and `inaccurate_new_jobs` into our database
 def merge_all_data(accurate_new_jobs, inaccurate_new_jobs):
