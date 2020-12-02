@@ -71,7 +71,7 @@ def get_database_engine(force_cloud=False):
 # asks user whether they want database engine to be for local database or heroku database
 # if running a real task locally, respond yes
 if os.getenv("LOCAL_DEV") == "true":
-    force_cloud_input = input("Run on real datase? If doing this, be careful! Enter y for yes, n for no. ").lower().strip()
+    force_cloud_input = input("Run on real database? If doing this, be careful! Enter y for yes, n for no. ").lower().strip()
     force_cloud = force_cloud_input in ["y", "yes"]
     if force_cloud:
         myprint("Ok, running on real database.")
@@ -85,7 +85,7 @@ engine = get_database_engine(force_cloud=force_cloud)
 # geocoding accuracy types that will be marked as inaccurate
 bad_accuracy_types = ["place", "state", "street_center"]
 
-# column type specifications to be used if replacing a database table or creating a new one
+# column type specifications to be used as `dtype` parameter of pandas.DataFrame.to_sql() if replacing a database table or creating a new one
 column_types = {
     "fixed": sqlalchemy.types.Boolean, "Experience Required": sqlalchemy.types.Boolean, "Multiple Worksites": sqlalchemy.types.Boolean,
     "Date of run": sqlalchemy.types.DateTime, "RECEIVED_DATE": sqlalchemy.types.DateTime, "EMPLOYMENT_BEGIN_DATE": sqlalchemy.types.DateTime,
@@ -409,12 +409,12 @@ def add_job_to_postgres(job, table):
         columns_to_drop.append("id")
 
     job_df = job_df.drop(columns=columns_to_drop)
-    job_df.to_sql(table, engine, if_exists='append', index=False, dtype=column_types)
+    job_df.to_sql(table, engine, if_exists='append', index=False)
 
     # this can automatically add columns in job but not table to job, but I've decided we never want to let that just happen -
     # the database schema should remain constant unless we explicitly decide to change it
     # try:
-    #     job_df.to_sql(table, engine, if_exists='append', index=False, dtype=column_types)
+    #     job_df.to_sql(table, engine, if_exists='append', index=False)
     #
     # except:
     #     columns_in_job_but_not_table = set(job_df.columns) - table_columns
@@ -427,7 +427,7 @@ def add_job_to_postgres(job, table):
     #         print_red_and_email(f"Adding columns to {table}. Here are the columns being added, with their corresponding types:\n{columns_and_types_dict}", "Adding columns!")
     #         add_columns(table, columns_in_job_but_not_table, columns_and_types_dict)
     #
-    #     job_df.to_sql(table, engine, if_exists='append', index=False, dtype=column_types)
+    #     job_df.to_sql(table, engine, if_exists='append', index=False)
 
 # adds data from the old_job (the job with `new_case_number` that already exists in postgres) to new_job
 # returns updated new_job

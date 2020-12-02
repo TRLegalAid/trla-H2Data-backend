@@ -13,7 +13,7 @@ def fix_previously_fixed():
                             id AS low_acc_id
                         	FROM low_accuracies) AS low_acc
                         	INNER JOIN
-                        	(SELECT * FROM previously_fixed) AS prev_fixed
+                        	(SELECT DISTINCT ON (initial_address) * FROM previously_fixed) AS prev_fixed
                         	ON prev_fixed.initial_address = low_acc.full_address)
                             """
 

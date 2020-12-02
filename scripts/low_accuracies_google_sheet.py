@@ -53,6 +53,8 @@ def write_low_accs_to_sheet(sheet):
                     con=engine)
 
     low_accuracies_table["Date of entry"] = low_accuracies_table.apply(lambda row: convert_date_to_string(row["Date of entry"]), axis=1)
+    low_accuracies_table["Name"] = ""
+
     write_dataframe(sheet, low_accuracies_table)
 
 # sends fixed rows in a sheet to low accuracies table

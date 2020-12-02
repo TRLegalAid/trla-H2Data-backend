@@ -133,9 +133,9 @@ def send_fixes_to_postgres():
         myprint(f"No rows to add to the previously_fixed table.")
 
     # adding fixes to appropriate tables
-    central.to_sql('job_central', engine, if_exists='append', index=False, dtype=helpers.column_types)
-    housing.to_sql('additional_housing', engine, if_exists='append', index=False, dtype=helpers.column_types)
-    failures.to_sql('low_accuracies', engine, if_exists='append', index=False, dtype=helpers.column_types)
+    central.to_sql('job_central', engine, if_exists='append', index=False)
+    housing.to_sql('additional_housing', engine, if_exists='append', index=False)
+    failures.to_sql('low_accuracies', engine, if_exists='append', index=False)
     make_query("delete from low_accuracies where fixed=true")
 
 
