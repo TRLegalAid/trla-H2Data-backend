@@ -110,13 +110,8 @@ def send_fixes_to_postgres():
     assert len(central) + len(housing) + len(failures) == len(fixed)
     myprint(f"{len(central)} rows moving from low_accuracies to job_central.")
     myprint(f"{len(housing)} rows moving from low_accuracies to additional housing.")
+    myprint(f"{len(failures)} failed fixes.")
 
-    central.to_sql('job_central', engine, if_exists='append', index=False, dtype=helpers.column_types)
-    housing.to_sql('additional_housing', engine, if_exists='append', index=False, dtype=helpers.column_types)
-    make_query("delete from low_accuracies where fixed=true")
-    failures.to_sql('low_accuracies', engine, if_exists='append', index=False, dtype=helpers.column_types)
-
-    myprint(f"Done implementing fixes. There were {len(failures)} failed fixes out of {len(fixed)} attempts.")
 
     # saving appropriate fixes to previously_fixed table
     prev_fixed_columns = ["HOUSING_ADDRESS_LOCATION", "HOUSING_CITY", "HOUSING_POSTAL_CODE", "HOUSING_STATE", "fixed",
@@ -136,6 +131,15 @@ def send_fixes_to_postgres():
         myprint(f"All rows successfully added to the previously_fixed table.")
     else:
         myprint(f"No rows to add to the previously_fixed table.")
+
+    # adding fixes to appropriate tables
+    central.to_sql('job_central', engine, if_exists='append', index=False, dtype=helpers.column_types)
+    housing.to_sql('additional_housing', engine, if_exists='append', index=False, dtype=helpers.column_types)
+    failures.to_sql('low_accuracies', engine, if_exists='append', index=False, dtype=helpers.column_types)
+    make_query("delete from low_accuracies where fixed=true")
+
+
+    myprint(f"Done implementing fixes. There were {len(failures)} failed fixes out of {len(fixed)} attempts.")
 
 
 if __name__ == "__main__":

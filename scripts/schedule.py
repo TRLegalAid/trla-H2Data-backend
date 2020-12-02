@@ -9,6 +9,7 @@ from update_status_columns import update_status_columns_both_tables
 from mark_inactive_inaccurates_as_fixed import mark_all_inactive_low_accurates_as_fixed
 from low_accuracies_google_sheet import send_fixes_in_our_google_sheet_to_low_accuracies, replace_our_google_sheet_with_low_accuracies_table
 from fix_state_abbreviations import expand_abbreviations
+from fix_previously_fixed import fix_previously_fixed
 
 
 def perform_task_and_catch_errors(task_function, task_name):
@@ -35,10 +36,12 @@ def all_tasks():
         perform_task_and_catch_errors(send_fixes_to_postgres, "IMPLEMENTING FIXES")
         perform_task_and_catch_errors(update_status_columns_both_tables, "UPDATING STATUS COLUMNS")
         perform_task_and_catch_errors(mark_all_inactive_low_accurates_as_fixed, "MARKING INACTIVE INACCURATES AS FIXED")
+        perform_task_and_catch_errors(fix_previously_fixed, "FIXING PREVIOUSLY FIXED")
         perform_task_and_catch_errors(send_fixes_to_postgres, "IMPLEMENTING FIXES")
         perform_task_and_catch_errors(replace_our_google_sheet_with_low_accuracies_table, "REPLACING OUR GOOGLE SHEET WITH LOW ACCURACIES TABLE")
 
     perform_task_and_catch_errors(overwrite_our_feature, "OVERWRITING ARCGIS FEATURE")
+
 
 def perform_all_tasks():
     perform_task_and_catch_errors(all_tasks, "PERFORMING DAILY TASKS")

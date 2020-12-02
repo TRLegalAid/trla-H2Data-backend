@@ -89,7 +89,7 @@ def send_sheet_fixes_to_postgres(sheet):
                                address=job["HOUSING_ADDRESS_LOCATION"], city=job["HOUSING_CITY"],
                                state=job["HOUSING_STATE"], zip=job["HOUSING_POSTAL_CODE"],
                                notes=job["notes"], fixed_by=job["housing_fixed_by"], id=job["id"])
-                               
+
 
 def replace_our_google_sheet_with_low_accuracies_table():
     our_sheet = open_sheet(init_sheets(), file_name="Addresses to Correct", sheet_name="Inbox")
@@ -101,5 +101,5 @@ def send_fixes_in_our_google_sheet_to_low_accuracies():
     send_sheet_fixes_to_postgres(our_sheet)
 
 if __name__ == "__main__":
-    # replace_our_google_sheet_with_low_accuracies_table()
-    send_fixes_in_our_google_sheet_to_low_accuracies()
+    replace_our_google_sheet_with_low_accuracies_table()
+    # send_fixes_in_our_google_sheet_to_low_accuracies()

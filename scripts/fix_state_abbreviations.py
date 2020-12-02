@@ -29,5 +29,17 @@ def expand_abbreviations():
                        SET "WORKSITE_STATE" = '{state}'
                        WHERE "WORKSITE_STATE" IN ('{abbreviation}', '{abbreviation.lower()}')""")
 
+        make_query(f"""UPDATE job_central
+                       SET "HOUSING_STATE" = '{state}'
+                       WHERE "HOUSING_STATE" IN ('{abbreviation}', '{abbreviation.lower()}')""")
+
+        make_query(f"""UPDATE additional_housing
+                       SET "HOUSING_STATE" = '{state}'
+                       WHERE "HOUSING_STATE" IN ('{abbreviation}', '{abbreviation.lower()}')""")
+
+        make_query(f"""UPDATE low_accuracies
+                       SET "HOUSING_STATE" = '{state}'
+                       WHERE "HOUSING_STATE" IN ('{abbreviation}', '{abbreviation.lower()}')""")
+
 if __name__ == "__main__":
    expand_abbreviations()
