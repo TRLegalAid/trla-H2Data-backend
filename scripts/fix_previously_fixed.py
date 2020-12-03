@@ -20,7 +20,7 @@ def fix_previously_fixed():
     previously_fixed_df = pd.read_sql(previously_fixed_query, con=engine)
     myprint(f"There are {len(previously_fixed_df)} rows in low_accuracies whose exact housing address column has been fixed before.")
 
-    for fixed in previously_fixed_df.iterrows():
+    for i, fixed in previously_fixed_df.iterrows():
         update_query = text("""
                         UPDATE low_accuracies SET
                         "HOUSING_ADDRESS_LOCATION" = :address,
@@ -42,7 +42,7 @@ def fix_previously_fixed():
                               zip=fixed["HOUSING_POSTAL_CODE"], state=fixed["HOUSING_STATE"], fixed=fixed["fixed"],
                               accuracy=fixed["housing accuracy"], accuracy_type=fixed["housing accuracy type"],
                               fixed_by=fixed["housing_fixed_by"], lat=fixed["housing_lat"], long=fixed["housing_long"],
-                              notes=fixed["notes"], id=fixed["id"])
+                              notes=fixed["notes"], id=fixed["low_acc_id"])
 
     myprint("Successfully fixed all previously fixed rows in low accuracies.")
 
