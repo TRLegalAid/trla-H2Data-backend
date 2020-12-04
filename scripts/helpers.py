@@ -130,6 +130,25 @@ def handle_null(object):
     else:
         return object
 
+# returns a list of lists containing all the elements in a_list where each list's lenght is no more than max_items_per_part
+def split_into_parts(a_list, max_items_per_part):
+    if len(a_list) < max_items_per_part:
+        return [a_list]
+    else:
+        num_parts = len(a_list) // max_items_per_part
+        res = []
+        start = 0
+        end = max_items_per_part
+        for num in range(num_parts):
+            res.append(a_list[start:end])
+
+            if num != num_parts - 1:
+                start += max_items_per_part
+                end += max_items_per_part
+
+        res.append(a_list[end:])
+        return res
+
 def create_address_from(address, city, state, zip):
     return handle_null(address) + ", " + handle_null(city) + " " + handle_null(state) + " " + handle_null(str(zip))
 
@@ -194,13 +213,14 @@ def geocode_table(df, worksite_or_housing, check_previously_geocoded=False):
         print_red_and_email("`worksite_or_housing` parameter in geocode_table function must be either `worksite` or `housing` or `housing addendum`", "Invalid Function Parameter")
         return
 
-    # handles case of more than 10000 addresses - but won't work if there's 20000 - this should really be handled recursively
-    if len(addresses) > 9999:
-        geocoding_results1 = client.geocode(addresses[:9998])
-        geocoding_results2 = client.geocode(addresses[9998:])
-        geocoding_results = geocoding_results1 + geocoding_results2
-    else:
-        geocoding_results = client.geocode(addresses)
+    # handles case of more than 10000 addresses - b/c geocodio api won't batch geocode with more than 10000 addresses at once
+    addresses_split = split_into_parts(addresses, 9999)
+    geocoding_results = []
+    for these_addresses in addresses_split:
+        geocoding_results += client.geocode(these_addresses)
+
+    assert len(all_geocoding_results) == len(addresses)
+
 
     latitudes, longitudes, accuracies, accuracy_types, i = [], [], [], [], 0
     for result in geocoding_results:
