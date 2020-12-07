@@ -19,9 +19,9 @@ def update_status_columns(table_name):
                     SET status =
                     CASE
          			WHEN ("EMPLOYMENT_BEGIN_DATE" IS null) OR ("EMPLOYMENT_END_DATE" IS null) THEN null
-         			WHEN ("EMPLOYMENT_BEGIN_DATE" <= CURRENT_DATE) AND (CURRENT_DATE <= "EMPLOYMENT_END_DATE") THEN 'currently active'
-                    WHEN ("EMPLOYMENT_BEGIN_DATE" > CURRENT_DATE) AND (CURRENT_DATE <= "EMPLOYMENT_END_DATE") THEN 'not yet active'
-         			ELSE 'no longer active'
+         			WHEN ("EMPLOYMENT_BEGIN_DATE" <= CURRENT_DATE) AND (CURRENT_DATE <= "EMPLOYMENT_END_DATE") THEN 'started'
+                    WHEN ("EMPLOYMENT_BEGIN_DATE" > CURRENT_DATE) AND (CURRENT_DATE <= "EMPLOYMENT_END_DATE") THEN 'not yet started'
+         			ELSE 'ended'
          			END"""
                 )
 
