@@ -1,3 +1,5 @@
+"""This script handles the data transfer between our low accuracies google sheet and our low_accuracies PostgreSQL table"""
+
 import os
 import simplejson as json
 import gspread
@@ -10,27 +12,29 @@ from sqlalchemy.sql import text
 load_dotenv()
 
 engine = get_database_engine(force_cloud=True)
+# keys are column names in the google sheet, values are column names in the low_accuracies sql table
 sql_sheet_column_names_map = {"Done?": "fixed", "Company name": "EMPLOYER_NAME", "ETA case number": "CASE_NUMBER",
                               "housing latitude": "housing_lat", "housing longitude": "housing_long",
                               "Housing Address": "HOUSING_ADDRESS_LOCATION", "Housing City": "HOUSING_CITY",
                               "Housing State": "HOUSING_STATE", "Housing Type": "TYPE_OF_HOUSING", "Notes": "notes",
                               "UniqueID": "id", "Date of entry": "Date of run", "Housing Zip Code": "HOUSING_POSTAL_CODE"}
 
+# returns a client to use for accessing our google sheet
 def init_sheets():
     json_creds = os.getenv("GOOGLE_SHEETS_CREDENTIALS")
     creds_dict = json.loads(json_creds)
     creds_dict["private_key"] = creds_dict["private_key"].replace("\\\\n", "\n")
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict)
     client = gspread.authorize(creds)
-    # myprint("Google sheet successfully intialized.")
     return client
 
+# opens the sheet sheet_name from the file file_name using client - returns the opened sheet object
 def open_sheet(client, file_name="", sheet_name=""):
     sheet = client.open(file_name).worksheet(sheet_name)
     myprint(f"Opened worksheet '{sheet_name}' in file '{file_name}'.")
     return sheet
 
-#Writes a pandas dataframe to the current sheet
+# writes a pandas dataframe to sheet
 def write_dataframe(sheet, df):
     df.fillna("", inplace=True)
     sheet.update([df.columns.values.tolist()] + df.values.tolist())
@@ -39,7 +43,6 @@ def write_dataframe(sheet, df):
 # clears all values in sheet
 def clear_sheet(sheet):
     sheet.clear()
-
 
 # writes the housing address columns in low_accuracies table to our google sheet
 def write_low_accs_to_sheet(sheet):
@@ -57,7 +60,7 @@ def write_low_accs_to_sheet(sheet):
 
     write_dataframe(sheet, low_accuracies_table)
 
-# sends fixed rows in a sheet to low accuracies table
+# sends fixed rows in sheet to low accuracies table
 def send_sheet_fixes_to_postgres(sheet):
     sheet_records = sheet.batch_get(["A:P"])[0]
     column_names = sheet_records.pop(0)
@@ -69,7 +72,6 @@ def send_sheet_fixes_to_postgres(sheet):
         return
     myprint(f"{len(sheet_df)} jobs have been fixed in the Google Sheet. Sending these changes to Postgres now.")
 
-    # sheet_df_only_fixed["housing_lat"] = pd.to_numeric(sheet_df_only_fixed["housing_lat"], errors='coerce')
     sheet_df["housing accuracy"] = pd.to_numeric(sheet_df["housing accuracy"])
     sheet_df["housing_lat"] = pd.to_numeric(sheet_df["housing_lat"])
     sheet_df["housing_long"] = pd.to_numeric(sheet_df["housing_long"])
@@ -92,16 +94,17 @@ def send_sheet_fixes_to_postgres(sheet):
                                state=job["HOUSING_STATE"], zip=job["HOUSING_POSTAL_CODE"],
                                notes=job["notes"], fixed_by=job["housing_fixed_by"], id=job["id"])
 
-
+# clears our google sheet and then writes low_accuracies table to it
 def replace_our_google_sheet_with_low_accuracies_table():
     our_sheet = open_sheet(init_sheets(), file_name="Addresses to Correct", sheet_name="Inbox")
     clear_sheet(our_sheet)
     write_low_accs_to_sheet(our_sheet)
 
+# updates low_accuracies table with
 def send_fixes_in_our_google_sheet_to_low_accuracies():
     our_sheet = open_sheet(init_sheets(), file_name="Addresses to Correct", sheet_name="Inbox")
     send_sheet_fixes_to_postgres(our_sheet)
 
 if __name__ == "__main__":
-    replace_our_google_sheet_with_low_accuracies_table()
+    # replace_our_google_sheet_with_low_accuracies_table()
     # send_fixes_in_our_google_sheet_to_low_accuracies()

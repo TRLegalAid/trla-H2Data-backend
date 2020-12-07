@@ -1,3 +1,5 @@
+"Functions to mark jobs in low_accuracies that are no longer active (according to their status columns) as fixed."
+
 import pandas as pd
 from helpers import get_database_engine, make_query, myprint
 engine = get_database_engine(force_cloud=True)
@@ -12,9 +14,11 @@ def mark_inactive_central_as_fixed():
 def mark_inactive_dolH_as_fixed():
     acc_case_nums_statuses_df = pd.read_sql("""select "CASE_NUMBER", status from job_central""", con=engine)
     inacc_case_nums_statuses_df = pd.read_sql("""select "CASE_NUMBER", status from low_accuracies where "table" != 'dol_h'""", con=engine)
+
+    # check that there are no duplicate case numbers
     case_nums_list = acc_case_nums_statuses_df["CASE_NUMBER"].tolist() + inacc_case_nums_statuses_df["CASE_NUMBER"].tolist()
-    # should be no duplicate case numbers
     assert len(case_nums_list) == len(set(case_nums_list))
+
     all_case_nums_statuses_df = acc_case_nums_statuses_df.append(inacc_case_nums_statuses_df)
 
     inaccurate_additional_housings = pd.read_sql("""select "id", "CASE_NUMBER" from low_accuracies where "table" = 'dol_h'""", con=engine)
@@ -22,6 +26,7 @@ def mark_inactive_dolH_as_fixed():
 
     case_nums_with_no_matches = []
     num_fixed = 0
+    # iterate over all inaccurate additional housing case numbers and ids. if a rows's corresponding row in job_central is inactive, update the row's fixed column to be true
     for i, job in inaccurate_additional_housings.iterrows():
         job_case_num = job["CASE_NUMBER"]
         central_job = all_case_nums_statuses_df[all_case_nums_statuses_df["CASE_NUMBER"] == job_case_num]
@@ -49,7 +54,6 @@ def mark_inactive_dolH_as_fixed():
 def mark_all_inactive_low_accurates_as_fixed():
     mark_inactive_central_as_fixed()
     mark_inactive_dolH_as_fixed()
-
 
 if __name__ == "__main__":
     mark_all_inactive_low_accurates_as_fixed()

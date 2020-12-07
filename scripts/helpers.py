@@ -218,8 +218,7 @@ def geocode_table(df, worksite_or_housing, check_previously_geocoded=False):
     geocoding_results = []
     for these_addresses in addresses_split:
         geocoding_results += client.geocode(these_addresses)
-
-    assert len(all_geocoding_results) == len(addresses)
+    assert len(geocoding_results) == len(addresses)
 
 
     latitudes, longitudes, accuracies, accuracy_types, i = [], [], [], [], 0
