@@ -1,2 +1,2 @@
-# trla-farmworkers-data
+# trla-H2Data-backend
 Python app hosted on Heroku which manages and automatically updates a PostgreSQL database of H-2A and H-2B job listings. Includes processes to geocode addresses, check results for accuracy, and implements a system for people to fix the inaccurate addresses. Job postings are added daily from a web scraper, which gets latest postings [here](https://seasonaljobs.dol.gov/), and each quarter the official dataset put out by the US Department of Labor is merged with the existing data. Frontend web-app to visualize, filter, and download the data is [here](https://trla.shinyapps.io/H2Data/).
