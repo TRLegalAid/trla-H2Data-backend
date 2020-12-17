@@ -1,5 +1,6 @@
 from helpers import make_query
 
+# updates days_until_halfway and is_halfway columns in job_central and low_accuracies PostgreSQL tables
 def update_halfway_columns():
 
     # update days_until_halfway column for job_central and low_accuracies

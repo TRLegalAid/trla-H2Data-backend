@@ -12,7 +12,8 @@ from low_accuracies_google_sheet import send_fixes_in_our_google_sheet_to_low_ac
 from fix_state_abbreviations import expand_abbreviations
 from fix_previously_fixed import fix_previously_fixed
 
-
+# performs the function task_funtion. task_name can be any string. if task_function results in an error, prints out the error message and emails it
+# returns True if there was no error, else False
 def perform_task_and_catch_errors(task_function, task_name):
     before = time.time()
     print(Fore.GREEN + f"{task_name}..." + Style.RESET_ALL)
@@ -32,7 +33,7 @@ def all_tasks():
     perform_task_and_catch_errors(expand_abbreviations, "EXPANDING STATE ABBREVIATIONS")
     google_sheet_to_postgres_worked = perform_task_and_catch_errors(send_fixes_in_our_google_sheet_to_low_accuracies, "SENDING FIXES FROM GOOGLE SHEETS TO LOW ACCURACIES TABLE")
 
-    # without this condition an error in the previous task would cause all fixes to be lost
+    # without this condition an error in the previous task would cause all fixes made in the google sheet to be lost
     if google_sheet_to_postgres_worked:
         perform_task_and_catch_errors(send_fixes_to_postgres, "IMPLEMENTING FIXES")
         perform_task_and_catch_errors(update_status_columns_both_tables, "UPDATING STATUS COLUMNS")

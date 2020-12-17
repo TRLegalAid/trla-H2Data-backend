@@ -6,6 +6,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 load_dotenv()
 
+# dol_jobs is a DataFrame containing the dol dataset
 def geocode_manage_split_merge(dol_jobs, h2a=True):
 
     dol_jobs = dol_jobs.drop_duplicates(subset='CASE_NUMBER', keep="last")
@@ -13,11 +14,14 @@ def geocode_manage_split_merge(dol_jobs, h2a=True):
     if h2a:
         myprint(f"Merging H-2A DOL data.")
         table = "dol_h2a"
+
+        # rename columns to match our database
         dol_jobs = dol_jobs.rename(columns={"FREQUENCY_OF_PAY": "Additional Wage Information", "H2A_LABOR_CONTRACTOR": "H-2A_LABOR_CONTRACTOR",
                                             "HOURLY_WORK_SCHEDULE_START": "HOURLY_SCHEDULE_BEGIN", "HOURLY_WORK_SCHEDULE_END": "HOURLY_SCHEDULE_END",
                                             "TOTAL_WORKERS_H2A_CERTIFIED": "TOTAL_WORKERS_H-2A_CERTIFIED", "790A_ADDENDUM_A_ATTACHED": "790A_addendum_a_attached",
                                             "TOTAL_WORKERS_H2A_REQUESTED": "TOTAL_WORKERS_H-2A_REQUESTED"})
 
+        # append 0's where necessary to zip code columns
         helpers.fix_zip_code_columns(dol_jobs, ["HOUSING_POSTAL_CODE", "EMPLOYER_POC_POSTAL_CODE", "EMPLOYER_POSTAL_CODE", "WORKSITE_POSTAL_CODE", "ATTORNEY_AGENT_POSTAL_CODE"])
 
         columns_to_change_to_boolean = ["790A_ADDENDUM_B_ATTACHED", "790A_addendum_a_attached", "ADDENDUM_B_HOUSING_ATTACHED", "APPENDIX_A_ATTACHED",
@@ -50,7 +54,7 @@ def geocode_manage_split_merge(dol_jobs, h2a=True):
 
     def yes_no_to_boolean(yes_no):
         if pd.isnull(yes_no):
-            return False
+            return None
         stripped_val = yes_no.strip()
         if stripped_val in ["Y", "Yes", "YES", "yes"]:
             return True
@@ -58,17 +62,20 @@ def geocode_manage_split_merge(dol_jobs, h2a=True):
             return False
         else:
             helpers.print_red_and_email(f"There was an error converting {stripped_val} to boolean.", "Error Converting to Boolean")
-            return yes_no
+            exit()
 
+    # change appropriate columns to boolean
     for column in columns_to_change_to_boolean:
         dol_jobs[column] = dol_jobs.apply(lambda job: yes_no_to_boolean(job[column]), axis=1)
 
-    # geocode dol data and split by accuracy
+    # geocode data, split by accuracy, merge into database
     myprint(f"There are {len(dol_jobs)} DOL jobs to merge.")
     accurate_dol_jobs, inaccurate_dol_jobs = helpers.geocode_and_split_by_accuracy(dol_jobs, table=table)
     helpers.merge_all_data(accurate_dol_jobs, inaccurate_dol_jobs)
 
-def push_merged_to_sql():
+# merges DOL data from dataset specified by user input
+def merge_data():
+    
     h2a_response = input("Are you merging DOL data for H-2A or H-2B? Enter `A` for H2A, `B` for H2B.\n ").strip().lower()
     if h2a_response == "a":
         is_h2a = True
@@ -76,12 +83,11 @@ def push_merged_to_sql():
     elif h2a_reponse == "b":
         is_h2a = False
         h2a_or_h2b = "H-2B"
-
     else:
         raise ValueError("The answer to the last question must be either A or B, nothing else!")
 
 
-    file_path = "dol_data/" + input(f"Put the {h2a_or_h2b} DOL file in a folder named `dol_data` in the `scripts` folder. Now enter the name of the file (this is case sensitive).\n").strip()
+    file_path = "dol_data/" + input(f"Put a folder named `dol_data` in the `scripts` folder. Then put the {h2a_or_h2b} DOL file in the `dol_data` folder. Now enter the name of the DOL file (this is case sensitive).\n").strip()
     year = input("What year is it? (eg: 2020)\n").strip()
     quarter = input("What quarter it is? (enter 1, 2, 3, or 4)\n").strip()
     input(f"Ok, merging {h2a_or_h2b} DOL data from {file_path} for fiscal year {year}Q{quarter}. If this is correct press any key, othewise press control + c to start over.")
@@ -92,4 +98,4 @@ def push_merged_to_sql():
     geocode_manage_split_merge(dol_jobs, h2a=is_h2a)
 
 if __name__ == "__main__":
-   push_merged_to_sql()
+   merge_data()

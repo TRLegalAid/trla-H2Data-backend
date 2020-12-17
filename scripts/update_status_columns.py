@@ -1,5 +1,6 @@
 from helpers import make_query
 
+# updates status column in PostgreSQL table named table_name
 def update_status_columns(table_name):
 
     make_query(
@@ -25,6 +26,7 @@ def update_status_columns(table_name):
          			END"""
                 )
 
+# updates status column in job_central and low_accuracies
 def update_status_columns_both_tables():
     update_status_columns('job_central')
     update_status_columns('low_accuracies')
