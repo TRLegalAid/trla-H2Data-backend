@@ -75,24 +75,21 @@ def geocode_manage_split_merge(dol_jobs, h2a=True):
 
 # merges DOL data from dataset specified by user input
 def merge_data():
-    
-    h2a_response = input("Are you merging DOL data for H-2A or H-2B? Enter `A` for H2A, `B` for H2B.\n ").strip().lower()
+
+    h2a_response = input("Are you merging DOL data for H-2A or H-2B? Enter `a` for H2A, `b` for H2B.\n").strip().lower()
     if h2a_response == "a":
         is_h2a = True
         h2a_or_h2b = "H-2A"
-    elif h2a_reponse == "b":
+    elif h2a_response == "b":
         is_h2a = False
         h2a_or_h2b = "H-2B"
     else:
         raise ValueError("The answer to the last question must be either A or B, nothing else!")
 
+    file_path = "dol_data/" + input(f"Check that the additional housing file is in a folder named `dol_data` in the `scripts` folder. (If it isn't, exit this using control + c then re-run this script once you've done it.) Now enter the full name (including any extension) of the DOL file (this is case sensitive).\n").strip()
+    input(f"Ok, merging {h2a_or_h2b} DOL data from {file_path}. If this is correct press any key, othewise press control + c to start over.")
 
-    file_path = "dol_data/" + input(f"Put a folder named `dol_data` in the `scripts` folder. Then put the {h2a_or_h2b} DOL file in the `dol_data` folder. Now enter the name of the DOL file (this is case sensitive).\n").strip()
-    year = input("What year is it? (eg: 2020)\n").strip()
-    quarter = input("What quarter it is? (enter 1, 2, 3, or 4)\n").strip()
-    input(f"Ok, merging {h2a_or_h2b} DOL data from {file_path} for fiscal year {year}Q{quarter}. If this is correct press any key, othewise press control + c to start over.")
-
-    dol_jobs = pd.read_excel(dol_file_path, converters={'ATTORNEY_AGENT_PHONE':str,'ATTORNEY_AGENT_PHONE_EXT':str, 'PHONE_TO_APPLY':str,
+    dol_jobs = pd.read_excel(file_path, converters={'ATTORNEY_AGENT_PHONE':str,'ATTORNEY_AGENT_PHONE_EXT':str, 'PHONE_TO_APPLY':str,
                                                                                         'SOC_CODE': str, 'NAICS_CODE': str, 'EMPLOYER_POC_PHONE': str, 'EMPLOYER_PHONE': str,
                                                                                         'EMPLOYER_POC_PHONE_EXT': str, 'EMPLOYER_PHONE_EXT': str})
     geocode_manage_split_merge(dol_jobs, h2a=is_h2a)

@@ -11,7 +11,7 @@ all_table_names = pd.read_sql("""SELECT "tablename" FROM pg_catalog.pg_tables WH
 def append_excel_to_table(file_name, table_name, year, quarter):
     if table_name in all_table_names:
         if check_for_new_columns(file_name, table_name):
-            raise Exception(f"Since there are columns in {file_name} that aren't in {table_name}, we can't continue this process or it will fail. Either add the missing columns to PostgreSQL or change the column names in the exel file to match ones that already exist in Postgres.")
+            raise Exception(f"Since there are columns in {file_name} that aren't in {table_name}, we can't continue this process or it will fail. Either add the missing columns to PostgreSQL or change the column names in the excel file to match ones that already exist in Postgres.")
     else:
         myprint(f"The table {table_name} doesn't exist yet, so it will be added.")
 

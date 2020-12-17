@@ -5,7 +5,7 @@ import pandas as pd
 from dotenv import load_dotenv
 
 load_dotenv()
-engine = get_database_engine(force_cloud=False)
+engine = get_database_engine(force_cloud=True)
 
 # geocodes, splits by accuracy, renames columns, and adds necessary columns for the DataFrame 'housing'.
 # year, quarter should be strings - ex: 2020, 4
@@ -27,7 +27,7 @@ def geocode_manage_split_housing(housing, year, quarter):
  # unless the currently inputted quarter is 1
 def add_housing_to_postgres():
 
-    file_path = "dol_data/" + input("Put the additional housing file in a folder named `dol_data` in the `scripts` folder. Now enter the name of the file (this is case sensitive).\n").strip()
+    file_path = "dol_data/" + input("Check that the additional housing file is in a folder named `dol_data` in the `scripts` folder. (If it isn't, exit this using control + c then re-run this script once you've done it.) Now enter the full name of the file (this is case sensitive and must include the file extension).\n").strip()
     year = input("What year is it? (eg: 2020)\n").strip()
     quarter = input("What quarter it is? (enter 1, 2, 3, or 4)\n").strip()
     input(f"Ok, adding additional housing from {file_path} for fiscal year {year}Q{quarter}. If this is correct press any key, othewise press control + c to start over.")
@@ -39,8 +39,8 @@ def add_housing_to_postgres():
     inaccurate_housing.to_sql("low_accuracies", engine, if_exists='append', index=False)
 
     if quarter != 1:
-        response = input(f"Enter 'yes' or 'y' if you're ready to run the queries to delete the additional_housing rows from the previous quarter ({year}Q{quarter - 1}). You may want to check that adding the current quarter ({year}Q{quarter}) went well first. If it didn't you can always redo it, but geocoding may cost more because I won't be able to steal geocoding results from last quarter's additional housing rows.")
-        if response in ["y", "yes"]:
+        response = input(f"Enter 'yes' or 'y' if you're ready to run the queries to delete the additional_housing rows from the previous quarter ({year}Q{quarter - 1}). You may want to check that adding the current quarter ({year}Q{quarter}) went well first. If it didn't you can always redo it, but geocoding may cost more money because I won't be able to steal geocoding results from last quarter's additional housing rows.")
+        if response.lower() in ["y", "yes"]:
             make_query(f"""DELETE FROM additional_housing WHERE fy = '{year}Q{quarter - 1}'""")
             make_query(f"""DELETE FROM low_accuracies WHERE fy = '{year}Q{quarter - 1}' and "table" = 'dol_h'""")
 

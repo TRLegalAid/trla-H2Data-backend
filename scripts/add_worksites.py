@@ -4,7 +4,7 @@ import pandas as pd
 from dotenv import load_dotenv
 
 load_dotenv()
-engine = get_database_engine(force_cloud=False)
+engine = get_database_engine(force_cloud=True)
 
 # worksites is a DataFrame
 # year, quarter should be strings - ex: 2020, 4
@@ -22,7 +22,7 @@ def manage_worksites(worksites, year, quarter):
     return worksites
 
 def add_worksites_to_postgres():
-    file_path = "dol_data/" + input("Put the additional worksites file in a folder named `dol_data` in the `scripts` folder. Now enter the name of the file (this is case sensitive).\n").strip()
+    file_path = "dol_data/" + input("Check that the additional worksites file is in a folder named `dol_data` in the `scripts` folder. (If it isn't, exit this using control + c then re-run this script once you've done it.)  Now enter the name of the file (this is case sensitive).\n").strip()
     year = input("What year is it? (eg: 2020)\n").strip()
     quarter = input("What quarter it is? (enter 1, 2, 3, or 4)\n").strip()
     input(f"Ok, adding worksites from {file_path} for fiscal year {year}Q{quarter}. If this is correct press any key, othewise press control + c to start over.")

@@ -204,44 +204,45 @@ def geocode_table(df, worksite_or_housing, check_previously_geocoded=False):
         df = df.drop(columns=["previously_geocoded"])
         previously_geocoded.drop(columns=["previously_geocoded"], inplace=True)
 
+    if not df.empty:
 
-    if worksite_or_housing == "worksite":
-        addresses = df.apply(lambda job: create_address_from(job["WORKSITE_ADDRESS"], job["WORKSITE_CITY"], job["WORKSITE_STATE"], job["WORKSITE_POSTAL_CODE"]), axis=1).tolist()
-    elif worksite_or_housing == "housing":
-        addresses = df.apply(lambda job: create_address_from(job["HOUSING_ADDRESS_LOCATION"], job["HOUSING_CITY"], job["HOUSING_STATE"], job["HOUSING_POSTAL_CODE"]), axis=1).tolist()
-    else:
-        print_red_and_email("`worksite_or_housing` parameter in geocode_table function must be either `worksite` or `housing` or `housing addendum`", "Invalid Function Parameter")
-        return
+        if worksite_or_housing == "worksite":
+            addresses = df.apply(lambda job: create_address_from(job["WORKSITE_ADDRESS"], job["WORKSITE_CITY"], job["WORKSITE_STATE"], job["WORKSITE_POSTAL_CODE"]), axis=1).tolist()
+        elif worksite_or_housing == "housing":
+            addresses = df.apply(lambda job: create_address_from(job["HOUSING_ADDRESS_LOCATION"], job["HOUSING_CITY"], job["HOUSING_STATE"], job["HOUSING_POSTAL_CODE"]), axis=1).tolist()
+        else:
+            print_red_and_email("`worksite_or_housing` parameter in geocode_table function must be either `worksite` or `housing` or `housing addendum`", "Invalid Function Parameter")
+            return
 
-    # handles case of more than 10000 addresses - b/c geocodio api won't batch geocode with more than 10000 addresses at once
-    addresses_split = split_into_parts(addresses, 9999)
-    geocoding_results = []
-    for these_addresses in addresses_split:
-        geocoding_results += client.geocode(these_addresses)
-    assert len(geocoding_results) == len(addresses)
+        # handles case of more than 10000 addresses - because geocodio api won't batch geocode with more than 10000 addresses at once
+        addresses_split = split_into_parts(addresses, 9999)
+        geocoding_results = []
+        for these_addresses in addresses_split:
+            geocoding_results += client.geocode(these_addresses)
+        assert len(geocoding_results) == len(addresses)
 
 
-    latitudes, longitudes, accuracies, accuracy_types, i = [], [], [], [], 0
-    for result in geocoding_results:
-        try:
-            results = result['results'][0]
-            accuracies.append(results['accuracy'])
-            accuracy_types.append(results['accuracy_type'])
-            latitudes.append(results['location']['lat'])
-            longitudes.append(results['location']['lng'])
-        except:
-            accuracies.append(None)
-            accuracy_types.append(None)
-            latitudes.append(None)
-            longitudes.append(None)
-        i +=1
+        latitudes, longitudes, accuracies, accuracy_types, i = [], [], [], [], 0
+        for result in geocoding_results:
+            try:
+                results = result['results'][0]
+                accuracies.append(results['accuracy'])
+                accuracy_types.append(results['accuracy_type'])
+                latitudes.append(results['location']['lat'])
+                longitudes.append(results['location']['lng'])
+            except:
+                accuracies.append(None)
+                accuracy_types.append(None)
+                latitudes.append(None)
+                longitudes.append(None)
+            i +=1
 
-    i = len(df.columns)
-    df[f"{worksite_or_housing}_lat"] = latitudes
-    df[f"{worksite_or_housing}_long"] = longitudes
-    df[f"{worksite_or_housing} accuracy"] = accuracies
-    df[f"{worksite_or_housing} accuracy type"] = accuracy_types
-    myprint(f"Finished geocoding {worksite_or_housing}.")
+        i = len(df.columns)
+        df[f"{worksite_or_housing}_lat"] = latitudes
+        df[f"{worksite_or_housing}_long"] = longitudes
+        df[f"{worksite_or_housing} accuracy"] = accuracies
+        df[f"{worksite_or_housing} accuracy type"] = accuracy_types
+        myprint(f"Finished geocoding {worksite_or_housing}.")
 
     if check_previously_geocoded:
         df = df.append(previously_geocoded)

@@ -23,7 +23,7 @@ def update_database():
         return
     myprint(f"There are {len(latest_jobs)} new jobs.")
 
-    # use this version of parse function if using a local csv file
+    # use this version of parse function if updating data using a local csv file rather than an apify scraper run
     # def parse(job):
     #     column_mappings_dict = column_name_mappings
     #     columns_names_dict = {"Section A": "Job Info", "Section C": "Place of Employment Info", "Section D":"Housing Info"}

@@ -19,10 +19,10 @@ def check_for_new_columns(file_name, table_name):
 # accordingly based on file names. Assumes all files are located in a folder named dol_data which is in this directory.
 if __name__ == "__main__":
 
-    files_table_map = {"H-2A_Disclosure_Data_FY2020.xlsx": "job_central",
+    files_tables_map = {"H-2A_Disclosure_Data_FY2020.xlsx": "job_central",
                             "H2b_Disclosure_Data_FY2020.xlsx": "job_central",
-                            "dol_data/H-2A_AddendumB_Housing_FY2020.xlsx": "additional_housing",
+                            "H-2A_AddendumB_Housing_FY2020.xlsx": "additional_housing",
                             "H-2A_AddendumB_Employment_FY2020.xlsx": "additional_worksites"}
 
-    for file in file_tables_map:
-        check_for_new_columns(file, files_table_map[file])
+    for file in files_tables_map:
+        check_for_new_columns(file, files_tables_map[file])
