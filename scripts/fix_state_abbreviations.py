@@ -1,7 +1,8 @@
+"""Script to convert abbreviated state values to full state names in our database."""
+
 import os
 import pandas as pd
 from helpers import make_query
-
 
 states_abbreviations = {'AL': 'Alabama', 'AK': 'Alaska', 'AZ': 'Arizona', 'AR': 'Arkansas', 'CA': 'California',
                         'CO': 'Colorado', 'CT': 'Connecticut', 'DE': 'Delaware', 'DC': 'District of Columbia',

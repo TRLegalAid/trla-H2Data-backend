@@ -1,3 +1,5 @@
+"""Script to automatically implement fixes for rows whose addresses have been fixed before."""
+
 import pandas as pd
 from helpers import myprint, make_query, get_database_engine
 from sqlalchemy.sql import text

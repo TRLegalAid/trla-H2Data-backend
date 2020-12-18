@@ -1,3 +1,5 @@
+"""Script to backup database in the form of local excel files."""
+
 import pandas as pd
 from helpers import make_query, get_database_engine
 import os

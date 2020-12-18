@@ -1,3 +1,5 @@
+"""Script which runs all necessary tasks once per day. This is the sript which is permanently running on Heroku (when the dyno is turned on)."""
+
 import time
 from apscheduler.schedulers.blocking import BlockingScheduler
 from helpers import print_red_and_email

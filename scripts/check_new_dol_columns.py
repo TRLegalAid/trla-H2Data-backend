@@ -1,3 +1,5 @@
+"""Script to check DOL files for columns not present in our database."""
+
 import pandas as pd
 from helpers import get_database_engine
 engine = get_database_engine(force_cloud=True)

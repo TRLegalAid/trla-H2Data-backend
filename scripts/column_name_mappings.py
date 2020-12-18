@@ -1,3 +1,5 @@
+"""Mappings of Apify column names to PostgreSQL column names."""
+
 # keys are apify field names, values are our PostgreSQL field names
 # used in update_database.py
 column_name_mappings = {'ETA case number': 'CASE_NUMBER', 'Company name': 'EMPLOYER_NAME',

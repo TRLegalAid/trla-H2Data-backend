@@ -1,3 +1,5 @@
+"""Script to add additional H-2A housing DOL data to our database."""
+
 import os
 import helpers
 from helpers import make_query, get_database_engine

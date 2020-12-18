@@ -1,3 +1,5 @@
+"""Script to update the status column in our database."""
+
 from helpers import make_query
 
 # updates status column in PostgreSQL table named table_name

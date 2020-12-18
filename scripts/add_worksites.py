@@ -1,3 +1,5 @@
+"""Script to add additional H-2A worksites DOL data to our database."""
+
 import helpers
 from helpers import make_query, get_database_engine, myprint
 import pandas as pd

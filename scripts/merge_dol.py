@@ -1,3 +1,5 @@
+"""Script to merge DOL's H-2A and H-2B disclosure data into our database."""
+
 import os
 from helpers import myprint
 import helpers

@@ -1,3 +1,5 @@
+"""Script to add data from quarterly DOL files to our database."""
+
 import os
 import pandas as pd
 from helpers import myprint, get_database_engine, make_query

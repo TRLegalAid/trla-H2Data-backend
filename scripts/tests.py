@@ -1,3 +1,5 @@
+"""Tests for various functions within the app. Uses unittest library."""
+
 import helpers
 
 if helpers.force_cloud:

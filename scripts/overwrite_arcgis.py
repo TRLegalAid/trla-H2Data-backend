@@ -1,3 +1,5 @@
+"""Script to overwrite our arcGIS csv with the most recent data from our PostgreSQL database."""
+
 from arcgis.gis import GIS
 from arcgis.features import FeatureLayerCollection
 from colorama import Fore, Style

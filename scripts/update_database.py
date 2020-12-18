@@ -1,3 +1,5 @@
+"""Script to update our database based on scraper output."""
+
 import os
 import requests
 import helpers

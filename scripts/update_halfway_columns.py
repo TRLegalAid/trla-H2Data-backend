@@ -1,3 +1,5 @@
+"""Script to update the days_until_halfway and is_halfway columns in our database."""
+
 from helpers import make_query
 
 # updates days_until_halfway and is_halfway columns in job_central and low_accuracies PostgreSQL tables

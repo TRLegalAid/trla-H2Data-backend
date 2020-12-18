@@ -1,4 +1,4 @@
-"Functions to mark jobs in low_accuracies that are ended (according to their status columns) as fixed."
+"""Functions to mark jobs in low_accuracies that are ended (according to their status columns) as fixed."""
 
 import pandas as pd
 from helpers import get_database_engine, make_query, myprint
