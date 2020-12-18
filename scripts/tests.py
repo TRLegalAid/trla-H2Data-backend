@@ -1,4 +1,4 @@
-"""Tests for various functions within the app. Uses unittest library."""
+"""Tests for various functions within the app. Uses unittest library. Requires a local Postgres database."""
 
 import helpers
 
@@ -18,6 +18,7 @@ import pandas as pd
 bad_accuracy_types = helpers.bad_accuracy_types
 engine = helpers.get_database_engine()
 
+# replaces job_central and low_accuracies with the DataFrames accurates and inaccurates
 def set_test_database_state(accurates, inaccurates):
     make_query("DELETE FROM job_central")
     make_query("DELETE FROM low_accuracies")
@@ -25,41 +26,59 @@ def set_test_database_state(accurates, inaccurates):
     inaccurates.to_sql("low_accuracies", engine, if_exists='append', index=False, dtype=helpers.column_types)
     make_query("REFRESH MATERIALIZED VIEW previously_geocoded")
 
+# runs merge_all_data function with the two parameters as inputs and returns the updated job_central and low_accuracies tables as DataFrames
 def merge_all_and_get_new_state(accurate_new_jobs, inaccurate_new_jobs):
     merge_all_data(accurate_new_jobs, inaccurate_new_jobs)
     accurates = pd.read_sql("job_central", con=engine)
     inaccurates = pd.read_sql("low_accuracies", con=engine)
     return accurates, inaccurates
 
+# returns whether the DataFrames accurates and inaccurates don't have duplicate case numbers and whether they have duplicates when combined
 def has_no_dups(accurates, inaccurates):
     accurate_case_numbers = accurates["CASE_NUMBER"].tolist()
     accs_no_dups = (len(accurate_case_numbers) == len(set(accurate_case_numbers)))
+
     inaccurate_case_numbers = inaccurates["CASE_NUMBER"].tolist()
     inaccs_no_dups = (len(inaccurate_case_numbers) == len(set(inaccurate_case_numbers)))
+
     all_case_numbers = accurate_case_numbers + inaccurate_case_numbers
     no_dups_anywhere = len(all_case_numbers) == len(set(all_case_numbers))
+
     return accs_no_dups, inaccs_no_dups, no_dups_anywhere
 
+# check that everything in `accurate` is accurately geocoded and everything in `inaccurates` is inaccurately geocoded. `accurates`, `inaccurates` are DataFrames
 def assert_accuracies_and_inaccuracies(accurates, inaccurates):
+    # check whether all worksites in `accurates` are accurately geocoded
     worksites_accurate = ((accurates["worksite accuracy"] >= 0.7) & (~accurates["worksite accuracy type"].isin(bad_accuracy_types))).all()
+
+    # check whether all housing sites in `accurates` are accurately geocoded
     accurates_h2a = accurates[accurates["Visa type"] == "H-2A"]
     housings_accurate = ((accurates_h2a["housing accuracy"] >= 0.7) & (~accurates_h2a["housing accuracy type"].isin(bad_accuracy_types))).all()
+
+    # check whether all H-2A jobs in `inaccurates` have either an inaccurately geocoded worksite or an inaccurately geocoded housing site
     inaccurates_h2a = inaccurates[inaccurates["Visa type"] == "H-2A"]
     inaccurate_conditions_h2a = ((inaccurates_h2a["housing accuracy"].isnull()) | (inaccurates_h2a["worksite accuracy"].isnull()) | (inaccurates_h2a["housing accuracy"] < 0.7) | (inaccurates_h2a["worksite accuracy"] < 0.7) | (inaccurates_h2a["housing accuracy type"].isin(bad_accuracy_types)) | (inaccurates_h2a["worksite accuracy type"].isin(bad_accuracy_types)))
     h2a_inaccurates_inaccurate = inaccurate_conditions_h2a.all()
+
+    # check whether all H-2B jobs in `inaccurates` have an inaccurately geocoded worksite
     inaccurates_h2b = inaccurates[inaccurates["Visa type"] == "H-2B"]
     if len(inaccurates_h2b) != 0:
         inaccurate_conditions_h2b = ((inaccurates["worksite accuracy"].isnull()) | (inaccurates_h2b["worksite accuracy"] < 0.7) | (inaccurates_h2b["worksite accuracy type"].isin(bad_accuracy_types)))
         h2b_inaccurates_inaccurate = inaccurate_conditions_h2b.all()
     else:
         h2b_inaccurates_inaccurate = True
+
     return worksites_accurate, housings_accurate, h2a_inaccurates_inaccurate, h2b_inaccurates_inaccurate
+
+
 
 type_conversions = {'fixed': bool, 'housing_fixed_by': str, 'worksite_fixed_by': str, "HOUSING_POSTAL_CODE": str, "WORKSITE_POSTAL_CODE": str}
 accurate_new_jobs = pd.read_excel(os.path.join(os.getcwd(), '..',  "excel_files/accurate_dol_geocoded.xlsx"), converters=type_conversions)
 inaccurate_new_jobs = pd.read_excel(os.path.join(os.getcwd(), '..',  "excel_files/inaccurate_dol_geocoded.xlsx"),  converters=type_conversions)
 accurate_old_jobs = pd.read_excel(os.path.join(os.getcwd(), '..',  "excel_files/accurates_geocoded.xlsx"), converters=type_conversions)
 inaccurate_old_jobs = pd.read_excel(os.path.join(os.getcwd(), '..',  "excel_files/inaccurates_geocoded.xlsx"),  converters=type_conversions)
+
+
 
 myprint("Start of add housing test", is_red="red")
 housing = pd.read_excel(os.path.join(os.getcwd(), '..', 'excel_files/housing_addendum.xlsx'))
@@ -78,6 +97,8 @@ class TestAddHousing(unittest.TestCase):
         self.assertTrue(all(accurate_housing["fy"] == "2020Q3"))
         self.assertTrue(all(inaccurate_housing["fy"] == "2020Q3"))
 
+
+
 myprint("Start of previously geocoded test")
 accurates = pd.read_excel(os.path.join(os.getcwd(), '..',  "excel_files/accurates_geocoded_prev_geocoded_test.xlsx"), converters=type_conversions)
 inaccurates = pd.read_excel(os.path.join(os.getcwd(), '..',  "excel_files/inaccurates_geocoded_prev_geocoded_test.xlsx"),  converters=type_conversions)
@@ -95,6 +116,9 @@ class TestPreviouslyGeocoded(unittest.TestCase):
         self.assertEqual(geocoded.at[2, "housing accuracy"], 100)
         self.assertEqual(geocoded.at[2, "housing accuracy type"], "aaa")
 
+
+
+
 # TESTING MERGE ALL DATA FUNCTION - see project documentation to see what is meant by case_1 through case_8
 myprint("Start of test case 0", is_red="red")
 set_test_database_state(accurate_old_jobs, inaccurate_old_jobs)
@@ -104,6 +128,7 @@ class TestCaseZero(unittest.TestCase):
         self.assertEqual(len(all_accurate_jobs), 19)
         self.assertEqual(len(all_inaccurate_jobs), 9)
         self.assertTrue(all(has_no_dups(all_accurate_jobs, all_inaccurate_jobs)))
+
 
 acc_new1 = accurate_new_jobs.copy()
 acc_new1_len = len(acc_new1)
@@ -134,6 +159,7 @@ class TestCaseOne(unittest.TestCase):
         # making sure it worked on other duplicate job
         self.assertEqual(get_value(all_accs1[all_accs1["CASE_NUMBER"] == "H-300-20119-524313"], "WORKSITE_CITY"), "Riceville")
 
+
 accs_old2 = accurate_old_jobs.copy()
 len_accs_old2 = len(accs_old2)
 accs_old2.at[len_accs_old2 - 2, "fixed"] = True
@@ -159,6 +185,7 @@ class TestCaseTwo(unittest.TestCase):
         self.assertEqual(get_value(dup_job, "HOUSING_ADDRESS_LOCATION"), "3272 440th St")
         self.assertEqual(get_value(dup_job, "W to H Ratio"), "W=H")
 
+
 accs_new3 = accurate_new_jobs.copy()
 accs_new3.at[len(accs_new3) - 1, "CASE_NUMBER"] = "H-300-20108-494660"
 myprint("Start of test case 3", is_red="red")
@@ -178,6 +205,7 @@ class TestCaseThree(unittest.TestCase):
         self.assertEqual(get_value(dup_job, "Source"), "DOL")
         self.assertEqual(get_value(dup_job, "HOUSING_ADDRESS_LOCATION"), "3272 440th St")
         self.assertEqual(get_value(dup_job, "W to H Ratio"), "W=H")
+
 
 accs_new4 = accurate_new_jobs.copy()
 accs_new4.at[len(accs_new4) - 1, "CASE_NUMBER"] = "H-300-20108-494660"
@@ -200,6 +228,7 @@ class TestCaseFour(unittest.TestCase):
         self.assertEqual(get_value(dup_job, "Source"), "DOL")
         self.assertEqual(get_value(dup_job, "HOUSING_ADDRESS_LOCATION"), "3272 440th St")
         self.assertEqual(get_value(dup_job, "W to H Ratio"), "W=H")
+
 
 inaccs_new5 = inaccurate_new_jobs.copy()
 inaccs_new5.at[len(inaccs_new5) - 3, "CASE_NUMBER"] = "H-300-20121-530549"
@@ -307,6 +336,7 @@ class TestCaseSixII(unittest.TestCase):
         self.assertEqual(get_value(dup_job, "housing_lat"), 39.925263)
         self.assertEqual(get_value(dup_job, "worksite_long"), -76.306133)
         self.assertEqual(get_value(dup_job, "worksite_lat"), 39.935672)
+
 
 # case where worksite_fixed_by is impossible/na and worksite needs fixing in new data (acc type is "place" in this case)
 inaccs_new6iiiA = inaccurate_new_jobs.copy()
@@ -464,6 +494,7 @@ class TestCaseEight(unittest.TestCase):
         self.assertEqual(get_value(dup_job, "fixed"), True)
 
 
+
 inaccs_old_w_dolH = inaccurate_old_jobs.copy()
 last_row = inaccs_old_w_dolH[inaccs_old_w_dolH["CASE_NUMBER"] == "H-300-20108-494660"]
 inaccs_old_w_dolH = inaccs_old_w_dolH.append(last_row)
@@ -485,6 +516,7 @@ class TestKeepsDOL_Hs(unittest.TestCase):
         self.assertTrue(accs_no_dups)
         self.assertEqual(inaccs_no_dups, False)
         self.assertEqual(no_dups_anywhere, False)
+
 
 
 # Hamilton college: 198 College Hill Rd, Clinton, NY 13323  -  43.051469, -75.402153, 1, rooftop
