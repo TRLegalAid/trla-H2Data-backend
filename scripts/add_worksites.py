@@ -37,7 +37,7 @@ def add_worksites_to_postgres():
     worksites.to_sql("additional_worksites", engine, if_exists='append', index=False)
 
     if quarter != 1:
-        make_query(f"""DELETE FROM additional_worksites WHERE fy = '{year}Q{quarter - 1}'""")
+        make_query(f"""DELETE FROM additional_worksites WHERE fy = '{year}Q{int(quarter) - 1}'""")
 
 if __name__ == "__main__":
    add_worksites_to_postgres()
