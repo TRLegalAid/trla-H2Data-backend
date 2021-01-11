@@ -3,7 +3,6 @@
 import os
 import simplejson as json
 import gspread
-import pandas as pd
 from oauth2client.service_account import ServiceAccountCredentials
 import pandas as pd
 from helpers import get_database_engine, myprint, make_query, convert_date_to_string
