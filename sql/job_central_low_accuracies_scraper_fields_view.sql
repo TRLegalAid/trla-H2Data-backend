@@ -10,7 +10,7 @@ CREATE VIEW job_central_low_accuracies_scraper_fields AS
             "HOUSING_CITY", "HOUSING_COUNTY", "HOUSING_ADDRESS_LOCATION", "TYPE_OF_HOUSING", "HOUSING_POSTAL_CODE", "HOUSING_STATE",
             "TOTAL_OCCUPANCY", "TOTAL_UNITS", "W to H Ratio", "ADDITIONAL_JOB_REQUIREMENTS", "WEBSITE_TO_APPLY", "WORKSITE_ADDRESS",
             "WORKSITE_CITY", "WORKSITE_STATE", "WORKSITE_POSTAL_CODE", "EMAIL_TO_APPLY", "EMPLOYER_PHONE", "PHONE_TO_APPLY", "Number of Pages",
-            "Date of run", "Source"
+            "Date of run", "Source", "occupancy_minus_workers"
             FROM job_central
     		UNION
     		SELECT
@@ -23,6 +23,6 @@ CREATE VIEW job_central_low_accuracies_scraper_fields AS
             "HOUSING_CITY", "HOUSING_COUNTY", "HOUSING_ADDRESS_LOCATION", "TYPE_OF_HOUSING", "HOUSING_POSTAL_CODE", "HOUSING_STATE",
             "TOTAL_OCCUPANCY", "TOTAL_UNITS", "W to H Ratio", "ADDITIONAL_JOB_REQUIREMENTS", "WEBSITE_TO_APPLY", "WORKSITE_ADDRESS",
             "WORKSITE_CITY", "WORKSITE_STATE", "WORKSITE_POSTAL_CODE", "EMAIL_TO_APPLY", "EMPLOYER_PHONE", "PHONE_TO_APPLY", "Number of Pages",
-            "Date of run", "Source"
+            "Date of run", "Source", "occupancy_minus_workers"
             FROM low_accuracies WHERE "table" != 'dol_h')
 		AS case_nums_view
