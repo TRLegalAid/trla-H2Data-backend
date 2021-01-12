@@ -105,7 +105,7 @@ def implement_fixes(fixed, fix_worksites=False):
         return data.drop(columns_only_in_data, axis=1)
 
     # fixes rows, gets successful fixes, splits into rows for additional_housing and job_central
-    fix_rows(fixed)
+    fix_rows(fixed, fix_worksites=fix_worksites)
     success_conditions = (fixed["worksite_fixed_by"] != "failed") & (fixed["housing_fixed_by"] != "failed")
     successes = fixed[success_conditions]
     central = successes[successes["table"] == "central"]
@@ -176,9 +176,8 @@ def send_fixes_to_postgres():
                                state=job["HOUSING_STATE"], zip=job["HOUSING_POSTAL_CODE"],
                                notes=job["notes"], fixed_by=job["housing_fixed_by"], id=job["id"])
 
-
+    # all rows that had fixed as true are now either in job_central or in low_accuracies as a new row with fixed_by as failed and fixed as false
     make_query("delete from low_accuracies where fixed=true")
-
 
     myprint(f"Done implementing fixes. There were {len(failures)} failed fixes out of {len(fixed)} attempts.")
 

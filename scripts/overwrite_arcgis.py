@@ -49,11 +49,11 @@ def overwrite_our_feature():
                                        ('texas', 'tx', 'kentucky', 'ky', 'tennessee', 'tn', 'arkansas', 'ar', 'louisiana', 'la', 'mississippi', 'ms', 'alabama', 'al') AND
                                        (housing_lat IS NUll OR housing_long IS NULL)""", con=engine)
 
-    # Lizzie's request - can't remember the purpose
+    # for arcGIS map purposes because color-coding is based on this column
     h2a_df["TOTAL_OCCUPANCY"].fillna(600, inplace=True)
     h2a_no_housing_df["TOTAL_OCCUPANCY"].fillna(600, inplace=True)
 
-    # get all forerstry h2b jobs from job_central that are in one of our states
+    # get all forestry h2b jobs from job_central that are in one of our states
     forestry_h2b_in_our_states_df = pd.read_sql("""SELECT * FROM job_central WHERE
                                                    "Visa type" = 'H-2B' AND
                                                    "SOC_CODE" IN ('45-4011.00', '45-4011') AND
