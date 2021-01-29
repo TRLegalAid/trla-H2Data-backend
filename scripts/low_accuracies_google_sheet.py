@@ -107,4 +107,4 @@ def send_fixes_in_our_google_sheet_to_low_accuracies():
 if __name__ == "__main__":
     pass
     # replace_our_google_sheet_with_low_accuracies_table()
-    # send_fixes_in_our_google_sheet_to_low_accuracies()
+    send_fixes_in_our_google_sheet_to_low_accuracies()
