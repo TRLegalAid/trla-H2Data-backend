@@ -32,8 +32,8 @@ def perform_task_and_catch_errors(task_function, task_name):
 
 
 def all_tasks():
-    # perform_task_and_catch_errors(update_database, "UPDATING DATABASE")
-    # perform_task_and_catch_errors(expand_abbreviations, "EXPANDING STATE ABBREVIATIONS")
+    perform_task_and_catch_errors(update_database, "UPDATING DATABASE")
+    perform_task_and_catch_errors(expand_abbreviations, "EXPANDING STATE ABBREVIATIONS")
     google_sheet_to_postgres_worked = perform_task_and_catch_errors(send_fixes_in_our_google_sheet_to_low_accuracies, "SENDING FIXES FROM GOOGLE SHEETS TO LOW ACCURACIES TABLE")
 
     # without this condition an error in the previous task would cause all fixes made in the google sheet to be lost
@@ -50,10 +50,6 @@ def all_tasks():
 
     perform_task_and_catch_errors(overwrite_our_feature, "OVERWRITING ARCGIS FEATURE")
 
-perform_task_and_catch_errors(all_tasks, "PERFORMING DAILY TASKS")
-print("done")
-while True:
-    pass
 
 def perform_all_tasks():
     perform_task_and_catch_errors(all_tasks, "PERFORMING DAILY TASKS")
