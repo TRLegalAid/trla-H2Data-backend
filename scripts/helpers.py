@@ -430,6 +430,7 @@ def add_job_to_postgres(job, table):
     if "id" in job_columns:
         columns_to_drop.append("id")
 
+    columns_to_drop = [column for column in columns_to_drop if column in job_df.columns]
     job_df = job_df.drop(columns=columns_to_drop)
     job_df.to_sql(table, engine, if_exists='append', index=False)
 
