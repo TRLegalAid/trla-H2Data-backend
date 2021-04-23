@@ -129,7 +129,7 @@ def handle_null(object):
     if pd.isnull(object):
         return ""
     else:
-        return object
+        return str(object)
 
 # returns a list of lists containing all the elements in a_list where each list's lenght is no more than max_items_per_part
 def split_into_parts(a_list, max_items_per_part):
