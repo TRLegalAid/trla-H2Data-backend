@@ -103,6 +103,7 @@ column_types = {
     "HOUSING_TRANSPORTATION": sqlalchemy.types.Boolean, "JOINT_EMPLOYER_APPENDIX_A_ATTACHED": sqlalchemy.types.Boolean, "LIFTING_REQUIREMENTS": sqlalchemy.types.Boolean, "MEALS_PROVIDED": sqlalchemy.types.Boolean,
     "ON_CALL_REQUIREMENT": sqlalchemy.types.Boolean, "REPETITIVE_MOVEMENTS": sqlalchemy.types.Boolean, "SURETY_BOND_ATTACHED": sqlalchemy.types.Boolean, "WORK_CONTRACTS_ATTACHED": sqlalchemy.types.Boolean,
     "CERTIFICATION_REQUIREMENTS": sqlalchemy.types.Boolean, "DECISION_DATE": sqlalchemy.types.DateTime
+    # "WORKSITE_ADDRESS": sqlalchemy.types.Text, "WORKSITE_CITY": sqalchemy.types.Text
 }
 
 # columns to do with housing / worksite addresses
@@ -128,7 +129,7 @@ def handle_null(object):
     if pd.isnull(object):
         return ""
     else:
-        return object
+        return str(object)
 
 # returns a list of lists containing all the elements in a_list where each list's lenght is no more than max_items_per_part
 def split_into_parts(a_list, max_items_per_part):
@@ -284,7 +285,7 @@ def fix_zip_code(zip_code):
     if isinstance(zip_code, str):
         return ("0" * (5 - len(zip_code))) + zip_code
     elif zip_code == None or isnan(zip_code):
-        return None
+        return ""
     else:
         zip_code = str(int(zip_code))
         return ("0" * (5 - len(zip_code))) + zip_code

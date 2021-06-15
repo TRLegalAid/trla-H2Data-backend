@@ -17,7 +17,8 @@ def geocode_manage_split_housing(housing, year, quarter):
                                       "PHYSICAL_LOCATION_STATE": "HOUSING_STATE", "PHYSICAL_LOCATION_POSTAL_CODE": "HOUSING_POSTAL_CODE",
                                       "PHYSICAL_LOCATION_CITY": "HOUSING_CITY", "HOUSING_STANDARD_STATE": "HOUSING_STANDARDS_STATE",
                                       "HOUSING_STANDARD_LOCAL": "HOUSING_STANDARDS_LOCAL", "HOUSING_STANDARD_FEDERAL": "HOUSING_STANDARDS_FEDERAL",
-                                      "PHYSICAL_LOCATION_COUNTY" : "HOUSING_COUNTY", "PHYSICAL_LOCATION_ADDRESS_1": "HOUSING_ADDRESS_LOCATION"})
+                                      "PHYSICAL_LOCATION_COUNTY" : "HOUSING_COUNTY", "PHYSICAL_LOCATION_ADDRESS_1": "HOUSING_ADDRESS_LOCATION",
+                                      "ADDITIONAL_HOUSING_INFO":"ADDITIONAL_HOUSING_INFORMATION"})
 
     housing = helpers.fix_zip_code_columns(housing, ["HOUSING_POSTAL_CODE"])
     housing["table"], housing["Source"], housing["fixed"], housing["housing_fixed_by"], housing["fy"] = "dol_h", "DOL", None, None, f"{year}Q{quarter}"
@@ -31,7 +32,7 @@ def add_housing_to_postgres():
 
     file_path = "dol_data/" + input("Check that the additional housing file is in a folder named `dol_data` in the `scripts` folder. (If it isn't, exit this using control + c then re-run this script once you've done it.) Now enter the full name of the file (this is case sensitive and must include the file extension).\n").strip()
     year = input("What year is it? (eg: 2020)\n").strip()
-    quarter = input("What quarter it is? (enter 1, 2, 3, or 4)\n").strip()
+    quarter = int(input("What quarter it is? (enter 1, 2, 3, or 4)\n").strip())
     input(f"Ok, adding additional housing from {file_path} for fiscal year {year}Q{quarter}. If this is correct press any key, othewise press control + c to start over.")
 
     housing = pd.read_excel(file_path)
