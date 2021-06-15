@@ -25,7 +25,7 @@ def append_excel_to_table(file_name, table_name, year, quarter):
     df.to_sql(table_name, engine, if_exists='append', index=False)
     myprint("Done adding rows.")
 
-    if quarter != 1:
+    if int(quarter) != 1:
         make_query(f"""DELETE FROM {table_name} WHERE fy = '{year}Q{int(quarter) - 1}'""")
 
 

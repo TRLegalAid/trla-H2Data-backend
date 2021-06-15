@@ -3,7 +3,6 @@
 import os
 import simplejson as json
 import gspread
-import pandas as pd
 from oauth2client.service_account import ServiceAccountCredentials
 import pandas as pd
 from helpers import get_database_engine, myprint, make_query, convert_date_to_string
@@ -108,4 +107,4 @@ def send_fixes_in_our_google_sheet_to_low_accuracies():
 if __name__ == "__main__":
     pass
     # replace_our_google_sheet_with_low_accuracies_table()
-    # send_fixes_in_our_google_sheet_to_low_accuracies()
+    send_fixes_in_our_google_sheet_to_low_accuracies()

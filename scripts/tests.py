@@ -3,11 +3,10 @@
 import helpers
 
 if helpers.force_cloud:
-    print("Refusing to run tests. Never run tests on the actual database!!! You are seeing this alert because the force_cloud variable is set to True in helpers.py. Set it to False to run tests on the local database.")
+    print("Refusing to run tests. Never run tests on the actual database!!! You are seeing this alert because the force_cloud variable is set to True (or you told it to be set it to true with your answer to the last question) in helpers.py. Set it to False to run tests on the local database.")
     exit()
 
 import unittest
-from populate_database import geocode_manage_split
 from add_housing import geocode_manage_split_housing
 from merge_dol import geocode_manage_split_merge
 from implement_fixes import implement_fixes

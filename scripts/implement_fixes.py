@@ -6,6 +6,7 @@ from helpers import myprint, print_red_and_email, make_query, get_database_engin
 import pandas as pd
 from geocodio import GeocodioClient
 from dotenv import load_dotenv
+from sqlalchemy.sql import text
 load_dotenv()
 
 geocodio_api_key = os.getenv("GEOCODIO_API_KEY")
@@ -104,7 +105,7 @@ def implement_fixes(fixed, fix_worksites=False):
         return data.drop(columns_only_in_data, axis=1)
 
     # fixes rows, gets successful fixes, splits into rows for additional_housing and job_central
-    fix_rows(fixed)
+    fix_rows(fixed, fix_worksites=fix_worksites)
     success_conditions = (fixed["worksite_fixed_by"] != "failed") & (fixed["housing_fixed_by"] != "failed")
     successes = fixed[success_conditions]
     central = successes[successes["table"] == "central"]
@@ -158,7 +159,24 @@ def send_fixes_to_postgres():
     # adding fixes to appropriate tables and deleting appropriate rows from low_accuracies
     central.to_sql('job_central', engine, if_exists='append', index=False)
     housing.to_sql('additional_housing', engine, if_exists='append', index=False)
-    failures.to_sql('low_accuracies', engine, if_exists='append', index=False)
+
+    # adding failed fixes back to low_accuracies - can't just use to_sql because of primary key
+    for i, job in failures.iterrows():
+        query = text(
+                """UPDATE low_accuracies SET
+                    (fixed, housing_lat, housing_long, "HOUSING_ADDRESS_LOCATION", "HOUSING_CITY",
+                    "HOUSING_STATE", "HOUSING_POSTAL_CODE", notes, housing_fixed_by)
+                     =
+                     (:fixed, :lat, :long, :address, :city, :state, :zip, :notes, :fixed_by)
+                     WHERE id = :id""")
+
+        with engine.connect() as connection:
+            connection.execute(query, fixed=job["fixed"], lat=job["housing_lat"], long=job["housing_long"],
+                               address=job["HOUSING_ADDRESS_LOCATION"], city=job["HOUSING_CITY"],
+                               state=job["HOUSING_STATE"], zip=job["HOUSING_POSTAL_CODE"],
+                               notes=job["notes"], fixed_by=job["housing_fixed_by"], id=job["id"])
+
+    # all rows that had fixed as true are now either in job_central or in low_accuracies as a new row with fixed_by as failed and fixed as false
     make_query("delete from low_accuracies where fixed=true")
 
     myprint(f"Done implementing fixes. There were {len(failures)} failed fixes out of {len(fixed)} attempts.")

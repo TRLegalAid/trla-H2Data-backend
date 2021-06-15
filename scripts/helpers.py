@@ -112,7 +112,8 @@ worksite_address_columns = ["WORKSITE_ADDRESS", "WORKSITE_CITY", "WORKSITE_STATE
 
 # h2a jobs that we've found without housing info - here because we email ourselves when we find one that hasn't been found yet (when we find one we add it to this list so we don't get emailed about it again and again)
 h2as_without_housing = ["H-300-20306-894174", "H-300-20293-882133", "H-300-20288-878041", "H-300-20314-904174",
-                        "H-300-20321-913675", "H-300-20317-909670", "H-300-20325-921120", "H-300-20338-936688"]
+                        "H-300-20321-913675", "H-300-20317-909670", "H-300-20325-921120", "H-300-20338-936688",
+                        "H-300-20349-957303", "H-300-20344-944656"]
 
 # function for printing dictionary with each key, value pair on its own line
 def prettier(dictionary):
@@ -430,6 +431,7 @@ def add_job_to_postgres(job, table):
     if "id" in job_columns:
         columns_to_drop.append("id")
 
+    columns_to_drop = [column for column in columns_to_drop if column in job_df.columns]
     job_df = job_df.drop(columns=columns_to_drop)
     job_df.to_sql(table, engine, if_exists='append', index=False)
 

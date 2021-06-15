@@ -88,13 +88,14 @@ def merge_data():
     else:
         raise ValueError("The answer to the last question must be either A or B, nothing else!")
 
-    file_path = "dol_data/" + input(f"Check that the file is in a folder named `dol_data` in the `scripts` folder. (If it isn't, exit this using control + c then re-run this script once you've done it.) Now enter the full name (including any extension) of the DOL file (this is case sensitive).\n").strip()
+    file_path = "dol_data/" + input(f"Check that the DOL data file is in a folder named `dol_data` in the `scripts` folder. (If it isn't, exit this using control + c then re-run this script once you've done it.) Now enter the full name (including any extension) of the DOL file (this is case sensitive).\n").strip()
     input(f"Ok, merging {h2a_or_h2b} DOL data from {file_path}. If this is correct press any key, othewise press control + c to start over.")
 
     dol_jobs = pd.read_excel(file_path, converters={'ATTORNEY_AGENT_PHONE':str,'ATTORNEY_AGENT_PHONE_EXT':str, 'PHONE_TO_APPLY':str,
                                                                                         'SOC_CODE': str, 'NAICS_CODE': str, 'EMPLOYER_POC_PHONE': str, 'EMPLOYER_PHONE': str,
                                                                                         'EMPLOYER_POC_PHONE_EXT': str, 'EMPLOYER_PHONE_EXT': str})
     geocode_manage_split_merge(dol_jobs, h2a=is_h2a)
+    myprint("Done.")
 
 if __name__ == "__main__":
    merge_data()
