@@ -304,7 +304,10 @@ def is_accurate(job, housing_addendum=False):
     elif job["Visa type"] == "H-2B":
         automatic_accurate_conditions = handle_null(job["WORKSITE_STATE"]).lower() not in our_states
     else:
-        automatic_accurate_conditions = (handle_null(job["WORKSITE_STATE"]).lower() not in our_states) and (handle_null(job["HOUSING_STATE"]).lower() not in our_states)
+        try:
+            automatic_accurate_conditions = (handle_null(job["WORKSITE_STATE"]).lower() not in our_states) and (handle_null(job["HOUSING_STATE"]).lower() not in our_states)
+        except:
+            automatic_accurate_conditions = handle_null(job["WORKSITE_STATE"]).lower() not in our_states
 
     if state_checking and automatic_accurate_conditions:
         return True
