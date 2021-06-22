@@ -32,7 +32,7 @@ Data is cleaned via [this google doc](https://docs.google.com/spreadsheets/d/1qN
 
 ## issues with the scraper itself
 
-If the DOL website format changes, you may need to alter the scraper. This may also be the case if you want to attempt to scrape more fields.
+If the DOL website format changes, you may need to alter the scraper. This will also be the case if you want to attempt to scrape more fields.
 
 We have contracted with a developer at Apify to create the scraper. You can send new requests for changes, and the developer will let you know a one-time cost. 
 
