@@ -22,7 +22,7 @@ If the python script fails, you can re-run the script after the issue has been c
 
 First, go to Apify. Select Actors > Click the name of the actor (apify-dol-actor at time of writing) > Runs > Click the green, hyperlinked "status" of the run you are interested in > Under the 4 dashboard items with results, select "API" > Copy URL under Get Dataset Items
 
-Then, go to the update_database.py file. Temporarily replace "most_recent_run_url" with the URL you got from Apify (the version in line 18, within requests.get().json()).
+Then, go to the update_database.py file. Temporarily replace "most_recent_run_url" with the URL you got from Apify, enclosed in quotes (the version in line 18, within requests.get("URL ENCLOSED IN QUOTES!").json()).
 
 Run the script in your console, and everything should be up to date. If you accidentally add duplicate case numbers, it's okay. They will not actually end up in the database.
 
