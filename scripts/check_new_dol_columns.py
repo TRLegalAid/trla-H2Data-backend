@@ -17,14 +17,14 @@ def check_for_new_columns(file_name, table_name):
 
 
 # reports any columns in the H2A additional_worksites, H2B additional_housings, H2A disclosure, and
-# H2B disclosure files that are not in these files' corresponding tables in Postgres. Edit `table_file_names_map`
+# H2B disclosure files that are not in these files' corresponding tables in Postgres. Edit `files_tables_map`
 # accordingly based on file names. Assumes all files are located in a folder named dol_data which is in this directory.
 if __name__ == "__main__":
 
-    files_tables_map = {"H-2A_Disclosure_Data_FY2021_Q2.xls": "job_central",
-                            "H-2B_Disclosure_Data_FY2021_Q2.xls": "job_central",
-                            "H-2A_Addendum_B_Housing_FY2021_Q2.xls": "additional_housing",
-                            "H-2A_Addendum_B_Employment_FY2021_Q2.xls": "additional_worksites"}
+    files_tables_map = {"H-2A_Disclosure_Data_FY2021_Q3.xls": "job_central",
+                            "H-2B_Disclosure_Data_FY2021_Q3.xls": "job_central",
+                            "H-2A_Addendum_B_Housing_FY2021_Q3.xls": "additional_housing",
+                            "H-2A_Addendum_B_Place_of_Employment_FY2021_Q3.xls": "additional_worksites"}
 
     for file in files_tables_map:
         check_for_new_columns(file, files_tables_map[file])
