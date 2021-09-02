@@ -1,1 +1,1 @@
-clock: python scripts/merge_dol.py
+clock: python scripts/schedule.py
