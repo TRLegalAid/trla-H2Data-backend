@@ -77,7 +77,7 @@ def geocode_manage_split_merge(dol_jobs, h2a=True):
 
 # merges DOL data from dataset specified by user input
 def merge_data():
-
+    print("Test")
     # h2a_response = input("Are you merging DOL data for H-2A or H-2B? Enter `a` for H2A, `b` for H2B.\n").strip().lower()
     # if h2a_response == "a":
     #     is_h2a = True
