@@ -8,6 +8,9 @@ from datetime import datetime
 from dotenv import load_dotenv
 load_dotenv()
 
+# helpers.make_query("REFRESH MATERIALIZED VIEW previously_geocoded")
+# exit()
+
 # dol_jobs is a DataFrame containing the dol dataset
 def geocode_manage_split_merge(dol_jobs, h2a=True):
 
