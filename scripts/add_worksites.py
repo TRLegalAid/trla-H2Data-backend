@@ -16,7 +16,8 @@ def manage_worksites(worksites, year, quarter):
                                           "PLACE_OF_EMPLOYMENT_ADDRESS2": "WORKSITE_ADDRESS2",
                                           "PLACE_OF_EMPLOYMENT_CITY": "WORKSITE_CITY",
                                           "PLACE_OF_EMPLOYMENT_STATE": "WORKSITE_STATE",
-                                          "PLACE_OF_EMPLOYMENT_POSTAL_CODE": "WORKSITE_POSTAL_CODE"})
+                                          "PLACE_OF_EMPLOYMENT_POSTAL_CODE": "WORKSITE_POSTAL_CODE",
+                                          "ADDITONAL_PLACE_OF_EMPLOYMENT_INFO": "ADDITIONAL_PLACE_OF_EMPLOYMENT_INFORMATION"})
 
     worksites = helpers.fix_zip_code_columns(worksites, ["WORKSITE_POSTAL_CODE"])
     worksites["table"], worksites["Source"], worksites["fy"] = "dol_w", "DOL", f"{year}Q{quarter}"

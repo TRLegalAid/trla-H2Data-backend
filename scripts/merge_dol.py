@@ -94,7 +94,36 @@ def merge_data():
     dol_jobs = pd.read_excel(file_path, converters={'ATTORNEY_AGENT_PHONE':str,'ATTORNEY_AGENT_PHONE_EXT':str, 'PHONE_TO_APPLY':str,
                                                                                         'SOC_CODE': str, 'NAICS_CODE': str, 'EMPLOYER_POC_PHONE': str, 'EMPLOYER_PHONE': str,
                                                                                         'EMPLOYER_POC_PHONE_EXT': str, 'EMPLOYER_PHONE_EXT': str})
-    geocode_manage_split_merge(dol_jobs, h2a=is_h2a)
+
+    def make_int_list(start, end):
+        return [i for i in range(start, end + 1)]
+
+    start = 0 
+    while True:
+        end = start + 100
+        if end < len(dol_jobs):
+            indices_list = make_int_list(start, end)
+            print(f"DOING ROWS {start} TO {end}.")
+            try:
+                geocode_manage_split_merge(dol_jobs.iloc[indices_list], h2a=is_h2a)
+                print(f"SUCCESSFULLY DID ROWS {start} to {end}.")
+            except:
+                print(f"FAILED TO DO ROWS {start} to {end}.")
+            start = end + 1
+        else:
+            end = len(dol_jobs) - 1
+            indices_list = make_int_list(start, end)
+            print(f"DOING ROWS {start} TO {end}.")
+            try:
+                geocode_manage_split_merge(dol_jobs.iloc[indices_list], h2a=is_h2a)
+                print(f"SUCCESSFULLY DID ROWS {start} to {end}.")
+            except:
+                print(f"FAILED TO DO ROWS {start} to {end}.")
+            break
+
+    # geocode_manage_split_merge(dol_jobs, h2a=is_h2a)
+
+
     myprint("Done.")
 
 if __name__ == "__main__":

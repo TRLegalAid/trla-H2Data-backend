@@ -13,11 +13,11 @@ engine = get_database_engine(force_cloud=True)
 # year, quarter should be strings - ex: 2020, 4
 def geocode_manage_split_housing(housing, year, quarter):
 
-    housing = housing.rename(columns={"PHYSICAL_LOCATION_ADDRESS_2": "HOUSING_ADDRESS2", "JOB_ORDER_NUMBER": "JO_ORDER_NUMBER",
+    housing = housing.rename(columns={"PHYSICAL_LOCATION_ADDRESS2": "HOUSING_ADDRESS2", "JOB_ORDER_NUMBER": "JO_ORDER_NUMBER",
                                       "PHYSICAL_LOCATION_STATE": "HOUSING_STATE", "PHYSICAL_LOCATION_POSTAL_CODE": "HOUSING_POSTAL_CODE",
                                       "PHYSICAL_LOCATION_CITY": "HOUSING_CITY", "HOUSING_STANDARD_STATE": "HOUSING_STANDARDS_STATE",
                                       "HOUSING_STANDARD_LOCAL": "HOUSING_STANDARDS_LOCAL", "HOUSING_STANDARD_FEDERAL": "HOUSING_STANDARDS_FEDERAL",
-                                      "PHYSICAL_LOCATION_COUNTY" : "HOUSING_COUNTY", "PHYSICAL_LOCATION_ADDRESS_1": "HOUSING_ADDRESS_LOCATION"})
+                                      "PHYSICAL_LOCATION_COUNTY" : "HOUSING_COUNTY", "PHYSICAL_LOCATION_ADDRESS1": "HOUSING_ADDRESS_LOCATION"})
 
     housing = helpers.fix_zip_code_columns(housing, ["HOUSING_POSTAL_CODE"])
     housing["table"], housing["Source"], housing["fixed"], housing["housing_fixed_by"], housing["fy"] = "dol_h", "DOL", None, None, f"{year}Q{quarter}"
