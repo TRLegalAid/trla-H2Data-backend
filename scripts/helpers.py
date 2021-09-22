@@ -103,6 +103,7 @@ column_types = {
     "HOUSING_TRANSPORTATION": sqlalchemy.types.Boolean, "JOINT_EMPLOYER_APPENDIX_A_ATTACHED": sqlalchemy.types.Boolean, "LIFTING_REQUIREMENTS": sqlalchemy.types.Boolean, "MEALS_PROVIDED": sqlalchemy.types.Boolean,
     "ON_CALL_REQUIREMENT": sqlalchemy.types.Boolean, "REPETITIVE_MOVEMENTS": sqlalchemy.types.Boolean, "SURETY_BOND_ATTACHED": sqlalchemy.types.Boolean, "WORK_CONTRACTS_ATTACHED": sqlalchemy.types.Boolean,
     "CERTIFICATION_REQUIREMENTS": sqlalchemy.types.Boolean, "DECISION_DATE": sqlalchemy.types.DateTime
+    # "WORKSITE_ADDRESS": sqlalchemy.types.Text, "WORKSITE_CITY": sqalchemy.types.Text
 }
 
 # columns to do with housing / worksite addresses
@@ -133,13 +134,16 @@ def handle_null(object):
 
 # returns a list of lists containing all the elements in a_list where each list's lenght is no more than max_items_per_part
 def split_into_parts(a_list, max_items_per_part):
+
     if len(a_list) < max_items_per_part:
         return [a_list]
     else:
         num_parts = len(a_list) // max_items_per_part
+
         res = []
         start = 0
         end = max_items_per_part
+
         for num in range(num_parts):
             res.append(a_list[start:end])
 
@@ -148,6 +152,7 @@ def split_into_parts(a_list, max_items_per_part):
                 end += max_items_per_part
 
         res.append(a_list[end:])
+
         return res
 
 def create_address_from(address, city, state, zip):
@@ -249,9 +254,11 @@ def geocode_table(df, worksite_or_housing, check_previously_geocoded=False):
         df = df.append(previously_geocoded)
 
     # # uncomment to save excel file with geocoding results
+    # # NOTE: that when running this chunk on a Windows machine, I got a ValueError: Invalid format string
+    # # when trying to assign now. There may be platform-specific differences to that strftime format: https://strftime.org/
     # now = datetime.now(tz=timezone('US/Eastern')).strftime("%I.%M%.%S_%p_%B_%d_%Y")
-    # df.to_excel(f"geocoded_{now}.xlsx")
-    # myprint("Backed up geocoding results")
+    df.to_excel(f"dol_data/geocoded_{worksite_or_housing}.xlsx")
+    myprint("Backed up geocoding results")
 
     return df
 

@@ -8,6 +8,9 @@ from datetime import datetime
 from dotenv import load_dotenv
 load_dotenv()
 
+# helpers.make_query("REFRESH MATERIALIZED VIEW previously_geocoded")
+# exit()
+
 # dol_jobs is a DataFrame containing the dol dataset
 def geocode_manage_split_merge(dol_jobs, h2a=True):
 
@@ -26,7 +29,7 @@ def geocode_manage_split_merge(dol_jobs, h2a=True):
         # append 0's where necessary to zip code columns
         helpers.fix_zip_code_columns(dol_jobs, ["HOUSING_POSTAL_CODE", "EMPLOYER_POC_POSTAL_CODE", "EMPLOYER_POSTAL_CODE", "WORKSITE_POSTAL_CODE", "ATTORNEY_AGENT_POSTAL_CODE"])
 
-        columns_to_change_to_boolean = ["790A_ADDENDUM_B_ATTACHED", "790A_addendum_a_attached", "ADDENDUM_B_HOUSING_ATTACHED", "APPENDIX_A_ATTACHED",
+        columns_to_change_to_boolean = ["790A_ADDENDUM_B_ATTACHED", "790A_addendum_a_attached", "ADDENDUM_B_HOUSING_ATTACHED", "APPENDIX_A_ATTACHED", "ADDENDUM_C_ATTACHED",
                                         "CERTIFICATION_REQUIREMENTS", "CRIMINAL_BACKGROUND_CHECK", "DRIVER_REQUIREMENTS", "DRUG_SCREEN", "EMERGENCY_FILING",
                                         "FREQUENT_STOOPING_BENDING_OVER", "EXTENSIVE_SITTING_WALKING", "EXTENSIVE_PUSHING_PULLING", "EXPOSURE_TO_TEMPERATURES",
                                         "H-2A_LABOR_CONTRACTOR", "HOUSING_COMPLIANCE_FEDERAL", "HOUSING_COMPLIANCE_STATE", "HOUSING_COMPLIANCE_LOCAL", "HOUSING_TRANSPORTATION",

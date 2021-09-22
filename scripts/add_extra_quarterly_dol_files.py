@@ -32,10 +32,10 @@ def append_excel_to_table(file_name, table_name, year, quarter):
 # appends each file in excel_files/dol_table_file_mappings.xlsx to its specified table
 def append_excels_to_their_tables():
     year = input("What year is it? (eg: 2020)\n").strip()
-    quarter = input("What quarter is it? (enter 1, 2, 3, or 4)\n").strip()
+    quarter = int(input("What quarter is it? (enter 1, 2, 3, or 4)\n").strip())
     input(f"Ok, appending excel files for fiscal year {year}Q{quarter}. If this is correct press any key, othewise press control + c to start over.")
 
-    files_to_tables_map = pd.read_excel(os.path.join(os.getcwd(), '..',  "excel_files/dol_table_file_mappings.xlsx"))
+    files_to_tables_map = pd.read_excel(os.path.join(os.getcwd(), '..',  "excel_files/dol_table_file_mappings.xls"))
     myprint(f"Will be appending {len(files_to_tables_map)} files to their respective tables.")
 
     for i, pair in files_to_tables_map.iterrows():
