@@ -14,8 +14,9 @@ geocodio_api_key, most_recent_run_url, date_of_run_url = os.getenv("GEOCODIO_API
 engine, client = get_database_engine(force_cloud=False), GeocodioClient(geocodio_api_key)
 
 # updates our postgreSQL database with the data from the most recent scraper run
+# to re-run the script, replace most_recent_run_url with the API url (in quotes!) for the Apify actor run dataset items that you want
 def update_database():
-    latest_jobs = requests.get(most_recent_run_url).json()
+    latest_jobs = requests.get("most_recent_run_url").json()
 
     # use these two lines if you're updating using a local csv file
     # latest_jobs = pd.read_csv("file_name.csv").drop(columns=["Unnamed: 0"])

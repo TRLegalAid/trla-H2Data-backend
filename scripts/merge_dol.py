@@ -24,7 +24,9 @@ def geocode_manage_split_merge(dol_jobs, h2a=True):
         dol_jobs = dol_jobs.rename(columns={"FREQUENCY_OF_PAY": "Additional Wage Information", "H2A_LABOR_CONTRACTOR": "H-2A_LABOR_CONTRACTOR",
                                             "HOURLY_WORK_SCHEDULE_START": "HOURLY_SCHEDULE_BEGIN", "HOURLY_WORK_SCHEDULE_END": "HOURLY_SCHEDULE_END",
                                             "TOTAL_WORKERS_H2A_CERTIFIED": "TOTAL_WORKERS_H-2A_CERTIFIED", "790A_ADDENDUM_A_ATTACHED": "790A_addendum_a_attached",
-                                            "TOTAL_WORKERS_H2A_REQUESTED": "TOTAL_WORKERS_H-2A_REQUESTED"})
+                                            "TOTAL_WORKERS_H2A_REQUESTED": "TOTAL_WORKERS_H-2A_REQUESTED", "JNT_EMPLOYER_APPEND_A_ATTACHED":"JOINT_EMPLOYER_APPENDIX_A_ATTACHED",
+                                            "TOTAL_WORKSITES_RECORDS":"TOTAL_WORKSITE_RECORDS", "SPECIAL_REQUIREMENTS": "ADDITIONAL_JOB_REQUIREMENTS",
+                                            "MEALS_CHARGE":"MEALS_CHARGED"})
 
         # append 0's where necessary to zip code columns
         helpers.fix_zip_code_columns(dol_jobs, ["HOUSING_POSTAL_CODE", "EMPLOYER_POC_POSTAL_CODE", "EMPLOYER_POSTAL_CODE", "WORKSITE_POSTAL_CODE", "ATTORNEY_AGENT_POSTAL_CODE"])
@@ -101,7 +103,7 @@ def merge_data():
     def make_int_list(start, end):
         return [i for i in range(start, end + 1)]
 
-    start = 0 
+    start = 0
     while True:
         end = start + 100
         if end < len(dol_jobs):
