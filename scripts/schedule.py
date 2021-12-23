@@ -33,22 +33,22 @@ def perform_task_and_catch_errors(task_function, task_name):
 
 def all_tasks():
     perform_task_and_catch_errors(update_database, "UPDATING DATABASE")
-    # perform_task_and_catch_errors(expand_abbreviations, "EXPANDING STATE ABBREVIATIONS")
-    # google_sheet_to_postgres_worked = perform_task_and_catch_errors(send_fixes_in_our_google_sheet_to_low_accuracies, "SENDING FIXES FROM GOOGLE SHEETS TO LOW ACCURACIES TABLE")
-    #
-    # # without this condition an error in the previous task would cause all fixes made in the google sheet to be lost
-    # if google_sheet_to_postgres_worked:
-    #     implementing_fixes_worked = perform_task_and_catch_errors(send_fixes_to_postgres, "IMPLEMENTING FIXES")
-    #     if implementing_fixes_worked:
-    #         perform_task_and_catch_errors(update_status_columns_both_tables, "UPDATING STATUS COLUMNS")
-    #         perform_task_and_catch_errors(update_halfway_columns, "UPDATING HALFWAY COLUMNS")
-    #         perform_task_and_catch_errors(mark_all_inactive_low_accurates_as_fixed, "MARKING INACTIVE INACCURATES AS FIXED")
-    #         perform_task_and_catch_errors(update_workers_and_occupancy_columns, "UPDATING WORKERS NEEDED AND OCCUPANCY COLUMNS")
-    #         perform_task_and_catch_errors(fix_previously_fixed, "FIXING PREVIOUSLY FIXED")
-    #         perform_task_and_catch_errors(send_fixes_to_postgres, "IMPLEMENTING FIXES")
-    #         perform_task_and_catch_errors(replace_our_google_sheet_with_low_accuracies_table, "REPLACING OUR GOOGLE SHEET WITH LOW ACCURACIES TABLE")
-    #
-    # perform_task_and_catch_errors(overwrite_our_feature, "OVERWRITING ARCGIS FEATURE")
+    perform_task_and_catch_errors(expand_abbreviations, "EXPANDING STATE ABBREVIATIONS")
+    google_sheet_to_postgres_worked = perform_task_and_catch_errors(send_fixes_in_our_google_sheet_to_low_accuracies, "SENDING FIXES FROM GOOGLE SHEETS TO LOW ACCURACIES TABLE")
+
+    # without this condition an error in the previous task would cause all fixes made in the google sheet to be lost
+    if google_sheet_to_postgres_worked:
+        implementing_fixes_worked = perform_task_and_catch_errors(send_fixes_to_postgres, "IMPLEMENTING FIXES")
+        if implementing_fixes_worked:
+            perform_task_and_catch_errors(update_status_columns_both_tables, "UPDATING STATUS COLUMNS")
+            perform_task_and_catch_errors(update_halfway_columns, "UPDATING HALFWAY COLUMNS")
+            perform_task_and_catch_errors(mark_all_inactive_low_accurates_as_fixed, "MARKING INACTIVE INACCURATES AS FIXED")
+            perform_task_and_catch_errors(update_workers_and_occupancy_columns, "UPDATING WORKERS NEEDED AND OCCUPANCY COLUMNS")
+            perform_task_and_catch_errors(fix_previously_fixed, "FIXING PREVIOUSLY FIXED")
+            perform_task_and_catch_errors(send_fixes_to_postgres, "IMPLEMENTING FIXES")
+            perform_task_and_catch_errors(replace_our_google_sheet_with_low_accuracies_table, "REPLACING OUR GOOGLE SHEET WITH LOW ACCURACIES TABLE")
+
+    perform_task_and_catch_errors(overwrite_our_feature, "OVERWRITING ARCGIS FEATURE")
 
 
 def perform_all_tasks():
@@ -57,6 +57,6 @@ def perform_all_tasks():
 
 # performs all tasks at 1:00 am EST each day
 sched = BlockingScheduler()
-# sched.add_job(perform_all_tasks, 'interval', days=1, start_date='2020-09-09 01:00:00', timezone='US/Eastern')
-sched.add_job(perform_all_tasks, 'interval', minutes=1, start_date='2020-09-09 01:00:00', timezone='US/Eastern')
+sched.add_job(perform_all_tasks, 'interval', days=1, start_date='2020-09-09 01:00:00', timezone='US/Eastern')
+# sched.add_job(perform_all_tasks, 'interval', minutes=1, start_date='2020-09-09 01:00:00', timezone='US/Eastern')
 sched.start()
