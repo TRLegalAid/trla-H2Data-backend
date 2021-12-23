@@ -64,7 +64,7 @@ def print_red_and_email(message, subject):
 # if force_cloud is True it return the engine for the heroku database regardless of local_dev
 def get_database_engine(force_cloud=False):
     if force_cloud or (not (os.getenv("LOCAL_DEV") == "true")):
-        return create_engine(os.getenv("DATABASE_URL"))
+        return create_engine(os.getenv("DATABASE_URL_NEW"))
     else:
         return create_engine(os.getenv("LOCAL_DATABASE_URL"))
 
@@ -257,8 +257,8 @@ def geocode_table(df, worksite_or_housing, check_previously_geocoded=False):
     # # NOTE: that when running this chunk on a Windows machine, I got a ValueError: Invalid format string
     # # when trying to assign now. There may be platform-specific differences to that strftime format: https://strftime.org/
     # now = datetime.now(tz=timezone('US/Eastern')).strftime("%I.%M%.%S_%p_%B_%d_%Y")
-    df.to_excel(f"dol_data/geocoded_{worksite_or_housing}.xlsx")
-    myprint("Backed up geocoding results")
+    # df.to_excel(f"dol_data/geocoded_{worksite_or_housing}.xlsx")
+    # myprint("Backed up geocoding results")
 
     return df
 
