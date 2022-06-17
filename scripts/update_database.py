@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 geocodio_api_key, most_recent_run_url, date_of_run_url = os.getenv("GEOCODIO_API_KEY"), os.getenv("MOST_RECENT_RUN_URL"), os.getenv("DATE_OF_RUN_URL")
-engine, client = get_database_engine(force_cloud=False), GeocodioClient(geocodio_api_key)
+engine, client = get_database_engine(force_cloud=True), GeocodioClient(geocodio_api_key)
 
 # updates our postgreSQL database with the data from the most recent scraper run
 # to re-run the script, replace most_recent_run_url with the API url (in quotes!) for the Apify actor run dataset items that you want
@@ -19,8 +19,10 @@ def update_database():
     latest_jobs = requests.get(most_recent_run_url).json()
 
     # use these two lines if you're updating using a local csv file
-    # latest_jobs = pd.read_csv("file_name.csv").drop(columns=["Unnamed: 0"])
+    # latest_jobs = pd.read_csv("dataset_apify-dol-actor-AJaB_2022-05-03_22-00-16-286.csv").drop(columns=["Unnamed: 0"])
     # latest_jobs = latest_jobs.to_dict('records')
+
+
 
     if not latest_jobs:
         myprint("No new jobs.")

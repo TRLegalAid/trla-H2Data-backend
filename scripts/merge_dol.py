@@ -43,7 +43,8 @@ def geocode_manage_split_merge(dol_jobs, h2a=True):
         table = "dol_h2b"
         dol_jobs = dol_jobs.rename(columns={"TOTAL_WORKERS_REQUESTED": "TOTAL_WORKERS_NEEDED", "WORKSITE_ADDRESS1": "WORKSITE_ADDRESS",
                                             "SPECIAL_REQUIREMENTS": "ADDITIONAL_JOB_REQUIREMENTS", "ADDITIONAL_WAGE_CONDITIONS": "Additional Wage Information",
-                                            "ATTORNEY_AGENT_ADDRESS2": "ATTORNEY_AGENT_ADDRESS_2", "ATTORNEY_AGENT_ADDRESS1": "ATTORNEY_AGENT_ADDRESS_1"})
+                                            "ATTORNEY_AGENT_ADDRESS2": "ATTORNEY_AGENT_ADDRESS_2", "ATTORNEY_AGENT_ADDRESS1": "ATTORNEY_AGENT_ADDRESS_1",
+                                            "1ST_PWD_CASE_NUMBER":'1st_PWD_CASE_NUMBER', "2ND_PWD_CASE_NUMBER":"2nd_PWD_CASE_NUMBER", "3RD_PWD_CASE_NUMBER":"3rd_PWD_CASE_NUMBER"})
 
         helpers.fix_zip_code_columns(dol_jobs, ["EMPLOYER_POC_POSTAL_CODE", "EMPLOYER_POSTAL_CODE", "WORKSITE_POSTAL_CODE", "ATTORNEY_AGENT_POSTAL_CODE"])
 
@@ -82,20 +83,19 @@ def geocode_manage_split_merge(dol_jobs, h2a=True):
 
 # merges DOL data from dataset specified by user input
 def merge_data():
-    print("Test")
-    # h2a_response = input("Are you merging DOL data for H-2A or H-2B? Enter `a` for H2A, `b` for H2B.\n").strip().lower()
-    # if h2a_response == "a":
-    #     is_h2a = True
-    #     h2a_or_h2b = "H-2A"
-    # elif h2a_response == "b":
-    #     is_h2a = False
-    #     h2a_or_h2b = "H-2B"
-    # else:
-    #     raise ValueError("The answer to the last question must be either A or B, nothing else!")
-    is_h2a = True
-    file_path = "dol_data/H-2A_Disclosure_Data_FY2021_Q3.xls"
-    # file_path = "dol_data/" + input(f"Check that the DOL data file is in a folder named `dol_data` in the `scripts` folder. (If it isn't, exit this using control + c then re-run this script once you've done it.) Now enter the full name (including any extension) of the DOL file (this is case sensitive).\n").strip()
-    # input(f"Ok, merging {h2a_or_h2b} DOL data from {file_path}. If this is correct press any key, othewise press control + c to start over.")
+
+    h2a_response = input("Are you merging DOL data for H-2A or H-2B? Enter `a` for H2A, `b` for H2B.\n").strip().lower()
+    if h2a_response == "a":
+        is_h2a = True
+        h2a_or_h2b = "H-2A"
+    elif h2a_response == "b":
+        is_h2a = False
+        h2a_or_h2b = "H-2B"
+    else:
+        raise ValueError("The answer to the last question must be either A or B, nothing else!")
+
+    file_path = "dol_data/" + input(f"Check that the DOL data file is in a folder named `dol_data` in the `scripts` folder. (If it isn't, exit this using control + c then re-run this script once you've done it.) Now enter the full name (including any extension) of the DOL file (this is case sensitive).\n").strip()
+    input(f"Ok, merging {h2a_or_h2b} DOL data from {file_path}. If this is correct press any key, othewise press control + c to start over.")
 
     dol_jobs = pd.read_excel(file_path, converters={'ATTORNEY_AGENT_PHONE':str,'ATTORNEY_AGENT_PHONE_EXT':str, 'PHONE_TO_APPLY':str,
                                                                                         'SOC_CODE': str, 'NAICS_CODE': str, 'EMPLOYER_POC_PHONE': str, 'EMPLOYER_PHONE': str,

@@ -17,6 +17,7 @@ def manage_worksites(worksites, year, quarter):
                                           "PLACE_OF_EMPLOYMENT_CITY": "WORKSITE_CITY",
                                           "PLACE_OF_EMPLOYMENT_STATE": "WORKSITE_STATE",
                                           "PLACE_OF_EMPLOYMENT_POSTAL_CODE": "WORKSITE_POSTAL_CODE",
+                                          "PLACE_OF_EMPLOYMENT_POST_CODE": "WORKSITE_POSTAL_CODE",
                                           "ADDITONAL_PLACE_OF_EMPLOYMENT_INFO": "ADDITIONAL_PLACE_OF_EMPLOYMENT_INFORMATION",
                                           "JO_ORDER_NUMBER":"JOB_ORDER_NUMBER"})
 

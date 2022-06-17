@@ -18,7 +18,8 @@ def geocode_manage_split_housing(housing, year, quarter):
                                       "PHYSICAL_LOCATION_CITY": "HOUSING_CITY", "HOUSING_STANDARD_STATE": "HOUSING_STANDARDS_STATE",
                                       "HOUSING_STANDARD_LOCAL": "HOUSING_STANDARDS_LOCAL", "HOUSING_STANDARD_FEDERAL": "HOUSING_STANDARDS_FEDERAL",
                                       "PHYSICAL_LOCATION_COUNTY" : "HOUSING_COUNTY", "PHYSICAL_LOCATION_ADDRESS1": "HOUSING_ADDRESS_LOCATION",
-                                      "ADDITIONAL_HOUSING_INFO":"ADDITIONAL_HOUSING_INFORMATION"})
+                                      "ADDITIONAL_HOUSING_INFO":"ADDITIONAL_HOUSING_INFORMATION", "PHYSICAL_LOCATION_ADDRESS_2":"HOUSING_ADDRESS2",
+                                      "PHYSICAL_LOCATION_ADDRESS_1":"HOUSING_ADDRESS_LOCATION"})
 
     housing = helpers.fix_zip_code_columns(housing, ["HOUSING_POSTAL_CODE"])
     housing["table"], housing["Source"], housing["fixed"], housing["housing_fixed_by"], housing["fy"] = "dol_h", "DOL", None, None, f"{year}Q{quarter}"
