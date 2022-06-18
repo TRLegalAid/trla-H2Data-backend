@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 geocodio_api_key, most_recent_run_url, date_of_run_url = os.getenv("GEOCODIO_API_KEY"), os.getenv("MOST_RECENT_RUN_URL"), os.getenv("DATE_OF_RUN_URL")
-engine, client = get_database_engine(force_cloud=True), GeocodioClient(geocodio_api_key)
+engine, client = get_database_engine(force_cloud=False), GeocodioClient(geocodio_api_key)
 
 # updates our postgreSQL database with the data from the most recent scraper run
 # to re-run the script, replace most_recent_run_url with the API url (in quotes!) for the Apify actor run dataset items that you want
