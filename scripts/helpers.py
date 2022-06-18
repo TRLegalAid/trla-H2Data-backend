@@ -64,7 +64,7 @@ def print_red_and_email(message, subject):
 # if force_cloud is True it return the engine for the heroku database regardless of local_dev
 def get_database_engine(force_cloud=False):
     if force_cloud or (not (os.getenv("LOCAL_DEV") == "true")):
-        return create_engine(os.getenv("DATABASE_URL"))
+        return create_engine(os.getenv("DATABASE_URL_NEW"))
     else:
         return create_engine(os.getenv("LOCAL_DATABASE_URL"))
 
