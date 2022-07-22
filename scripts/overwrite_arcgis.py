@@ -25,6 +25,10 @@ def overwrite_feature(username, password, new_df, old_feature_name):
     old_feature_layer = FeatureLayerCollection.fromitem(old_jobs_item)
 
     myprint(f"Overwriting feature layer.... there will now be {len(new_df)} features.")
+    import arcgis
+    print(f'old feature layer: {old_feature_layer}')
+    print(f'csv_file_name: {csv_file_name}')
+    print(f'arcgis version: {arcgis.__version__}')
     old_feature_layer.manager.overwrite(csv_file_name)
     myprint('Done overwriting feature layer.')
 
