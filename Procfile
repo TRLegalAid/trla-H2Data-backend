@@ -1,1 +1,1 @@
-clock: python scripts/schedule.py
+clock: python scripts/scheduler.py

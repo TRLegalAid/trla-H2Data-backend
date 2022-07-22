@@ -48,15 +48,17 @@ def all_tasks():
             perform_task_and_catch_errors(send_fixes_to_postgres, "IMPLEMENTING FIXES")
             perform_task_and_catch_errors(replace_our_google_sheet_with_low_accuracies_table, "REPLACING OUR GOOGLE SHEET WITH LOW ACCURACIES TABLE")
 
-    perform_task_and_catch_errors(overwrite_our_feature, "OVERWRITING ARCGIS FEATURE")
+    # perform_task_and_catch_errors(overwrite_our_feature, "OVERWRITING ARCGIS FEATURE")
+    overwrite_our_feature()
 
 
 def perform_all_tasks():
     perform_task_and_catch_errors(all_tasks, "PERFORMING DAILY TASKS")
 
-
-# performs all tasks at 1:00 am EST each day
-sched = BlockingScheduler()
-sched.add_job(perform_all_tasks, 'interval', days=1, start_date='2020-09-09 01:00:00', timezone='US/Eastern')
-# sched.add_job(perform_all_tasks, 'interval', minutes=1, start_date='2020-09-09 01:00:00', timezone='US/Eastern')
-sched.start()
+if __name__ == '__main__':
+    # performs all tasks at 1:00 am EST each day
+    perform_all_tasks()
+    # sched = BlockingScheduler()
+    # sched.add_job(perform_all_tasks, 'interval', days=1, start_date='2020-09-09 01:00:00', timezone='US/Eastern')
+    # # sched.add_job(perform_all_tasks, 'interval', minutes=1, start_date='2020-09-09 01:00:00', timezone='US/Eastern')
+    # sched.start()
