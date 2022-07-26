@@ -27,6 +27,7 @@ def overwrite_feature(username, password, new_df, feature_name):
     myprint(f"Overwriting feature layer.... there will now be {len(new_df)} features.")
     # print(f'old feature layer: {old_feature_layer}')
     # print(f'csv_file_name: {csv_file_name}')
+    print(f'feature layer capabilities: {feature_layer.properties.capabilities}')
     feature_layer.manager.overwrite(csv_file_name)
     myprint('Done overwriting feature layer.')
 
