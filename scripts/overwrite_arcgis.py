@@ -27,12 +27,12 @@ def overwrite_feature(username, password, new_df, feature_name):
     myprint(f"Overwriting feature layer.... there will now be {len(new_df)} features.")
     
     # Maybe try absolute path?
-    abspath2csv = os.path.abspath(csv_file_name)
+    # abspath2csv = os.path.abspath(csv_file_name)
     # feature_layer.manager.overwrite(abspath2csv)
-    print(f'Does the the csv called {abspath2csv} exist? {os.path.isfile(abspath2csv)}')
+    # print(f'Does the the csv called {abspath2csv} exist? {os.path.isfile(abspath2csv)}')
 
     print(f'feature layer capabilities: {feature_layer.properties.capabilities}')
-    feature_layer.manager.overwrite(abspath2csv)
+    feature_layer.manager.overwrite(csv_file_name)
     myprint('Done overwriting feature layer.')
 
     # reset layer definition to allow future overwrites
