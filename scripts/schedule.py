@@ -53,12 +53,14 @@ def all_tasks():
 
 
 def perform_all_tasks():
-    perform_task_and_catch_errors(all_tasks, "PERFORMING DAILY TASKS")
+    # perform_task_and_catch_errors(all_tasks, "PERFORMING DAILY TASKS")
+    all_tasks()
+
 
 if __name__ == '__main__':
     # performs all tasks at 1:00 am EST each day
     # all_tasks()
     sched = BlockingScheduler()
-    sched.add_job(all_tasks, 'interval', days=1, start_date='2020-09-09 01:00:00', timezone='US/Eastern')
-    # # sched.add_job(perform_all_tasks, 'interval', minutes=1, start_date='2020-09-09 01:00:00', timezone='US/Eastern')
+    # sched.add_job(all_tasks, 'interval', days=1, start_date='2020-09-09 01:00:00', timezone='US/Eastern')
+    sched.add_job(perform_all_tasks, 'interval', minutes=1, start_date='2020-09-09 01:00:00', timezone='US/Eastern')
     sched.start()
