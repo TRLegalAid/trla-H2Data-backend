@@ -13,22 +13,34 @@ ARCGIS_USERNAME, ARCGIS_PASSWORD = os.getenv("ARCGIS_USERNAME"), os.getenv("ARCG
 engine = get_database_engine(force_cloud=True)
 
 # overwrites feature named old_feature_name with data from new_df using the arcGIS account specified by username/password
-def overwrite_feature(username, password, new_df, old_feature_name):
+def overwrite_feature(username, password, new_df, feature_name):
     gis = GIS(url='https://www.arcgis.com', username=username, password=password)
     # print("Logged in as " + str(gis.properties.user.username))
 
-    csv_file_name = f"{old_feature_name}.csv"
+    csv_file_name = f"{feature_name}.csv"
     new_df.to_csv(csv_file_name, index=False)
 
     # get first search resul
-    old_jobs_item = gis.content.search(f"title: {old_feature_name}", 'Feature Layer')[0]
-    old_feature_layer = FeatureLayerCollection.fromitem(old_jobs_item)
+    jobs_item = gis.content.search(f"title: {feature_name}", 'Feature Layer')[0]
+    feature_layer = FeatureLayerCollection.fromitem(jobs_item)
 
     myprint(f"Overwriting feature layer.... there will now be {len(new_df)} features.")
-    print(f'old feature layer: {old_feature_layer}')
-    print(f'csv_file_name: {csv_file_name}')
-    old_feature_layer.manager.overwrite(csv_file_name)
+    
+    print(f'Does the the csv called {csv_file_name} exist? {os.path.isfile(csv_file_name)}')
+    print(f'feature layer capabilities: {feature_layer.properties.capabilities}')
+    feature_layer.manager.overwrite(csv_file_name)
     myprint('Done overwriting feature layer.')
+
+    # reset layer definition to allow future overwrites
+    update_dict = {'syncEnabled':'true',
+                   'syncCapabilities': {
+                        'supportsPerReplicaSync': 'true'
+                    }
+                    }
+
+    feature_layer.manager.update_definition(update_dict)
+
+    myprint('Done updating feature layer collection definition to enable sync.')
 
     os.remove(csv_file_name)
 
