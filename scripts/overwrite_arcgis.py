@@ -17,7 +17,7 @@ def overwrite_feature(username, password, new_df, feature_name):
     gis = GIS(url='https://www.arcgis.com', username=username, password=password)
     # print("Logged in as " + str(gis.properties.user.username))
 
-    csv_file_name = f"{feature_name}.csv"
+    csv_file_name = f"./{feature_name}.csv"
     new_df.to_csv(csv_file_name, index=False)
 
     # get first search resul
