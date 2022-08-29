@@ -17,7 +17,7 @@ def overwrite_feature(username, password, new_df, feature_name):
     gis = GIS(url='https://www.arcgis.com', username=username, password=password)
     # print("Logged in as " + str(gis.properties.user.username))
 
-    csv_file_name = f"{feature_name}.csv"
+    csv_file_name = f"./{feature_name}.csv"
     new_df.to_csv(csv_file_name, index=False)
 
     # get first search resul
@@ -25,8 +25,12 @@ def overwrite_feature(username, password, new_df, feature_name):
     feature_layer = FeatureLayerCollection.fromitem(jobs_item)
 
     myprint(f"Overwriting feature layer.... there will now be {len(new_df)} features.")
-    # print(f'old feature layer: {old_feature_layer}')
-    # print(f'csv_file_name: {csv_file_name}')
+    
+    # Maybe try absolute path?
+    # abspath2csv = os.path.abspath(csv_file_name)
+    # feature_layer.manager.overwrite(abspath2csv)
+    # print(f'Does the the csv called {abspath2csv} exist? {os.path.isfile(abspath2csv)}')
+
     print(f'feature layer capabilities: {feature_layer.properties.capabilities}')
     feature_layer.manager.overwrite(csv_file_name)
     myprint('Done overwriting feature layer.')
