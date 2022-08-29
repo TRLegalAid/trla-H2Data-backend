@@ -49,4 +49,5 @@ def add_housing_to_postgres():
             make_query(f"""DELETE FROM low_accuracies WHERE fy = '{year}Q{int(quarter) - 1}' and "table" = 'dol_h'""")
 
 if __name__ == "__main__":
+
    add_housing_to_postgres()
