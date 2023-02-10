@@ -43,7 +43,7 @@ def all_tasks():
             perform_task_and_catch_errors(update_status_columns_both_tables, "UPDATING STATUS COLUMNS")
             perform_task_and_catch_errors(update_halfway_columns, "UPDATING HALFWAY COLUMNS")
             perform_task_and_catch_errors(mark_all_inactive_low_accurates_as_fixed, "MARKING INACTIVE INACCURATES AS FIXED")
-            perform_task_and_catch_errors(update_workers_and_occupancy_columns, "UPDATING WORKERS NEEDED AND OCCUPANCY COLUMNS")
+            # perform_task_and_catch_errors(update_workers_and_occupancy_columns, "UPDATING WORKERS NEEDED AND OCCUPANCY COLUMNS")
             perform_task_and_catch_errors(fix_previously_fixed, "FIXING PREVIOUSLY FIXED")
             perform_task_and_catch_errors(send_fixes_to_postgres, "IMPLEMENTING FIXES")
             perform_task_and_catch_errors(replace_our_google_sheet_with_low_accuracies_table, "REPLACING OUR GOOGLE SHEET WITH LOW ACCURACIES TABLE")

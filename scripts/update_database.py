@@ -89,14 +89,15 @@ def update_database():
 
             if "TOTAL_WORKERS_H-2A_REQUESTED" in job:
                 job["TOTAL_WORKERS_NEEDED"] = job["TOTAL_WORKERS_H-2A_REQUESTED"]
-            workers_needed, occupancy = job["TOTAL_WORKERS_NEEDED"], job.get("TOTAL_OCCUPANCY", None)
-            if workers_needed and occupancy:
-                if workers_needed > occupancy:
-                    job["W to H Ratio"] = "W>H"
-                elif workers_needed < occupancy:
-                    job["W to H Ratio"] = "W<H"
-                else:
-                    job["W to H Ratio"] = "W=H"
+            # Pausing on this next section while we handle the new PDF format
+            # workers_needed, occupancy = job["TOTAL_WORKERS_NEEDED"], job.get("TOTAL_OCCUPANCY", None)
+            # if workers_needed and occupancy:
+            #     if workers_needed > occupancy:
+            #         job["W to H Ratio"] = "W>H"
+            #     elif workers_needed < occupancy:
+            #         job["W to H Ratio"] = "W<H"
+            #     else:
+            #         job["W to H Ratio"] = "W=H"
 
             # fix case number if it's malformed in this way (sometimes they have been in the past)
             if job["CASE_NUMBER"][0] == "3":
