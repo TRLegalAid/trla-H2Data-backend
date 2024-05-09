@@ -2,3 +2,9 @@ __pycache__/
 .DS_Store
 .env
 scripts/dol_data/*.xlsx
+scripts/update_data_types_AN.py
+scripts/add_columns_to_table_AN.py
+scripts/replace_job_order_links.py
+
+excel_files/dol_table_file_mappings SAMPLE.xlsx
+database_backups/

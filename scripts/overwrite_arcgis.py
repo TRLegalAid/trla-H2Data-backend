@@ -85,9 +85,11 @@ def overwrite_our_feature():
     h2a_no_housing_df["housing_lat"] = h2a_no_housing_df.apply(lambda job: job["worksite_lat"], axis=1)
     h2a_no_housing_df["housing_long"] = h2a_no_housing_df.apply(lambda job: job["worksite_long"], axis=1)
 
-    # combine h2a and forestry data
-    h2a_and_h2b_df = h2a_df.append(forestry_h2b_in_our_states_df)
-    h2a_housing_and_no_housing_and_h2b_df = h2a_and_h2b_df.append(h2a_no_housing_df)
+
+    # Combine h2a an h2b-forestry data
+    h2a_and_h2b_df = pd.concat([h2a_df, forestry_h2b_in_our_states_df])
+    h2a_housing_and_no_housing_and_h2b_df = pd.concat([h2a_and_h2b_df, h2a_no_housing_df])
+
 
     # get all additional housing rows that are in one of our states and that have a matching case number in job_central
     additional_housing_df = pd.read_sql("""SELECT * FROM additional_housing WHERE
@@ -103,10 +105,15 @@ def overwrite_our_feature():
     myprint(f"There will be {len(forestry_h2b_in_our_states_df)} forestry H2B jobs in the feature.")
     myprint(f"There will be {len(additional_housing_df)} additional housing rows in the feature.")
 
-    # get columns that are in the h2a data but not the additional housing data and add each one to the additional housing datafrane
+    # get columns that are in the h2a data but not the additional housing data and add these to the additional housing datafrane
     cols_only_in_h2a = set(h2a_df.columns) - set(additional_housing_df.columns)
-    for column in cols_only_in_h2a:
-        additional_housing_df[column] = None
+
+    # Create new df with missing columns, length of the additional_housing_df, fill it with None
+    missing_cols_df = pd.DataFrame({col: [None] * len(additional_housing_df) for col in cols_only_in_h2a})
+
+    # Concatenate additional_housing_dfs with missing_cols_df
+    additional_housing_df = pd.concat([additional_housing_df, missing_cols_df], axis=1)
+
 
     # for each additional housing row, find its matching row in job_central and insert the data about that case number that is in job_central but not the additional_housing row
     for i, row in additional_housing_df.iterrows():
@@ -119,8 +126,8 @@ def overwrite_our_feature():
         else:
             print_red_and_email(f"{case_number} is in additional_housing, so I looked for it in job_central, and found a number of matching rows not equal to 1.", "Overwriting ArcGIS Layer")
 
-    # append completed additional_housing df to the h2a and forestry data
-    full_layer = h2a_housing_and_no_housing_and_h2b_df.append(additional_housing_df)
+    # Combine completed additional_housing df with the previously combined h2a and forestry data
+    full_layer = pd.concat([h2a_housing_and_no_housing_and_h2b_df, additional_housing_df])
 
     overwrite_feature(ARCGIS_USERNAME, ARCGIS_PASSWORD, full_layer, 'H2Data')
 

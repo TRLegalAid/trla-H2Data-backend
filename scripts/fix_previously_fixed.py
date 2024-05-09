@@ -23,7 +23,7 @@ def fix_previously_fixed():
     myprint(f"There are {len(previously_fixed_df)} rows in low_accuracies whose exact housing address column has been fixed before.")
 
     for i, fixed in previously_fixed_df.iterrows():
-        update_query = text("""
+        update_query = """
                         UPDATE low_accuracies SET
                         "HOUSING_ADDRESS_LOCATION" = :address,
                         "HOUSING_CITY" = :city,
@@ -37,7 +37,7 @@ def fix_previously_fixed():
                         "housing_long" = :long,
                         "notes" = :notes
                         WHERE "id" = :id
-                        """)
+                        """
 
         with engine.connect() as connection:
             connection.execute(update_query, address=fixed["HOUSING_ADDRESS_LOCATION"], city=fixed["HOUSING_CITY"],

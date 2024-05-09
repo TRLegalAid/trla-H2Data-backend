@@ -3,6 +3,7 @@
 import os
 import pandas as pd
 from helpers import make_query
+from sqlalchemy.sql import text
 
 states_abbreviations = {'AL': 'Alabama', 'AK': 'Alaska', 'AZ': 'Arizona', 'AR': 'Arkansas', 'CA': 'California',
                         'CO': 'Colorado', 'CT': 'Connecticut', 'DE': 'Delaware', 'DC': 'District of Columbia',
@@ -41,6 +42,7 @@ def expand_abbreviations():
         make_query(f"""UPDATE low_accuracies
                        SET "HOUSING_STATE" = '{state}'
                        WHERE "HOUSING_STATE" IN ('{abbreviation}', '{abbreviation.lower()}')""")
+        
 
 if __name__ == "__main__":
    expand_abbreviations()

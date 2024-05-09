@@ -56,7 +56,7 @@ def geocode_manage_split_merge(dol_jobs, h2a=True):
 
     dol_jobs["Source"], dol_jobs["table"] = "DOL", "central"
     dol_jobs["Date of run"] = datetime.today()
-    dol_jobs["Job Order Link"] = dol_jobs.apply(lambda job: "https://seasonaljobs.dol.gov/job-order/" + job["CASE_NUMBER"], axis=1)
+    dol_jobs["Job Order Link"] = dol_jobs.apply(lambda job: "https://api.seasonaljobs.dol.gov/job-order/" + job["CASE_NUMBER"], axis=1)
     dol_jobs['Visa type'] = dol_jobs.apply(lambda job: helpers.h2a_or_h2b(job), axis=1)
 
 

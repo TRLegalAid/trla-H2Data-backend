@@ -1,4 +1,4 @@
-"""Script which runs all necessary tasks once per day. This is the sript which is permanently running on Heroku (when the dyno is turned on)."""
+"""Script which runs all necessary tasks once per day. This is the script which is permanently running on Heroku (when the dyno is turned on)."""
 
 import time
 from apscheduler.schedulers.blocking import BlockingScheduler
@@ -32,7 +32,7 @@ def perform_task_and_catch_errors(task_function, task_name):
 
 
 def all_tasks():
-    perform_task_and_catch_errors(update_database, "UPDATING DATABASE")
+    # perform_task_and_catch_errors(update_database, "UPDATING DATABASE")
     perform_task_and_catch_errors(expand_abbreviations, "EXPANDING STATE ABBREVIATIONS")
     google_sheet_to_postgres_worked = perform_task_and_catch_errors(send_fixes_in_our_google_sheet_to_low_accuracies, "SENDING FIXES FROM GOOGLE SHEETS TO LOW ACCURACIES TABLE")
 
@@ -58,9 +58,12 @@ def perform_all_tasks():
 
 
 if __name__ == '__main__':
-    # performs all tasks at 1:00 am EST each day
-    # all_tasks()
-    sched = BlockingScheduler()
-    sched.add_job(all_tasks, 'interval', days=1, start_date='2020-09-09 01:00:00', timezone='US/Eastern')
-    # sched.add_job(perform_all_tasks, 'interval', minutes=1, start_date='2020-09-09 01:00:00', timezone='US/Eastern')
-    sched.start()
+
+    perform_all_tasks()
+
+    # # performs all tasks at 1:00 am EST each day
+    # # all_tasks()
+    # sched = BlockingScheduler()
+    # sched.add_job(all_tasks, 'interval', days=1, start_date='2020-09-09 01:00:00', timezone='US/Eastern')
+    # # sched.add_job(perform_all_tasks, 'interval', minutes=1, start_date='2020-09-09 01:00:00', timezone='US/Eastern')
+    # sched.start()

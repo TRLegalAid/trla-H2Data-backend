@@ -8,19 +8,21 @@ from column_name_mappings import column_name_mappings
 import pandas as pd
 from geocodio import GeocodioClient
 from dotenv import load_dotenv
+
 load_dotenv()
 
 geocodio_api_key, most_recent_run_url, date_of_run_url = os.getenv("GEOCODIO_API_KEY"), os.getenv("MOST_RECENT_RUN_URL"), os.getenv("DATE_OF_RUN_URL")
-engine, client = get_database_engine(force_cloud=False), GeocodioClient(geocodio_api_key)
+engine, client = get_database_engine(force_cloud=True), GeocodioClient(geocodio_api_key)
 
 # updates our postgreSQL database with the data from the most recent scraper run
 # to re-run the script, replace most_recent_run_url with the API url (in quotes!) for the Apify actor run dataset items that you want
 def update_database():
-    latest_jobs = requests.get(most_recent_run_url).json()
+    # latest_jobs = requests.get(most_recent_run_url).json()
 
-    # use these two lines if you're updating using a local csv file
-    # latest_jobs = pd.read_csv("dataset_apify-dol-actor-AJaB_2022-05-03_22-00-16-286.csv").drop(columns=["Unnamed: 0"])
-    # latest_jobs = latest_jobs.to_dict('records')
+    #use these two lines if you're updating using a local csv file
+    latest_jobs = pd.read_csv("2024_05_07_PATCHED.csv")
+
+    latest_jobs = latest_jobs.to_dict('records')
 
 
 
@@ -29,50 +31,50 @@ def update_database():
         return
     myprint(f"There are {len(latest_jobs)} new jobs.")
 
-    # use this version of parse function if updating data using a local csv file rather than an apify scraper run
-    # def parse(job):
-    #     column_mappings_dict = column_name_mappings
-    #     columns_names_dict = {"Section A": "Job Info", "Section C": "Place of Employment Info", "Section D":"Housing Info"}
-    #     parsed_job = {}
-    #     for key in job:
-    #         if "Section A" in key or "Section C" in key or "Section D" in key:
-    #             section = key.split("/")[0]
-    #             key_name = key.replace(section, columns_names_dict[section])
-    #             if key_name in column_mappings_dict:
-    #                 parsed_job[column_mappings_dict[key_name]] = job[key]
-    #             else:
-    #                 parsed_job[key_name] = job[key]
-    #         else:
-    #             if key in column_mappings_dict:
-    #                 parsed_job[column_mappings_dict[key]] = job[key]
-    #             else:
-    #                 parsed_job[key] = job[key]
-    #
-    #     return parsed_job
-
-    # given a dictionary `job` from the scraper data, returns another dictionary with keys modifed to match those in postgres
+   # use this version of parse function if updating data using a local csv file rather than an apify scraper run
     def parse(job):
-        # dictionary mapping apify column names to postgres column names
         column_mappings_dict = column_name_mappings
         columns_names_dict = {"Section A": "Job Info", "Section C": "Place of Employment Info", "Section D":"Housing Info"}
         parsed_job = {}
         for key in job:
-            if key not in ["Section D", "Section C", "Section A"]:
+            if "Section A" in key or "Section C" in key or "Section D" in key:
+                section = key.split("/")[0]
+                key_name = key.replace(section, columns_names_dict[section])
+                if key_name in column_mappings_dict:
+                    parsed_job[column_mappings_dict[key_name]] = job[key]
+                else:
+                    parsed_job[key_name] = job[key]
+            else:
                 if key in column_mappings_dict:
-                    # use the postgres column name
                     parsed_job[column_mappings_dict[key]] = job[key]
                 else:
                     parsed_job[key] = job[key]
-            else:
-                inner_dict = job[key]
-                for inner_key in inner_dict:
-                    key_name = columns_names_dict[key] + "/" + inner_key
-                    if key_name in column_mappings_dict:
-                        # use the postgres column name
-                        parsed_job[column_mappings_dict[key_name]] = inner_dict[inner_key]
-                    else:
-                        parsed_job[key_name] = inner_dict[inner_key]
+    
         return parsed_job
+
+    # # given a dictionary `job` from the scraper data, returns another dictionary with keys modifed to match those in postgres
+    # def parse(job):
+    #     # dictionary mapping apify column names to postgres column names
+    #     column_mappings_dict = column_name_mappings
+    #     columns_names_dict = {"Section A": "Job Info", "Section C": "Place of Employment Info", "Section D":"Housing Info"}
+    #     parsed_job = {}
+    #     for key in job:
+    #         if key not in ["Section D", "Section C", "Section A"]:
+    #             if key in column_mappings_dict:
+    #                 # use the postgres column name
+    #                 parsed_job[column_mappings_dict[key]] = job[key]
+    #             else:
+    #                 parsed_job[key] = job[key]
+    #         else:
+    #             inner_dict = job[key]
+    #             for inner_key in inner_dict:
+    #                 key_name = columns_names_dict[key] + "/" + inner_key
+    #                 if key_name in column_mappings_dict:
+    #                     # use the postgres column name
+    #                     parsed_job[column_mappings_dict[key_name]] = inner_dict[inner_key]
+    #                 else:
+    #                     parsed_job[key_name] = inner_dict[inner_key]
+    #     return parsed_job
 
     # get date of run for the last actor run
     date_of_run = requests.get(date_of_run_url).json()["data"]["finishedAt"]
@@ -136,6 +138,7 @@ def update_database():
     # geocode, split by accuracy, merge existing data with new data
     new_accurate_jobs, new_inaccurate_jobs = helpers.geocode_and_split_by_accuracy(full_jobs_df)
     helpers.merge_all_data(new_accurate_jobs, new_inaccurate_jobs)
+
 
 if __name__ == "__main__":
    update_database()

@@ -1,6 +1,7 @@
 """Script to update the status column in our database."""
 
 from helpers import make_query
+from sqlalchemy.sql import text
 
 # updates status column in PostgreSQL table named table_name
 def update_status_columns(table_name):

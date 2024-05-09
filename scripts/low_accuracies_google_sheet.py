@@ -79,13 +79,12 @@ def send_sheet_fixes_to_postgres(sheet):
     sheet_df["fixed"] = sheet_df["fixed"].astype('bool')
 
     for i, job in sheet_df.iterrows():
-        query = text(
-                """UPDATE low_accuracies SET
+        query = """UPDATE low_accuracies SET
                     (fixed, housing_lat, housing_long, "HOUSING_ADDRESS_LOCATION", "HOUSING_CITY",
                     "HOUSING_STATE", "HOUSING_POSTAL_CODE", notes, housing_fixed_by)
                      =
                      (:fixed, :lat, :long, :address, :city, :state, :zip, :notes, :fixed_by)
-                     WHERE id = :id""")
+                     WHERE id = :id"""
 
         with engine.connect() as connection:
             connection.execute(query, fixed=job["fixed"], lat=job["housing_lat"], long=job["housing_long"],

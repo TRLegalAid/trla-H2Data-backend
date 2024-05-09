@@ -12,6 +12,7 @@ import smtplib, ssl
 from datetime import datetime
 from pytz import timezone
 from sqlalchemy import create_engine
+from sqlalchemy.sql import text
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -395,8 +396,12 @@ def handle_previously_fixed(new_job, old_job, worksite_or_housing, set_fixed_to_
     return new_job, True
 
 def make_query(query):
+
     with engine.connect() as connection:
-        result = connection.execute(query)
+
+        result = connection.execute(text(query))
+        connection.commit()
+        
     return result
 
 # returns list of all case nums from job_central if accurate, else from low_accuracies

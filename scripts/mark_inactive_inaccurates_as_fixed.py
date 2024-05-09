@@ -2,6 +2,7 @@
 
 import pandas as pd
 from helpers import get_database_engine, make_query, myprint
+from sqlalchemy.sql import text
 engine = get_database_engine(force_cloud=True)
 
 def mark_inactive_central_as_fixed():
@@ -19,7 +20,7 @@ def mark_inactive_dolH_as_fixed():
     case_nums_list = acc_case_nums_statuses_df["CASE_NUMBER"].tolist() + inacc_case_nums_statuses_df["CASE_NUMBER"].tolist()
     assert len(case_nums_list) == len(set(case_nums_list))
 
-    all_case_nums_statuses_df = acc_case_nums_statuses_df.append(inacc_case_nums_statuses_df)
+    all_case_nums_statuses_df = pd.concat([acc_case_nums_statuses_df, inacc_case_nums_statuses_df])
 
     inaccurate_additional_housings = pd.read_sql("""select "id", "CASE_NUMBER" from low_accuracies where "table" = 'dol_h'""", con=engine)
     myprint(f"There are {len(inaccurate_additional_housings)} inaccurate additional housing rows.")
@@ -35,7 +36,8 @@ def mark_inactive_dolH_as_fixed():
             myprint(f"{job_case_num} has {len(central_job)} matching rows in the dataframe with all non dol_h case numbers. This should be impossible.")
         elif len(central_job) == 0:
             myprint(f"{job_case_num} has no matching rows in the dataframe with all non dol_h case numbers.")
-            case_nums_with_no_matches.append(job_case_num)
+            # case_nums_with_no_matches.append(job_case_num)
+            case_nums_with_no_matches = pd.concat([case_nums_with_no_matches, job_case_num])
         else:
             job_status = central_job["status"].tolist()[0]
             if job_status not in ["not yet started", "started"]:
