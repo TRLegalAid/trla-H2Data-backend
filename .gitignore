@@ -5,6 +5,11 @@ scripts/dol_data/*.xlsx
 scripts/update_data_types_AN.py
 scripts/add_columns_to_table_AN.py
 scripts/replace_job_order_links.py
+scripts/console_output_fy2025q2_h2a.txt.
 
 excel_files/dol_table_file_mappings SAMPLE.xlsx
 database_backups/
+
+sql/count_h2a_workers_dallam_county_active_in_may_2024.sql
+
+.vscode
