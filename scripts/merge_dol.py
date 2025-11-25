@@ -6,6 +6,8 @@ import helpers
 import pandas as pd
 from datetime import datetime
 from dotenv import load_dotenv
+from quarterly_column_mappings import RENAME_COLUMNS_DOL_H2A, RENAME_COLUMNS_DOL_H2B
+import traceback
 load_dotenv()
 
 # helpers.make_query("REFRESH MATERIALIZED VIEW previously_geocoded")
@@ -21,12 +23,7 @@ def geocode_manage_split_merge(dol_jobs, h2a=True):
         table = "dol_h2a"
 
         # rename columns to match our database
-        dol_jobs = dol_jobs.rename(columns={"FREQUENCY_OF_PAY": "Additional Wage Information", "H2A_LABOR_CONTRACTOR": "H-2A_LABOR_CONTRACTOR",
-                                            "HOURLY_WORK_SCHEDULE_START": "HOURLY_SCHEDULE_BEGIN", "HOURLY_WORK_SCHEDULE_END": "HOURLY_SCHEDULE_END",
-                                            "TOTAL_WORKERS_H2A_CERTIFIED": "TOTAL_WORKERS_H-2A_CERTIFIED", "790A_ADDENDUM_A_ATTACHED": "790A_addendum_a_attached",
-                                            "TOTAL_WORKERS_H2A_REQUESTED": "TOTAL_WORKERS_H-2A_REQUESTED", "JNT_EMPLOYER_APPEND_A_ATTACHED":"JOINT_EMPLOYER_APPENDIX_A_ATTACHED",
-                                            "TOTAL_WORKSITES_RECORDS":"TOTAL_WORKSITE_RECORDS", "SPECIAL_REQUIREMENTS": "ADDITIONAL_JOB_REQUIREMENTS",
-                                            "MEALS_CHARGE":"MEALS_CHARGED"})
+        dol_jobs = dol_jobs.rename(columns=RENAME_COLUMNS_DOL_H2A)
 
         # append 0's where necessary to zip code columns
         helpers.fix_zip_code_columns(dol_jobs, ["HOUSING_POSTAL_CODE", "EMPLOYER_POC_POSTAL_CODE", "EMPLOYER_POSTAL_CODE", "WORKSITE_POSTAL_CODE", "ATTORNEY_AGENT_POSTAL_CODE"])
@@ -41,10 +38,7 @@ def geocode_manage_split_merge(dol_jobs, h2a=True):
     else:
         myprint(f"Merging H-2B DOL data.")
         table = "dol_h2b"
-        dol_jobs = dol_jobs.rename(columns={"TOTAL_WORKERS_REQUESTED": "TOTAL_WORKERS_NEEDED", "WORKSITE_ADDRESS1": "WORKSITE_ADDRESS",
-                                            "SPECIAL_REQUIREMENTS": "ADDITIONAL_JOB_REQUIREMENTS", "ADDITIONAL_WAGE_CONDITIONS": "Additional Wage Information",
-                                            "ATTORNEY_AGENT_ADDRESS2": "ATTORNEY_AGENT_ADDRESS_2", "ATTORNEY_AGENT_ADDRESS1": "ATTORNEY_AGENT_ADDRESS_1",
-                                            "1ST_PWD_CASE_NUMBER":'1st_PWD_CASE_NUMBER', "2ND_PWD_CASE_NUMBER":"2nd_PWD_CASE_NUMBER", "3RD_PWD_CASE_NUMBER":"3rd_PWD_CASE_NUMBER"})
+        dol_jobs = dol_jobs.rename(columns=RENAME_COLUMNS_DOL_H2B)
 
         helpers.fix_zip_code_columns(dol_jobs, ["EMPLOYER_POC_POSTAL_CODE", "EMPLOYER_POSTAL_CODE", "WORKSITE_POSTAL_CODE", "ATTORNEY_AGENT_POSTAL_CODE"])
 
@@ -76,10 +70,13 @@ def geocode_manage_split_merge(dol_jobs, h2a=True):
     for column in columns_to_change_to_boolean:
         dol_jobs[column] = dol_jobs.apply(lambda job: yes_no_to_boolean(job[column]), axis=1)
 
+
     # geocode data, split by accuracy, merge into database
     myprint(f"There are {len(dol_jobs)} DOL jobs to merge.")
     accurate_dol_jobs, inaccurate_dol_jobs = helpers.geocode_and_split_by_accuracy(dol_jobs, table=table)
     helpers.merge_all_data(accurate_dol_jobs, inaccurate_dol_jobs)
+
+
 
 # merges DOL data from dataset specified by user input
 def merge_data():
