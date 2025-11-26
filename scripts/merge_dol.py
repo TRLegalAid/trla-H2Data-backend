@@ -94,35 +94,79 @@ def merge_data():
     file_path = "dol_data/" + input(f"Check that the DOL data file is in a folder named `dol_data` in the `scripts` folder. (If it isn't, exit this using control + c then re-run this script once you've done it.) Now enter the full name (including any extension) of the DOL file (this is case sensitive).\n").strip()
     input(f"Ok, merging {h2a_or_h2b} DOL data from {file_path}. If this is correct press any key, othewise press control + c to start over.")
 
-    dol_jobs = pd.read_excel(file_path, converters={'ATTORNEY_AGENT_PHONE':str,'ATTORNEY_AGENT_PHONE_EXT':str, 'PHONE_TO_APPLY':str,
-                                                                                        'SOC_CODE': str, 'NAICS_CODE': str, 'EMPLOYER_POC_PHONE': str, 'EMPLOYER_PHONE': str,
-                                                                                        'EMPLOYER_POC_PHONE_EXT': str, 'EMPLOYER_PHONE_EXT': str})
+    dol_jobs = pd.read_excel(file_path, converters={'ATTORNEY_AGENT_PHONE':str,'ATTORNEY_AGENT_PHONE_EXT':str, 
+                                                    'PHONE_TO_APPLY':str,
+                                                    'SOC_CODE': str, 
+                                                    'NAICS_CODE': str, 
+                                                    'EMPLOYER_POC_PHONE': str, 
+                                                    'EMPLOYER_PHONE': str,
+                                                    'EMPLOYER_POC_PHONE_EXT': str, 
+                                                    'EMPLOYER_PHONE_EXT': str})
+    
+    print(f"Length of dol_jobs is {len(dol_jobs)}")
+    dol_jobs_clean = dol_jobs[dol_jobs['CASE_NUMBER'].notna() & (dol_jobs['CASE_NUMBER'] != "")]
+    print(f"Length of dol_jobs_clean is {len(dol_jobs_clean)}")
+    
+    geocode_manage_split_merge(dol_jobs_clean, h2a=is_h2a)
 
-    def make_int_list(start, end):
-        return [i for i in range(start, end + 1)]
 
-    start = 0
-    while True:
-        end = start + 100
-        if end < len(dol_jobs):
-            indices_list = make_int_list(start, end)
-            print(f"DOING ROWS {start} TO {end}.")
-            try:
-                geocode_manage_split_merge(dol_jobs.iloc[indices_list], h2a=is_h2a)
-                print(f"SUCCESSFULLY DID ROWS {start} to {end}.")
-            except:
-                print(f"FAILED TO DO ROWS {start} to {end}.")
-            start = end + 1
-        else:
-            end = len(dol_jobs) - 1
-            indices_list = make_int_list(start, end)
-            print(f"DOING ROWS {start} TO {end}.")
-            try:
-                geocode_manage_split_merge(dol_jobs.iloc[indices_list], h2a=is_h2a)
-                print(f"SUCCESSFULLY DID ROWS {start} to {end}.")
-            except:
-                print(f"FAILED TO DO ROWS {start} to {end}.")
-            break
+    # # -------- Process in batches
+    # failures = []
+    # batch_size = 100
+
+    # for start in range(0, len(dol_jobs_clean), batch_size):
+    #     end = min(start + batch_size - 1, len(dol_jobs) - 1)
+    #     indices = list(range(start, end + 1))
+
+    #     print(f"Processing rows {start} to {end}.")
+
+    #     batch_df = dol_jobs.iloc[indices].copy()
+    #     # batch_df["APPENDIX_C_ATTACHED"] = batch_df["APPENDIX_C_ATTACHED"].fillna("N")
+
+    #     try: 
+    #         geocode_manage_split_merge(dol_jobs_clean.iloc[indices], h2a=is_h2a)
+    #         print(f"Succesfully processed rows {start} to {end}.")
+    #     except Exception as e: 
+    #         error_msg = traceback.format_exc()
+    #         print(f"Failed to process rows {start} to {end}. Error: {e}")
+    #         failures.append((start, end, error_msg))
+
+
+    # # ----- Log failures
+    # if failures: 
+    #     with open("failures.log", "w") as f:
+    #         for start, end, error_msg in failures:
+    #             f.write(f"Failed rows {start} to {end}\n{error_msg}\n{'-'*60}\n")
+    #     print(f"\n Completed with {len(failures)} failures. See failures.log for details.")
+    # else:
+    #     print("\n Completed with no failures.")
+
+
+    # def make_int_list(start, end):
+    #     return [i for i in range(start, end + 1)]
+
+    # start = 0
+    # while True:
+    #     end = start + 100
+    #     if end < len(dol_jobs):
+    #         indices_list = make_int_list(start, end)
+    #         print(f"DOING ROWS {start} TO {end}.")
+    #         try:
+    #             geocode_manage_split_merge(dol_jobs.iloc[indices_list], h2a=is_h2a)
+    #             print(f"SUCCESSFULLY DID ROWS {start} to {end}.")
+    #         except Exception as e:
+    #             print(f"FAILED TO DO ROWS {start} to {end}. Error message: {e}")
+    #         start = end + 1
+    #     else:
+    #         end = len(dol_jobs) - 1
+    #         indices_list = make_int_list(start, end)
+    #         print(f"DOING ROWS {start} TO {end}.")
+    #         try:
+    #             geocode_manage_split_merge(dol_jobs.iloc[indices_list], h2a=is_h2a)
+    #             print(f"SUCCESSFULLY DID ROWS {start} to {end}.")
+    #         except Exception as e:
+    #             print(f"FAILED TO DO ROWS {start} to {end}. Error message: {e}")
+    #         break
 
     # geocode_manage_split_merge(dol_jobs, h2a=is_h2a)
 
