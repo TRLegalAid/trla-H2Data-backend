@@ -25,15 +25,21 @@ json_engine = create_engine(os.getenv("JSON_DATABASE_URL"))
 
 # 1) Identify list of case numbers in JSON that are not in TRLA based on: JSON date_acceptance_ltr_issued and TRLA "Date of run" 
 
-json_h2a = pd.read_sql(f"""SELECT case_number, date_acceptance_ltr_issued_ymd FROM h2a WHERE date_acceptance_ltr_issued_ymd >='2024-01-03'""", con=json_engine)
+json_h2a = pd.read_sql(f"""SELECT case_number, date_acceptance_ltr_issued_ymd FROM h2a WHERE date_acceptance_ltr_issued_ymd >='2024-08-03'""", con=json_engine)
 
-trla_h2a = pd.read_sql(f"""SELECT DISTINCT "CASE_NUMBER", "Date of run" FROM raw_scraper_jobs WHERE "Date of run" >= '2024-01-03' AND "Visa type" = 'H-2A'""", con=engine)
+trla_h2a = pd.read_sql(f"""SELECT DISTINCT "CASE_NUMBER", "Date of run" FROM raw_scraper_jobs WHERE "Date of run" >= '2024-08-03' AND "Visa type" = 'H-2A'""", con=engine)
 
 merged = pd.merge(json_h2a, trla_h2a, left_on='case_number', right_on='CASE_NUMBER', how='left', indicator=True)
 
 missing_h2a = merged[merged['_merge'] == 'left_only'].drop(columns='_merge')
 
 case_numbers = tuple(missing_h2a['case_number'])
+
+# Convert the list to a DataFrame
+case_numbers_df = pd.DataFrame(case_numbers, columns=['Case ID'])
+
+# Export the DataFrame to a CSV file
+case_numbers_df.to_csv('h2a_case_numbers_for_patch_112425.csv', index=False)
 
 
 
@@ -53,8 +59,8 @@ json_h2a_for_patch = pd.read_sql(json_h2a_read_query, con=json_engine, params=ca
 
 # What's the full set of columns that the original update_database.py script expects?
 # What values are typically there in the other columns for h2b records?
-
-jobs_for_patch = pd.DataFrame(columns=apify_data_fields.keys())
+num_rows = len(json_h2a_for_patch)
+jobs_for_patch = pd.DataFrame(columns=apify_data_fields.keys(), index=range(num_rows))
 
 
 # 3) Build the dictionary of jobs to run parse() on
@@ -62,12 +68,27 @@ jobs_for_patch = pd.DataFrame(columns=apify_data_fields.keys())
 # set the target column of our new df to the value of the source column in every row in the json_h2b_for_patch df
 # if the target column is not listed in our key mapping, set the value in the new df to None
 
-for target_col, source_col in key_mapping_h2a.items(): 
-    jobs_for_patch[target_col] = json_h2a_for_patch.apply(lambda row: row[source_col], axis=1)
 
-for col in jobs_for_patch.columns:
-    if col not in key_mapping_h2a.keys():
-        jobs_for_patch[col] = None
+print(jobs_for_patch.shape)
+print(json_h2a_for_patch.shape)
+
+for target_col, source_col in key_mapping_h2a.items(): 
+    if source_col in json_h2a_for_patch.columns: 
+        print(f"Mapping {target_col} to {source_col}")
+        print(f"Length of json_h2a_for_patch[{source_col}]: {len(json_h2a_for_patch[source_col])}")
+        print(f"Length of jobs_for_patch[{target_col}] (before assignment): {len(jobs_for_patch)}")
+        jobs_for_patch[target_col] = json_h2a_for_patch[source_col]
+        print(f"Length of jobs_for_patch[{target_col}] (after assignment): {len(jobs_for_patch[target_col])}")
+
+    else:
+        print(f"Source column {source_col} not found in json_h2a_for_patch")
+    # jobs_for_patch[target_col] = json_h2a_for_patch.apply(lambda row: row[source_col], axis=1)
+
+
+
+# for col in jobs_for_patch.columns:
+#     if col not in key_mapping_h2a.keys():
+#         jobs_for_patch[col] = None
 
 latest_jobs = jobs_for_patch.to_dict('records')
 
@@ -108,10 +129,17 @@ def add_necessary_columns(job):
         job["Source"], job["table"] = "JSON", "central"
         job["Date of run"] = date_of_run
 
-        case_number = job['CASE_NUMBER']
+        case_number = job['CASE_NUMBER'].lstrip()
 
         job['Job Order Link'] = f"https://api.seasonaljobs.dol.gov/job-order/{case_number}"
         job['Job Summary Link'] = f"https://seasonaljobs.dol.gov/jobs/{case_number}"
+
+        # Handle specific columns that are not formatted the same way in the JSON
+        job['Experience Required'] = job['clearance_order_minexpmonths'] > 0 
+        job['Number of Pages'] = None
+        job['Additional Wage Information'] = job['clearance_order_job_special_pay_info']
+
+
 
 
         if helpers.h2a_or_h2b(job) == "H-2A":

@@ -8,6 +8,7 @@ from column_name_mappings import column_name_mappings
 import pandas as pd
 from geocodio import GeocodioClient
 from dotenv import load_dotenv
+from datetime import datetime
 
 load_dotenv()
 
@@ -20,7 +21,7 @@ def update_database():
     # latest_jobs = requests.get(most_recent_run_url).json()
 
     #use these two lines if you're updating using a local csv file
-    latest_jobs = pd.read_csv("2024_05_07_PATCHED.csv")
+    latest_jobs = pd.read_csv("2025_11_24_PATCHED.csv")
 
     latest_jobs = latest_jobs.to_dict('records')
 
@@ -77,12 +78,13 @@ def update_database():
     #     return parsed_job
 
     # get date of run for the last actor run
-    date_of_run = requests.get(date_of_run_url).json()["data"]["finishedAt"]
+    # date_of_run = requests.get(date_of_run_url).json()["data"]["finishedAt"]
+    date_of_run = datetime.today()
 
     # adds caclulated fields to the dictionary job
     def add_necessary_columns(job):
         # add source and date of run column
-        job["Source"], job["table"] = "Apify", "central"
+        job["Source"], job["table"] = "JSON", "central"
         job["Date of run"] = date_of_run
 
         if helpers.h2a_or_h2b(job) == "H-2A":
@@ -125,20 +127,33 @@ def update_database():
     full_jobs = [add_necessary_columns(job) for job in parsed_jobs]
     full_jobs_df = pd.DataFrame(full_jobs).drop_duplicates(subset="CASE_NUMBER", keep="last")
 
+    # Remove leading/trailing whitespace before date conversions
+    full_jobs_df = full_jobs_df.map(lambda x: x.strip() if isinstance(x, str) else x)
+
     # convert date columns to type datetime
     date_columns = ["RECEIVED_DATE", "EMPLOYMENT_END_DATE", "EMPLOYMENT_BEGIN_DATE", "Date of run"]
     for column in date_columns:
         full_jobs_df[column] = pd.to_datetime(full_jobs_df[column], errors='coerce')
 
-    # add data as is to raw_scraper_jobs table
-    full_raw_jobs = full_jobs_df.drop(columns=["table"])
-    full_raw_jobs.to_sql("raw_scraper_jobs", engine, if_exists="append", index=False)
-    myprint("Uploaded raw scraper jobs to PostgreSQL")
+    # If there are any NaT values in EMPLOYMENT_END_DATE or EMPLOYMENT_BEGIN_DATE, export the .csv, do not continue
+    null_dates_check = full_jobs_df.query('EMPLOYMENT_BEGIN_DATE != EMPLOYMENT_BEGIN_DATE')
 
-    # geocode, split by accuracy, merge existing data with new data
-    new_accurate_jobs, new_inaccurate_jobs = helpers.geocode_and_split_by_accuracy(full_jobs_df)
-    helpers.merge_all_data(new_accurate_jobs, new_inaccurate_jobs)
+    if len(null_dates_check) == 0: 
 
+        myprint("No missing dates!")
+
+        # add data as is to raw_scraper_jobs table
+        full_raw_jobs = full_jobs_df.drop(columns=["table"])
+        full_raw_jobs.to_sql("raw_scraper_jobs", engine, if_exists="append", index=False)
+        myprint("Uploaded raw scraper jobs to PostgreSQL")
+
+        # geocode, split by accuracy, merge existing data with new data
+        new_accurate_jobs, new_inaccurate_jobs = helpers.geocode_and_split_by_accuracy(full_jobs_df)
+        helpers.merge_all_data(new_accurate_jobs, new_inaccurate_jobs)
+
+    else:
+        myprint("There are NaT values in the EMPLOYMENT_END_DATE column. Writing full_jobs_df to .csv file for inspection.")
+        full_jobs_df.to_csv('full_jobs_df.csv')
 
 if __name__ == "__main__":
    update_database()

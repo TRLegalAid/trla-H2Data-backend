@@ -32,14 +32,14 @@ def perform_task_and_catch_errors(task_function, task_name):
 
 
 def all_tasks():
-    # perform_task_and_catch_errors(update_database, "UPDATING DATABASE")
-    perform_task_and_catch_errors(expand_abbreviations, "EXPANDING STATE ABBREVIATIONS")
-    google_sheet_to_postgres_worked = perform_task_and_catch_errors(send_fixes_in_our_google_sheet_to_low_accuracies, "SENDING FIXES FROM GOOGLE SHEETS TO LOW ACCURACIES TABLE")
+    # # perform_task_and_catch_errors(update_database, "UPDATING DATABASE")
+            perform_task_and_catch_errors(expand_abbreviations, "EXPANDING STATE ABBREVIATIONS")
+            google_sheet_to_postgres_worked = perform_task_and_catch_errors(send_fixes_in_our_google_sheet_to_low_accuracies, "SENDING FIXES FROM GOOGLE SHEETS TO LOW ACCURACIES TABLE")
 
-    # without this condition an error in the previous task would cause all fixes made in the google sheet to be lost
-    if google_sheet_to_postgres_worked:
-        implementing_fixes_worked = perform_task_and_catch_errors(send_fixes_to_postgres, "IMPLEMENTING FIXES")
-        if implementing_fixes_worked:
+    # # without this condition an error in the previous task would cause all fixes made in the google sheet to be lost
+    # if google_sheet_to_postgres_worked:
+    #     implementing_fixes_worked = perform_task_and_catch_errors(send_fixes_to_postgres, "IMPLEMENTING FIXES")
+    #     if implementing_fixes_worked:
             perform_task_and_catch_errors(update_status_columns_both_tables, "UPDATING STATUS COLUMNS")
             perform_task_and_catch_errors(update_halfway_columns, "UPDATING HALFWAY COLUMNS")
             perform_task_and_catch_errors(mark_all_inactive_low_accurates_as_fixed, "MARKING INACTIVE INACCURATES AS FIXED")
@@ -49,7 +49,7 @@ def all_tasks():
             perform_task_and_catch_errors(replace_our_google_sheet_with_low_accuracies_table, "REPLACING OUR GOOGLE SHEET WITH LOW ACCURACIES TABLE")
 
     # perform_task_and_catch_errors(overwrite_our_feature, "OVERWRITING ARCGIS FEATURE")
-    overwrite_our_feature()
+            overwrite_our_feature()
 
 
 def perform_all_tasks():
