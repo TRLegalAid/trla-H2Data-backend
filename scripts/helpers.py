@@ -252,7 +252,7 @@ def geocode_table(df, worksite_or_housing, check_previously_geocoded=False):
         myprint(f"Finished geocoding {worksite_or_housing}.")
 
     if check_previously_geocoded:
-        df = df.append(previously_geocoded)
+        df = pd.concat([df, previously_geocoded], ignore_index=True)
 
     # # uncomment to save excel file with geocoding results
     # # NOTE: that when running this chunk on a Windows machine, I got a ValueError: Invalid format string
